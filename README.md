@@ -883,3 +883,43 @@ SKIP_KLINES=1 python3 build_merged.py  # 日K分片/压制股日K未变化时跳
 - 沙箱长时间无人访问会休眠，休眠期间定时线程不跑；唤醒时由「启动补抓」兜底，所以最坏情况是「你打开页面后 1~2 分钟内数据自动补齐」，而不是「永远停在昨天」；
 - 若要在无人访问时也严格 16:30 抓取，需要常驻托管（不休眠）或外部定时器调 `POST /api/refresh`，这取决于托管平台的休眠策略；
 - 淘股吧正文是图片，OCR 依赖 `rapidocr`；若某天主贴只有「消息汇总」没有复盘表，脚本会持续 `waiting`，不会写入错误数据。
+
+## 28. GitHub 仓库与「实时抓取」部署（v34）
+
+仓库：`https://github.com/hw2421/a-share-review`（私有，分支 `main`）。
+
+### 28.1 仓库内容（约 165 MB）
+
+- 全部源码（`app.py` / `hunan_poll.py` / `strategies.py` / `update_daily.py` / `build_merged.py` 等）；
+- 全量数据与站点：`data.json`（15M）、`data.js`（3M）、`index.html`、`klines/`（121M 日K分片）、`echarts.min.js`；
+- 构建依赖的中间数据：`.pool_cache.json`、`.excel_cache.json`、`.theme_articles.json`、`.hunan_boards.json`、`.theme_backfill.json`、`.ocr_cache.json`；
+- 部署配置：`requirements.txt`（flask）、`Procfile`、`render.yaml`；
+- `.gitignore` 排除了 396M/39M/16M/11M 的运行时缓存与全部备份、日志。
+
+### 28.2 在自己的电脑/服务器上「实时抓取」（推荐）
+
+```bash
+git clone https://github.com/hw2421/a-share-review.git
+cd a-share-review
+pip install -r requirements.txt        # 可选：pip install rapidocr_onnxruntime 启用淘股吧图片OCR
+python3 app.py                         # 默认 8000 端口，或 PORT=8000 python3 app.py
+```
+
+打开 `http://127.0.0.1:8000` 即站点。内置调度随即生效：
+
+- 工作日 16:30–23:59 每 30 分钟检查湖南人主贴（淘股吧优先、微博兜底），抓到即重建，成功即停；
+- 进程启动时窗口内会先补抓一次；
+- 工作日 09:25–15:10 每 30 分钟盘中刷新活跃股日K；
+- 页面「⟳ 刷新」走 `POST /api/refresh` 手动触发。
+
+机器不休眠 ⇒ 无人值守也能每天自动更新，这正是「实时抓取」的正解。
+
+### 28.3 云端部署（Render 免费层）
+
+`render.yaml` 已备好：`pip install -r requirements.txt` + `python3 app.py`，健康检查 `/api/status`。免费实例 15 分钟无流量会休眠，需要外部保活（如 cron-job.org 每 5~10 分钟 `GET /api/status`），保活同时会触发启动补抓。
+
+### 28.4 注意
+
+- `.gitignore` 排除的大缓存（`.stock_kline_cache.json` 等）不影响站点运行；只有「重建全量日K分片」才需要它们，日常增量不需要；
+- `data.json`/`data.js`/`klines/` 是站点运行数据，随提交更新；日常构建后记得 `git commit && git push` 同步；
+- 访问令牌不要写进仓库或文档，用完应立即在 GitHub → Settings → Developer settings → Tokens 撤销轮换。
