@@ -1,0 +1,25 @@
+# ---- 运行时大缓存（可由代码重建，严禁入库）----
+.stock_kline_cache.json
+.sup_kline_cache.json
+.kline_cache.json
+.xlsx_ocr_cache.json
+
+# ---- 历史备份 ----
+*.bak
+*.bak.*
+data_v*.bak.*
+index_v*.bak.html
+*_v*.bak.py
+
+# ---- 日志 / 临时 / 运行时状态 ----
+*.log
+__pycache__/
+*.pyc
+.app_test*
+.sched_status.json
+.hunan_poll.json
+.hunan_watch.json
+.update_status.json
+.refresh_status.json
+.build.lock
+.update_heartbeat

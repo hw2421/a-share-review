@@ -1,0 +1,3888 @@
+{
+ "20260928": {
+  "themes": [],
+  "overview": {
+   "zt_amt": 227,
+   "zb_amt": 104,
+   "zt": 33,
+   "zb": 11,
+   "dt": 56,
+   "first": 26,
+   "lianban": 7,
+   "max_board": 5
+  },
+  "src": "https://www.tgb.cn/a/2vsBxtkmSqI",
+  "imgs": 10
+ },
+ "20260929": {
+  "themes": [
+   {
+    "name": "电池产业链",
+    "count": 10,
+    "amount": 31.0,
+    "stocks": [
+     {
+      "code": "600241",
+      "name": "时代万恒",
+      "boards": 2,
+      "reason": "锂电池",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "603200",
+      "name": "上海洗霸",
+      "boards": 1,
+      "reason": "固态电池",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "301513",
+      "name": "尚水智能",
+      "boards": 1,
+      "reason": "固态电池",
+      "time": "9:37",
+      "hunan": true
+     },
+     {
+      "code": "002866",
+      "name": "传艺科技",
+      "boards": 1,
+      "reason": "",
+      "time": "9:36",
+      "hunan": false
+     },
+     {
+      "code": "301513",
+      "name": "尚水智能",
+      "boards": 1,
+      "reason": "固态电池",
+      "time": "9:37",
+      "hunan": true
+     },
+     {
+      "code": "002074",
+      "name": "国轩高科",
+      "boards": 1,
+      "reason": "",
+      "time": "9:37",
+      "hunan": false
+     },
+     {
+      "code": "002882",
+      "name": "金龙羽",
+      "boards": 1,
+      "reason": "",
+      "time": "9:39",
+      "hunan": false
+     },
+     {
+      "code": "002058",
+      "name": "紫竹高科",
+      "boards": 1,
+      "reason": "固态电池铝塑膜",
+      "time": "9:40",
+      "hunan": true
+     },
+     {
+      "code": "002846",
+      "name": "英联股份",
+      "boards": 1,
+      "reason": "固态电池铜箔",
+      "time": "9:42",
+      "hunan": true
+     },
+     {
+      "code": "000068",
+      "name": "华控赛格",
+      "boards": 1,
+      "reason": "锂电负极",
+      "time": "10:08",
+      "hunan": true
+     },
+     {
+      "code": "600152",
+      "name": "维科技术",
+      "boards": 1,
+      "reason": "钠电池",
+      "time": "11:11",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "AI应用",
+    "count": 5,
+    "amount": 21.0,
+    "stocks": [
+     {
+      "code": "002912",
+      "name": "中新赛克",
+      "boards": 2,
+      "reason": "",
+      "time": "10:08",
+      "hunan": true
+     },
+     {
+      "code": "002799",
+      "name": "环球印务",
+      "boards": 1,
+      "reason": "AI应用",
+      "time": "10:07",
+      "hunan": true
+     },
+     {
+      "code": "603636",
+      "name": "南威软件",
+      "boards": 1,
+      "reason": "",
+      "time": "10:14",
+      "hunan": true
+     },
+     {
+      "code": "603598",
+      "name": "引力传媒",
+      "boards": 1,
+      "reason": "AI应用",
+      "time": "11:19",
+      "hunan": true
+     },
+     {
+      "code": "603602",
+      "name": "纵横通信",
+      "boards": 1,
+      "reason": "AI营销",
+      "time": "13:45",
+      "hunan": true
+     },
+     {
+      "code": "603598",
+      "name": "引力传媒",
+      "boards": 1,
+      "reason": "AI应用",
+      "time": "11:19",
+      "hunan": true
+     },
+     {
+      "code": "603602",
+      "name": "纵横通信",
+      "boards": 1,
+      "reason": "AI营销",
+      "time": "13:45",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "大消费",
+    "count": 6,
+    "amount": 13.0,
+    "stocks": [
+     {
+      "code": "002242",
+      "name": "九阳股份",
+      "boards": 2,
+      "reason": "小家电",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "600189",
+      "name": "泉阳泉",
+      "boards": 1,
+      "reason": "@TGB湖南",
+      "time": "9:32",
+      "hunan": true
+     },
+     {
+      "code": "002494",
+      "name": "华斯股份",
+      "boards": 1,
+      "reason": "零售",
+      "time": "10:23",
+      "hunan": true
+     },
+     {
+      "code": "603630",
+      "name": "拉芳家化",
+      "boards": 1,
+      "reason": "日化龙头",
+      "time": "14:11",
+      "hunan": true
+     },
+     {
+      "code": "605198",
+      "name": "安德利",
+      "boards": 1,
+      "reason": "浓缩果汁+覆铜板",
+      "time": "14:21",
+      "hunan": true
+     },
+     {
+      "code": "605388",
+      "name": "均瑶健康",
+      "boards": 1,
+      "reason": "减重益生菌",
+      "time": "14:31",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "房地产",
+    "count": 6,
+    "amount": 54.0,
+    "stocks": [
+     {
+      "code": "000011",
+      "name": "深物业A",
+      "boards": 2,
+      "reason": "地产",
+      "time": "9:39",
+      "hunan": true
+     },
+     {
+      "code": "600657",
+      "name": "信达地产",
+      "boards": 1,
+      "reason": "房地产开发",
+      "time": "9:43",
+      "hunan": true
+     },
+     {
+      "code": "000036",
+      "name": "华联控股",
+      "boards": 1,
+      "reason": "房地产开发",
+      "time": "9:45",
+      "hunan": true
+     },
+     {
+      "code": "002244",
+      "name": "滨江集团",
+      "boards": 1,
+      "reason": "杭州房地产",
+      "time": "11:21",
+      "hunan": true
+     },
+     {
+      "code": "000002",
+      "name": "万科A",
+      "boards": 1,
+      "reason": "房地产",
+      "time": "14:07",
+      "hunan": true
+     },
+     {
+      "code": "600325",
+      "name": "华发股份",
+      "boards": 1,
+      "reason": "@TGB湖南",
+      "time": "14:15",
+      "hunan": false
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "传媒",
+    "count": 5,
+    "amount": 26.0,
+    "stocks": [
+     {
+      "code": "600825",
+      "name": "新华传媒",
+      "boards": 6,
+      "reason": "拟收购界面财联社",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "603533",
+      "name": "掌阅科技",
+      "boards": 1,
+      "reason": "AI短剧",
+      "time": "10:06",
+      "hunan": true
+     },
+     {
+      "code": "601811",
+      "name": "新华文轩",
+      "boards": 1,
+      "reason": "",
+      "time": "11:09",
+      "hunan": true
+     },
+     {
+      "code": "000607",
+      "name": "华媒控股",
+      "boards": 1,
+      "reason": "",
+      "time": "11:10",
+      "hunan": true
+     },
+     {
+      "code": "000607",
+      "name": "华媒控股",
+      "boards": 1,
+      "reason": "",
+      "time": "11:10",
+      "hunan": true
+     },
+     {
+      "code": "601949",
+      "name": "中国出版",
+      "boards": 1,
+      "reason": "AI出版",
+      "time": "13:23",
+      "hunan": true
+     }
+    ],
+    "maxB": 6
+   }
+  ],
+  "overview": {
+   "zt_amt": 290,
+   "zb_amt": 66,
+   "zt": 56,
+   "zb": 8,
+   "dt": 10,
+   "first": 46,
+   "lianban": 10,
+   "max_board": 6
+  },
+  "src": "https://www.tgb.cn/a/2vugcQvJe8u",
+  "imgs": 7
+ },
+ "20260930": {
+  "themes": [
+   {
+    "name": "大消费",
+    "count": 7,
+    "amount": 23.0,
+    "stocks": [
+     {
+      "code": "002242",
+      "name": "九阳股份",
+      "boards": 3,
+      "reason": "小家电",
+      "time": "9:49",
+      "hunan": true
+     },
+     {
+      "code": "605388",
+      "name": "均瑶健康",
+      "boards": 2,
+      "reason": "减重益生菌+乳酸菌饮品",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "001206",
+      "name": "依依股份",
+      "boards": 1,
+      "reason": "卫生用品",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "600059",
+      "name": "古越龙山",
+      "boards": 1,
+      "reason": "黄酒",
+      "time": "10:18",
+      "hunan": true
+     },
+     {
+      "code": "002419",
+      "name": "天虹股份",
+      "boards": 1,
+      "reason": "零售百货",
+      "time": "13:08",
+      "hunan": true
+     },
+     {
+      "code": "001318",
+      "name": "阳光乳业",
+      "boards": 1,
+      "reason": "乳制品",
+      "time": "13:20",
+      "hunan": true
+     },
+     {
+      "code": "603919",
+      "name": "金徽酒",
+      "boards": 1,
+      "reason": "1",
+      "time": "13:38",
+      "hunan": false
+     }
+    ],
+    "maxB": 3
+   },
+   {
+    "name": "电池产业链",
+    "count": 7,
+    "amount": 29.0,
+    "stocks": [
+     {
+      "code": "600241",
+      "name": "时代万恒",
+      "boards": 3,
+      "reason": "锂电池",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "002058",
+      "name": "紫竹高科",
+      "boards": 2,
+      "reason": "固态电池铝塑膜",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "002866",
+      "name": "传艺科技",
+      "boards": 2,
+      "reason": "固态电池",
+      "time": "9:39",
+      "hunan": true
+     },
+     {
+      "code": "603200",
+      "name": "上海洗霸",
+      "boards": 1,
+      "reason": "",
+      "time": "10:37",
+      "hunan": false
+     },
+     {
+      "code": "002866",
+      "name": "传艺科技",
+      "boards": 2,
+      "reason": "固态电池",
+      "time": "9:39",
+      "hunan": true
+     },
+     {
+      "code": "603200",
+      "name": "上海洗霸",
+      "boards": 2,
+      "reason": "固态电池",
+      "time": "10:37",
+      "hunan": true
+     },
+     {
+      "code": "002388",
+      "name": "新亚制程",
+      "boards": 1,
+      "reason": "固态电池",
+      "time": "9:32",
+      "hunan": true
+     },
+     {
+      "code": "002454",
+      "name": "松芝股份",
+      "boards": 1,
+      "reason": "电池热管理",
+      "time": "10:07",
+      "hunan": true
+     },
+     {
+      "code": "603906",
+      "name": "龙蟠科技",
+      "boards": 1,
+      "reason": "固态电池前驱体",
+      "time": "10:17",
+      "hunan": true
+     }
+    ],
+    "maxB": 3
+   }
+  ],
+  "overview": {
+   "zt_amt": 218,
+   "zb_amt": 147,
+   "zt": 52,
+   "zb": 12,
+   "dt": 10,
+   "first": 40,
+   "lianban": 12,
+   "max_board": 7
+  },
+  "src": "https://www.tgb.cn/a/2vvUvrQRnAv",
+  "imgs": 5
+ },
+ "20261008": {
+  "themes": [
+   {
+    "name": "锂电池",
+    "count": 9,
+    "amount": 57.0,
+    "stocks": [
+     {
+      "code": "600241",
+      "name": "时代万恒",
+      "time": "9:31",
+      "boards": 4,
+      "reason": "锂电池"
+     },
+     {
+      "code": "002058",
+      "name": "紫竹高科",
+      "time": "9:30",
+      "boards": 3,
+      "reason": "固态电池铝塑膜"
+     },
+     {
+      "code": "002866",
+      "name": "传艺科技",
+      "time": "9:38",
+      "boards": 3,
+      "reason": "固态电池"
+     },
+     {
+      "code": "603200",
+      "name": "上海洗霸",
+      "time": "14:45",
+      "boards": 3,
+      "reason": "固态电池"
+     },
+     {
+      "code": "603906",
+      "name": "龙蟠科技",
+      "time": "14:35",
+      "boards": 2,
+      "reason": "固态电池前驱体"
+     },
+     {
+      "code": "002733",
+      "name": "雄韬股份",
+      "time": "9:36",
+      "boards": 1,
+      "reason": "固态电池"
+     },
+     {
+      "code": "605378",
+      "name": "野马电池",
+      "time": "9:53",
+      "boards": 1,
+      "reason": "锌锰电池"
+     },
+     {
+      "code": "002805",
+      "name": "丰元股份",
+      "time": "9:55",
+      "boards": 1,
+      "reason": "磷酸铁锂"
+     },
+     {
+      "code": "300530",
+      "name": "领湃科技",
+      "time": "14:25",
+      "boards": 1,
+      "reason": "固态电池"
+     }
+    ],
+    "maxB": 4
+   },
+   {
+    "name": "大消费",
+    "count": 8,
+    "amount": 16.0,
+    "stocks": [
+     {
+      "code": "002242",
+      "name": "九阳股份",
+      "time": "9:25",
+      "boards": 4,
+      "reason": "小家电"
+     },
+     {
+      "code": "603863",
+      "name": "松炀资源",
+      "time": "9:37",
+      "boards": 1,
+      "reason": "造纸"
+     },
+     {
+      "code": "002687",
+      "name": "乔治白",
+      "time": "9:37",
+      "boards": 1,
+      "reason": "职业服装"
+     },
+     {
+      "code": "001300",
+      "name": "三柏硕",
+      "time": "9:45",
+      "boards": 1,
+      "reason": "健身器材"
+     },
+     {
+      "code": "601956",
+      "name": "东贝集团",
+      "time": "9:49",
+      "boards": 1,
+      "reason": "蜜雪冰城供应"
+     },
+     {
+      "code": "000869",
+      "name": "张裕Ａ",
+      "time": "10:43",
+      "boards": 1,
+      "reason": "葡萄酒"
+     },
+     {
+      "code": "002702",
+      "name": "海欣食品",
+      "time": "13:31",
+      "boards": 1,
+      "reason": "速冻食品"
+     },
+     {
+      "code": "603073",
+      "name": "彩蝶实业",
+      "time": "14:55",
+      "boards": 1,
+      "reason": "涤纶纺织"
+     }
+    ],
+    "maxB": 4
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5351791671642220.html",
+  "via": "weibo",
+  "postTime": "2026-10-08 17:00"
+ },
+ "20261009": {
+  "themes": [
+   {
+    "name": "大消费",
+    "count": 11,
+    "amount": 59.0,
+    "stocks": [
+     {
+      "code": "002242",
+      "name": "九阳股份",
+      "boards": 5,
+      "reason": "小家电",
+      "time": "13:28",
+      "hunan": true
+     },
+     {
+      "code": "001300",
+      "name": "三柏硕",
+      "boards": 2,
+      "reason": "健身器材",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "605136",
+      "name": "丽人丽妆",
+      "boards": 1,
+      "reason": "化妆品零售",
+      "time": "9:33",
+      "hunan": true
+     },
+     {
+      "code": "601086",
+      "name": "国芳集团",
+      "boards": 1,
+      "reason": "连锁百货",
+      "time": "10:16",
+      "hunan": true
+     },
+     {
+      "code": "603101",
+      "name": "汇嘉时代",
+      "boards": 1,
+      "reason": "胖东来调改 (新疆)",
+      "time": "10:38",
+      "hunan": true
+     },
+     {
+      "code": "600865",
+      "name": "百大集团",
+      "boards": 1,
+      "reason": "百货商场",
+      "time": "13:05",
+      "hunan": true
+     },
+     {
+      "code": "600865",
+      "name": "百大集团",
+      "boards": 1,
+      "reason": "百货商场",
+      "time": "13:05",
+      "hunan": true
+     },
+     {
+      "code": "600882",
+      "name": "妙可蓝多",
+      "boards": 1,
+      "reason": "业绩增长",
+      "time": "13:06",
+      "hunan": true
+     },
+     {
+      "code": "605188",
+      "name": "国光连锁",
+      "boards": 1,
+      "reason": "连锁超市",
+      "time": "13:10",
+      "hunan": true
+     },
+     {
+      "code": "601566",
+      "name": "九牧王",
+      "boards": 1,
+      "reason": "男裤",
+      "time": "13:38",
+      "hunan": true
+     },
+     {
+      "code": "002696",
+      "name": "百洋股份",
+      "boards": 1,
+      "reason": "鱼粉涨价",
+      "time": "14:22",
+      "hunan": true
+     }
+    ],
+    "maxB": 5
+   },
+   {
+    "name": "锂电池",
+    "count": 8,
+    "amount": 40.0,
+    "stocks": [
+     {
+      "code": "600241",
+      "name": "时代万恒",
+      "boards": 5,
+      "reason": "锂电池",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "002058",
+      "name": "紫竹高科",
+      "boards": 4,
+      "reason": "固态电池铝塑膜",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "002733",
+      "name": "雄韬股份",
+      "boards": 2,
+      "reason": "固态电池",
+      "time": "9:31",
+      "hunan": true
+     },
+     {
+      "code": "002805",
+      "name": "丰元股份",
+      "boards": 2,
+      "reason": "固态电池",
+      "time": "9:37",
+      "hunan": true
+     },
+     {
+      "code": "300530",
+      "name": "领湃科技",
+      "boards": 2,
+      "reason": "固态电池",
+      "time": "10:44",
+      "hunan": true
+     },
+     {
+      "code": "600478",
+      "name": "科力远",
+      "boards": 1,
+      "reason": "固态电池",
+      "time": "9:38",
+      "hunan": true
+     },
+     {
+      "code": "000546",
+      "name": "金圆股份",
+      "boards": 1,
+      "reason": "锂矿",
+      "time": "10:50",
+      "hunan": true
+     },
+     {
+      "code": "603067",
+      "name": "振华股份",
+      "boards": 1,
+      "reason": "SOFC+锂电解液",
+      "time": "14:05",
+      "hunan": true
+     }
+    ],
+    "maxB": 5
+   },
+   {
+    "name": "医药",
+    "count": 6,
+    "amount": 44.0,
+    "stocks": [
+     {
+      "code": "600812",
+      "name": "华北制药",
+      "boards": 2,
+      "reason": "鼠疫",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "300981",
+      "name": "中红医疗",
+      "boards": 1,
+      "reason": "医用手套",
+      "time": "10:56",
+      "hunan": true
+     },
+     {
+      "code": "002675",
+      "name": "东诚药业",
+      "boards": 1,
+      "reason": "核药出海预期",
+      "time": "13:03",
+      "hunan": true
+     },
+     {
+      "code": "605177",
+      "name": "东亚药业",
+      "boards": 1,
+      "reason": "原料药",
+      "time": "13:30",
+      "hunan": true
+     },
+     {
+      "code": "000710",
+      "name": "贝瑞基因",
+      "boards": 1,
+      "reason": "基因编辑",
+      "time": "14:02",
+      "hunan": true
+     },
+     {
+      "code": "002317",
+      "name": "众生药业",
+      "boards": 1,
+      "reason": "减重川I期达主要终点",
+      "time": "14:08",
+      "hunan": true
+     },
+     {
+      "code": "002317",
+      "name": "众生药业",
+      "boards": 1,
+      "reason": "减重I川期达主要终点",
+      "time": "14:08",
+      "hunan": true
+     },
+     {
+      "code": "300369",
+      "name": "绿盟科技",
+      "boards": 1,
+      "reason": "AI安全",
+      "time": "13:05",
+      "hunan": true
+     },
+     {
+      "code": "002212",
+      "name": "天融信",
+      "boards": 1,
+      "reason": "AI安全",
+      "time": "13:08",
+      "hunan": true
+     },
+     {
+      "code": "002912",
+      "name": "中新赛克",
+      "boards": 1,
+      "reason": "",
+      "time": "13:25",
+      "hunan": true
+     },
+     {
+      "code": "603232",
+      "name": "格尔软件",
+      "boards": 1,
+      "reason": "AI安全",
+      "time": "14:04",
+      "hunan": true
+     },
+     {
+      "code": "688152",
+      "name": "麒麟信安",
+      "boards": 1,
+      "reason": "国产操作系统",
+      "time": "14:15",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   }
+  ],
+  "overview": {
+   "zt_amt": 487,
+   "zb_amt": 154,
+   "zt": 69,
+   "zb": 13,
+   "dt": 8,
+   "first": 57,
+   "lianban": 12,
+   "max_board": 9
+  },
+  "src": "https://www.tgb.cn/a/2vKRLLtfZqd",
+  "imgs": 11
+ },
+ "20261012": {
+  "themes": [
+   {
+    "name": "AI短剧",
+    "count": 9,
+    "amount": 82.0,
+    "stocks": [
+     {
+      "code": "605287",
+      "name": "德才股份",
+      "boards": 2,
+      "reason": "@TGB湖南",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "002343",
+      "name": "慈文传媒",
+      "boards": 2,
+      "reason": "短剧",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "605577",
+      "name": "龙版传媒",
+      "boards": 2,
+      "reason": "",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "001330",
+      "name": "博纳影业",
+      "boards": 2,
+      "reason": "",
+      "time": "9:46",
+      "hunan": true
+     },
+     {
+      "code": "601929",
+      "name": "吉视传媒",
+      "boards": 2,
+      "reason": "AI短剧",
+      "time": "10:15",
+      "hunan": true
+     },
+     {
+      "code": "601595",
+      "name": "上海电影",
+      "boards": 2,
+      "reason": "AI影视",
+      "time": "10:21",
+      "hunan": true
+     },
+     {
+      "code": "000892",
+      "name": "欢瑞世纪",
+      "boards": 2,
+      "reason": "AI短剧",
+      "time": "13:10",
+      "hunan": true
+     },
+     {
+      "code": "301052",
+      "name": "果麦文化",
+      "boards": 1,
+      "reason": "AI漫画大模型",
+      "time": "10:08",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   }
+  ],
+  "overview": {
+   "zt_amt": 293,
+   "zb_amt": 306,
+   "zt": 46,
+   "zb": 25,
+   "dt": 19,
+   "first": 28,
+   "lianban": 18,
+   "max_board": 10
+  },
+  "src": "https://www.tgb.cn/a/2vPUe28ffoc",
+  "imgs": 5
+ },
+ "20261013": {
+  "themes": [
+   {
+    "name": "大消费",
+    "count": 6,
+    "amount": 15.0,
+    "stocks": [
+     {
+      "code": "605136",
+      "name": "丽人丽妆",
+      "time": "9:30",
+      "boards": 3,
+      "reason": "化妆品零售"
+     },
+     {
+      "code": "002696",
+      "name": "百洋股份",
+      "time": "9:34",
+      "boards": 3,
+      "reason": "鱼粉涨价"
+     },
+     {
+      "code": "002862",
+      "name": "实丰文化",
+      "time": "13:02",
+      "boards": 1,
+      "reason": "玩具"
+     },
+     {
+      "code": "603001",
+      "name": "奥康国际",
+      "time": "13:03",
+      "boards": 1,
+      "reason": "鞋类及皮具"
+     },
+     {
+      "code": "001318",
+      "name": "阳光乳业",
+      "time": "13:09",
+      "boards": 1,
+      "reason": "乳制品"
+     },
+     {
+      "code": "600712",
+      "name": "南宁百货",
+      "time": "13:28",
+      "boards": 1,
+      "reason": "商业百货"
+     }
+    ],
+    "maxB": 3
+   },
+   {
+    "name": "AI影视",
+    "count": 5,
+    "amount": 30.0,
+    "stocks": [
+     {
+      "code": "603096",
+      "name": "新经典",
+      "time": "9:25",
+      "boards": 3,
+      "reason": "IP版权"
+     },
+     {
+      "code": "002343",
+      "name": "慈文传媒",
+      "time": "9:25",
+      "boards": 3,
+      "reason": "短剧"
+     },
+     {
+      "code": "605577",
+      "name": "龙版传媒",
+      "time": "13:01",
+      "boards": 3,
+      "reason": "AI漫剧"
+     },
+     {
+      "code": "603466",
+      "name": "风语筑",
+      "time": "13:01",
+      "boards": 1,
+      "reason": "AI视频"
+     },
+     {
+      "code": "002587",
+      "name": "奥拓电子",
+      "time": "14:52",
+      "boards": 1,
+      "reason": "AI视讯"
+     }
+    ],
+    "maxB": 3
+   },
+   {
+    "name": "染料",
+    "count": 5,
+    "amount": 23.0,
+    "stocks": [
+     {
+      "code": "603968",
+      "name": "醋化股份",
+      "time": "9:46",
+      "boards": 2,
+      "reason": "乙晴涨价+染料"
+     },
+     {
+      "code": "603188",
+      "name": "亚邦股份",
+      "time": "9:32",
+      "boards": 1,
+      "reason": "染料涨价"
+     },
+     {
+      "code": "300107",
+      "name": "建新股份",
+      "time": "10:03",
+      "boards": 1,
+      "reason": "染料涨价"
+     },
+     {
+      "code": "002748",
+      "name": "世龙实业",
+      "time": "10:16",
+      "boards": 1,
+      "reason": "染料产业链"
+     },
+     {
+      "code": "603980",
+      "name": "吉华集团",
+      "time": "13:45",
+      "boards": 1,
+      "reason": "染料涨价"
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "其他个股",
+    "count": 10,
+    "amount": 0,
+    "stocks": [
+     {
+      "code": "000668",
+      "name": "荣丰控股",
+      "time": "9:25",
+      "boards": 1,
+      "reason": "股权转让"
+     },
+     {
+      "code": "001231",
+      "name": "农心科技",
+      "time": "9:30",
+      "boards": 2,
+      "reason": "大农业"
+     },
+     {
+      "code": "600847",
+      "name": "万里股份",
+      "time": "9:34",
+      "boards": 1,
+      "reason": "锂电池"
+     },
+     {
+      "code": "003037",
+      "name": "三和管桩",
+      "time": "9:35",
+      "boards": 1,
+      "reason": "水利"
+     },
+     {
+      "code": "600831",
+      "name": "广电网络",
+      "time": "9:39",
+      "boards": 2,
+      "reason": "传媒"
+     },
+     {
+      "code": "001229",
+      "name": "魅视科技",
+      "time": "11:18",
+      "boards": 1,
+      "reason": "磷化铟"
+     },
+     {
+      "code": "600237",
+      "name": "铜峰电子",
+      "time": "13:00",
+      "boards": 1,
+      "reason": "薄膜电容器"
+     },
+     {
+      "code": "600391",
+      "name": "航发科技",
+      "time": "13:12",
+      "boards": 1,
+      "reason": "军工"
+     },
+     {
+      "code": "600281",
+      "name": "华阳新材",
+      "time": "13:39",
+      "boards": 1,
+      "reason": "贵金属"
+     },
+     {
+      "code": "002623",
+      "name": "亚玛顿",
+      "time": "14:28",
+      "boards": 1,
+      "reason": "光伏"
+     }
+    ],
+    "maxB": 2
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5353604401600269.html",
+  "via": "weibo",
+  "postTime": "2026-10-13 17:03"
+ },
+ "20261014": {
+  "themes": [
+   {
+    "name": "AI影视",
+    "count": 5,
+    "amount": 55.0,
+    "stocks": [
+     {
+      "code": "002343",
+      "name": "慈文传媒",
+      "time": "9:30",
+      "boards": 4,
+      "reason": "短剧"
+     },
+     {
+      "code": "603096",
+      "name": "新经典",
+      "time": "9:43",
+      "boards": 4,
+      "reason": "IP版权"
+     },
+     {
+      "code": "603533",
+      "name": "掌阅科技",
+      "time": "10:07",
+      "boards": 1,
+      "reason": "AI短剧"
+     },
+     {
+      "code": "603598",
+      "name": "引力传媒",
+      "time": "14:28",
+      "boards": 1,
+      "reason": "AI短剧"
+     },
+     {
+      "code": "300299",
+      "name": "富春股份",
+      "time": "14:55",
+      "boards": 1,
+      "reason": "短剧游戏"
+     }
+    ],
+    "maxB": 4
+   },
+   {
+    "name": "其他个股",
+    "count": 6,
+    "amount": 0,
+    "stocks": [
+     {
+      "code": "600847",
+      "name": "万里股份",
+      "time": "9:35",
+      "boards": 2,
+      "reason": "锂电池"
+     },
+     {
+      "code": "603258",
+      "name": "电魂网络",
+      "time": "9:37",
+      "boards": 1,
+      "reason": "AI游戏"
+     },
+     {
+      "code": "001299",
+      "name": "美能能源",
+      "time": "10:02",
+      "boards": 1,
+      "reason": "油气"
+     },
+     {
+      "code": "600391",
+      "name": "航发科技",
+      "time": "10:06",
+      "boards": 2,
+      "reason": "军工"
+     },
+     {
+      "code": "000573",
+      "name": "粤宏远Ａ",
+      "time": "11:02",
+      "boards": 1,
+      "reason": "房地产"
+     },
+     {
+      "code": "001216",
+      "name": "华瓷股份",
+      "time": "14:50",
+      "boards": 1,
+      "reason": "MLCC"
+     }
+    ],
+    "maxB": 2
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5353967078868737.html",
+  "via": "weibo",
+  "postTime": "2026-10-14 17:04"
+ },
+ "20261015": {
+  "themes": [
+   {
+    "name": "大消费",
+    "count": 7,
+    "amount": 20.0,
+    "stocks": [
+     {
+      "code": "002696",
+      "name": "百洋股份",
+      "time": "9:58",
+      "boards": 5,
+      "reason": "鱼粉涨价"
+     },
+     {
+      "code": "001318",
+      "name": "阳光乳业",
+      "time": "9:30",
+      "boards": 3,
+      "reason": "乳制品"
+     },
+     {
+      "code": "000995",
+      "name": "皇台酒业",
+      "time": "9:38",
+      "boards": 1,
+      "reason": "白酒"
+     },
+     {
+      "code": "002836",
+      "name": "新宏泽",
+      "time": "11:10",
+      "boards": 1,
+      "reason": "烟标"
+     },
+     {
+      "code": "603237",
+      "name": "五芳斋",
+      "time": "13:36",
+      "boards": 1,
+      "reason": "粽子"
+     },
+     {
+      "code": "605003",
+      "name": "众望布艺",
+      "time": "13:44",
+      "boards": 1,
+      "reason": "中高档装饰面料"
+     },
+     {
+      "code": "002543",
+      "name": "万和电气",
+      "time": "13:50",
+      "boards": 1,
+      "reason": "厨房电器"
+     }
+    ],
+    "maxB": 5
+   },
+   {
+    "name": "影视传媒",
+    "count": 5,
+    "amount": 36.0,
+    "stocks": [
+     {
+      "code": "002343",
+      "name": "慈文传媒",
+      "time": "9:30",
+      "boards": 5,
+      "reason": "短剧"
+     },
+     {
+      "code": "601811",
+      "name": "新华文轩",
+      "time": "14:50",
+      "boards": 2,
+      "reason": "拟收购民族社"
+     },
+     {
+      "code": "603999",
+      "name": "读者传媒",
+      "time": "9:31",
+      "boards": 1,
+      "reason": "出版发行"
+     },
+     {
+      "code": "002103",
+      "name": "广博股份",
+      "time": "10:16",
+      "boards": 1,
+      "reason": "互联网营销"
+     },
+     {
+      "code": "603230",
+      "name": "内蒙新华",
+      "time": "14:35",
+      "boards": 1,
+      "reason": "出版传媒"
+     }
+    ],
+    "maxB": 5
+   },
+   {
+    "name": "其他个股",
+    "count": 6,
+    "amount": 0,
+    "stocks": [
+     {
+      "code": "001225",
+      "name": "和泰机电",
+      "time": "9:32",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "003029",
+      "name": "吉大正元",
+      "time": "9:49",
+      "boards": 1,
+      "reason": "AI安全"
+     },
+     {
+      "code": "600281",
+      "name": "华阳新材",
+      "time": "13:02",
+      "boards": 1,
+      "reason": "贵金属+羊字辈"
+     },
+     {
+      "code": "603200",
+      "name": "上海洗霸",
+      "time": "14:12",
+      "boards": 1,
+      "reason": "固态电池"
+     },
+     {
+      "code": "000530",
+      "name": "冰山冷热",
+      "time": "14:27",
+      "boards": 3,
+      "reason": "冰雪经济"
+     },
+     {
+      "code": "002945",
+      "name": "华林证券",
+      "time": "14:52",
+      "boards": 1,
+      "reason": "大金融"
+     }
+    ],
+    "maxB": 3
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5354320078045283.html",
+  "via": "weibo",
+  "postTime": "2026-10-15 16:27"
+ },
+ "20261016": {
+  "themes": [
+   {
+    "name": "半导体",
+    "count": 5,
+    "amount": 7.0,
+    "stocks": [
+     {
+      "code": "002889",
+      "name": "东方嘉盛",
+      "boards": 2,
+      "reason": "半导体设备服务",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "001358",
+      "name": "兴欣新材",
+      "boards": 1,
+      "reason": "光刻胶",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "603015",
+      "name": "弘讯科技",
+      "boards": 1,
+      "reason": "MCU芯片",
+      "time": "9:52",
+      "hunan": true
+     },
+     {
+      "code": "605178",
+      "name": "时空科技",
+      "boards": 1,
+      "reason": "拟并购嘉合劲威（存储芯片",
+      "time": "10:55",
+      "hunan": true
+     },
+     {
+      "code": "002076",
+      "name": "星光股份",
+      "boards": 1,
+      "reason": "LED半导体光源+摘帽",
+      "time": "14:54",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   }
+  ],
+  "overview": {
+   "zt_amt": 228,
+   "zb_amt": 505,
+   "zt": 59,
+   "zb": 49,
+   "dt": 10,
+   "first": 53,
+   "lianban": 6,
+   "max_board": 4
+  },
+  "src": "https://www.tgb.cn/a/2vWuvTJBwkA",
+  "imgs": 5
+ },
+ "20261112": {
+  "themes": [
+   {
+    "name": "大消费",
+    "count": 9,
+    "amount": 99.0,
+    "stocks": [
+     {
+      "code": "600327",
+      "name": "大东方",
+      "time": "14:56",
+      "boards": 5,
+      "reason": "百货零售+东方系"
+     },
+     {
+      "code": "603536",
+      "name": "惠发食品",
+      "time": "13:16",
+      "boards": 3,
+      "reason": "速冻食品"
+     },
+     {
+      "code": "002187",
+      "name": "广百股份",
+      "time": "9:55",
+      "boards": 1,
+      "reason": "百货连锁"
+     },
+     {
+      "code": "600857",
+      "name": "宁波中百",
+      "time": "10:01",
+      "boards": 1,
+      "reason": "商业零售"
+     },
+     {
+      "code": "600467",
+      "name": "好当家",
+      "time": "11:23",
+      "boards": 1,
+      "reason": "水产品"
+     },
+     {
+      "code": "002696",
+      "name": "百洋股份",
+      "time": "14:30",
+      "boards": 1,
+      "reason": "鱼粉涨价+羊字辈"
+     },
+     {
+      "code": "000995",
+      "name": "皇台酒业",
+      "time": "14:47",
+      "boards": 1,
+      "reason": "白酒酿造"
+     },
+     {
+      "code": "601566",
+      "name": "九牧王",
+      "time": "14:47",
+      "boards": 1,
+      "reason": "羊毛羊绒+福建"
+     },
+     {
+      "code": "002086",
+      "name": "东方海洋",
+      "time": "15:00",
+      "boards": 1,
+      "reason": "海洋生态养殖+东方系"
+     }
+    ],
+    "maxB": 5
+   },
+   {
+    "name": "机器人",
+    "count": 8,
+    "amount": 43.0,
+    "stocks": [
+     {
+      "code": "002593",
+      "name": "日上集团",
+      "time": "13:57",
+      "boards": 2,
+      "reason": "机器人"
+     },
+     {
+      "code": "002148",
+      "name": "北纬科技",
+      "time": "14:39",
+      "boards": 2,
+      "reason": "宇树合作+机器狗"
+     },
+     {
+      "code": "603135",
+      "name": "中重科技",
+      "time": "14:40",
+      "boards": 2,
+      "reason": "工业机器人"
+     },
+     {
+      "code": "002628",
+      "name": "成都路桥",
+      "time": "9:38",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "603958",
+      "name": "哈森股份",
+      "time": "10:59",
+      "boards": 1,
+      "reason": "3D打印+机器人"
+     },
+     {
+      "code": "002021",
+      "name": "中捷资源",
+      "time": "11:11",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "605222",
+      "name": "起帆电缆",
+      "time": "11:22",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "600558",
+      "name": "大西洋",
+      "time": "14:56",
+      "boards": 1,
+      "reason": "机器人+羊字辈"
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "其他个股",
+    "count": 8,
+    "amount": 0,
+    "stocks": [
+     {
+      "code": "000573",
+      "name": "粤宏远Ａ",
+      "time": "9:25",
+      "boards": 1,
+      "reason": "资产重组"
+     },
+     {
+      "code": "600569",
+      "name": "安阳钢铁",
+      "time": "10:22",
+      "boards": 1,
+      "reason": "钢铁+羊字辈"
+     },
+     {
+      "code": "002205",
+      "name": "国统股份",
+      "time": "10:28",
+      "boards": 1,
+      "reason": "美好寓意"
+     },
+     {
+      "code": "603175",
+      "name": "超颖电子",
+      "time": "10:43",
+      "boards": 1,
+      "reason": "PCB"
+     },
+     {
+      "code": "601929",
+      "name": "吉视传媒",
+      "time": "13:54",
+      "boards": 1,
+      "reason": "短剧"
+     },
+     {
+      "code": "600802",
+      "name": "福建水泥",
+      "time": "14:24",
+      "boards": 1,
+      "reason": "福建"
+     },
+     {
+      "code": "603725",
+      "name": "天安新材",
+      "time": "14:48",
+      "boards": 2,
+      "reason": "光通信"
+     },
+     {
+      "code": "601606",
+      "name": "长城军工",
+      "time": "14:55",
+      "boards": 1,
+      "reason": "军工"
+     }
+    ],
+    "maxB": 2
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5364466971840394.html",
+  "via": "weibo",
+  "postTime": "2026-11-12 16:27"
+ },
+ "20260917": {
+  "themes": [
+   {
+    "name": "其他个股",
+    "count": 7,
+    "amount": 0,
+    "stocks": [
+     {
+      "code": "301390",
+      "name": "经纬股份",
+      "time": "9:25",
+      "boards": 1,
+      "reason": "股权转让"
+     },
+     {
+      "code": "001216",
+      "name": "华瓷股份",
+      "time": "9:30",
+      "boards": 3,
+      "reason": "AI硬件"
+     },
+     {
+      "code": "600293",
+      "name": "三峡新材",
+      "time": "9:44",
+      "boards": 1,
+      "reason": "玻璃基板"
+     },
+     {
+      "code": "002285",
+      "name": "世联行",
+      "time": "10:21",
+      "boards": 2,
+      "reason": "房地产"
+     },
+     {
+      "code": "600593",
+      "name": "大连圣亚",
+      "time": "10:30",
+      "boards": 1,
+      "reason": "旅游"
+     },
+     {
+      "code": "600792",
+      "name": "云煤能源",
+      "time": "13:44",
+      "boards": 1,
+      "reason": "煤炭"
+     },
+     {
+      "code": "601872",
+      "name": "招商轮船",
+      "time": "13:46",
+      "boards": 1,
+      "reason": "航运"
+     }
+    ],
+    "maxB": 3
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5344173263948597.html",
+  "via": "weibo",
+  "postTime": "2026-09-17 16:27"
+ },
+ "20260902": {
+  "themes": [
+   {
+    "name": "其他个股",
+    "count": 10,
+    "amount": 0,
+    "stocks": [
+     {
+      "code": "003005",
+      "name": "竞业达",
+      "time": "9:25",
+      "boards": 4,
+      "reason": "AI教育"
+     },
+     {
+      "code": "002632",
+      "name": "道明光学",
+      "time": "9:30",
+      "boards": 1,
+      "reason": "AI手机"
+     },
+     {
+      "code": "600903",
+      "name": "贵州燃气",
+      "time": "9:44",
+      "boards": 1,
+      "reason": "工业气体"
+     },
+     {
+      "code": "603207",
+      "name": "小方制药",
+      "time": "9:51",
+      "boards": 2,
+      "reason": "医药"
+     },
+     {
+      "code": "603778",
+      "name": "国晟科技",
+      "time": "10:12",
+      "boards": 1,
+      "reason": "光伏"
+     },
+     {
+      "code": "000852",
+      "name": "石化机械",
+      "time": "11:03",
+      "boards": 1,
+      "reason": "油服"
+     },
+     {
+      "code": "003039",
+      "name": "顺控发展",
+      "time": "13:14",
+      "boards": 1,
+      "reason": "其他"
+     },
+     {
+      "code": "603701",
+      "name": "德宏股份",
+      "time": "13:35",
+      "boards": 1,
+      "reason": "汽车发电机"
+     },
+     {
+      "code": "600657",
+      "name": "信达地产",
+      "time": "13:35",
+      "boards": 1,
+      "reason": "房地产"
+     },
+     {
+      "code": "600589",
+      "name": "大位科技",
+      "time": "13:52",
+      "boards": 1,
+      "reason": "数据中心"
+     }
+    ],
+    "maxB": 4
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5338727798800894.html",
+  "via": "weibo",
+  "postTime": "2026-09-02 15:49"
+ },
+ "20261103": {
+  "themes": [
+   {
+    "name": "大消费",
+    "count": 17,
+    "amount": 91.0,
+    "stocks": [
+     {
+      "code": "001219",
+      "name": "青岛食品",
+      "boards": 6,
+      "reason": "休闲食品+三季报增长",
+      "time": "9:54",
+      "hunan": true
+     },
+     {
+      "code": "002086",
+      "name": "东方海洋",
+      "boards": 3,
+      "reason": "",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "000995",
+      "name": "皇台酒业",
+      "boards": 2,
+      "reason": "",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "600189",
+      "name": "泉阳泉",
+      "boards": 2,
+      "reason": "矿泉水+三季报增长",
+      "time": "9:57",
+      "hunan": true
+     },
+     {
+      "code": "603587",
+      "name": "地素时尚",
+      "boards": 2,
+      "reason": "三季报增长+服装",
+      "time": "10:09",
+      "hunan": true
+     },
+     {
+      "code": "603587",
+      "name": "地素时尚",
+      "boards": 2,
+      "reason": "三季报增长+服装",
+      "time": "10:09",
+      "hunan": true
+     },
+     {
+      "code": "600779",
+      "name": "水井坊",
+      "boards": 1,
+      "reason": "第三季度扭亏+白酒",
+      "time": "9:38",
+      "hunan": true
+     },
+     {
+      "code": "002187",
+      "name": "广百股份",
+      "boards": 1,
+      "reason": "百货连锁",
+      "time": "9:59",
+      "hunan": true
+     },
+     {
+      "code": "600754",
+      "name": "锦江酒店",
+      "boards": 1,
+      "reason": "三季报增长+酒店",
+      "time": "10:01",
+      "hunan": true
+     },
+     {
+      "code": "603863",
+      "name": "松炀资源",
+      "boards": 1,
+      "reason": "三季报减亏+彩票",
+      "time": "10:13",
+      "hunan": true
+     },
+     {
+      "code": "600199",
+      "name": "金种子酒",
+      "boards": 1,
+      "reason": "白酒",
+      "time": "11:15",
+      "hunan": true
+     },
+     {
+      "code": "600865",
+      "name": "百大集团",
+      "boards": 1,
+      "reason": "百货商场",
+      "time": "11:21",
+      "hunan": true
+     },
+     {
+      "code": "600576",
+      "name": "祥源文旅",
+      "boards": 1,
+      "reason": "",
+      "time": "11:24",
+      "hunan": true
+     },
+     {
+      "code": "603955",
+      "name": "大千生态",
+      "boards": 1,
+      "reason": "羽毛球机器人",
+      "time": "13:02",
+      "hunan": true
+     },
+     {
+      "code": "601086",
+      "name": "国芳集团",
+      "boards": 1,
+      "reason": "连锁百货",
+      "time": "13:03",
+      "hunan": true
+     },
+     {
+      "code": "000530",
+      "name": "冰山冷热",
+      "boards": 1,
+      "reason": "",
+      "time": "13:20",
+      "hunan": true
+     },
+     {
+      "code": "603755",
+      "name": "日辰股份",
+      "boards": 1,
+      "reason": "复合调味品",
+      "time": "13:41",
+      "hunan": true
+     }
+    ],
+    "maxB": 6
+   },
+   {
+    "name": "机器人",
+    "count": 12,
+    "amount": 73.0,
+    "stocks": [
+     {
+      "code": "000410",
+      "name": "沈阳机床",
+      "boards": 2,
+      "reason": "第三季度增长+机器人",
+      "time": "14:56",
+      "hunan": true
+     },
+     {
+      "code": "001230",
+      "name": "劲旅环境",
+      "boards": 1,
+      "reason": "机器人",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "600960",
+      "name": "渤海汽车",
+      "boards": 1,
+      "reason": "机器人",
+      "time": "9:31",
+      "hunan": true
+     },
+     {
+      "code": "605189",
+      "name": "富春染织",
+      "boards": 1,
+      "reason": "机器人",
+      "time": "10:06",
+      "hunan": true
+     },
+     {
+      "code": "003019",
+      "name": "宸展光电",
+      "boards": 1,
+      "reason": "人形机器人 (触摸屏）",
+      "time": "10:08",
+      "hunan": true
+     },
+     {
+      "code": "605333",
+      "name": "沪光股份",
+      "boards": 1,
+      "reason": "",
+      "time": "11:16",
+      "hunan": true
+     },
+     {
+      "code": "605288",
+      "name": "凯迪股份",
+      "boards": 1,
+      "reason": "",
+      "time": "13:17",
+      "hunan": true
+     },
+     {
+      "code": "605288",
+      "name": "凯迪股份",
+      "boards": 1,
+      "reason": "",
+      "time": "13:17",
+      "hunan": true
+     },
+     {
+      "code": "603633",
+      "name": "徕木股份",
+      "boards": 1,
+      "reason": "",
+      "time": "13:31",
+      "hunan": true
+     },
+     {
+      "code": "000678",
+      "name": "襄阳轴承",
+      "boards": 1,
+      "reason": "",
+      "time": "13:35",
+      "hunan": true
+     },
+     {
+      "code": "300508",
+      "name": "维宏股份",
+      "boards": 1,
+      "reason": "灵巧手+机器人GB湖南,",
+      "time": "14:10",
+      "hunan": true
+     },
+     {
+      "code": "603466",
+      "name": "风语筑",
+      "boards": 1,
+      "reason": "数据采集+机器人",
+      "time": "14:12",
+      "hunan": true
+     },
+     {
+      "code": "001225",
+      "name": "和泰机电",
+      "boards": 1,
+      "reason": "",
+      "time": "14:26",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "医药",
+    "count": 5,
+    "amount": 23.0,
+    "stocks": [
+     {
+      "code": "002172",
+      "name": "澳洋健康",
+      "boards": 4,
+      "reason": "脑机接口",
+      "time": "10:13",
+      "hunan": true
+     },
+     {
+      "code": "002275",
+      "name": "桂林三金",
+      "boards": 3,
+      "reason": "创新药",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "002940",
+      "name": "昂利康",
+      "boards": 1,
+      "reason": "创新药",
+      "time": "13:17",
+      "hunan": true
+     },
+     {
+      "code": "002940",
+      "name": "昂利康",
+      "boards": 1,
+      "reason": "创新药",
+      "time": "13:17",
+      "hunan": true
+     },
+     {
+      "code": "603108",
+      "name": "润达医疗",
+      "boards": 1,
+      "reason": "智元机器人合作",
+      "time": "13:56",
+      "hunan": true
+     },
+     {
+      "code": "603880",
+      "name": "南卫股份",
+      "boards": 1,
+      "reason": "医疗器械",
+      "time": "14:19",
+      "hunan": true
+     }
+    ],
+    "maxB": 4
+   },
+   {
+    "name": "大消费",
+    "count": 16,
+    "amount": 57.0,
+    "stocks": [
+     {
+      "code": "002086",
+      "name": "东方海洋",
+      "boards": 4,
+      "reason": "",
+      "time": "10:05",
+      "hunan": true
+     },
+     {
+      "code": "000995",
+      "name": "皇台酒业",
+      "boards": 3,
+      "reason": "",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "002029",
+      "name": "七匹狼",
+      "boards": 2,
+      "reason": "服装家纺",
+      "time": "9:32",
+      "hunan": true
+     },
+     {
+      "code": "000599",
+      "name": "青岛双星",
+      "boards": 2,
+      "reason": "轮胎（青岛国资）",
+      "time": "9:43",
+      "hunan": true
+     },
+     {
+      "code": "605388",
+      "name": "均瑶健康",
+      "boards": 1,
+      "reason": "减重益生菌",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "600358",
+      "name": "国旅联合",
+      "boards": 1,
+      "reason": "润田矿泉水",
+      "time": "9:33",
+      "hunan": true
+     },
+     {
+      "code": "600327",
+      "name": "大东方",
+      "boards": 1,
+      "reason": "百货零售",
+      "time": "9:57",
+      "hunan": true
+     },
+     {
+      "code": "000679",
+      "name": "大连友谊",
+      "boards": 1,
+      "reason": "零售百货",
+      "time": "10:03",
+      "hunan": true
+     },
+     {
+      "code": "002696",
+      "name": "百洋股份",
+      "boards": 1,
+      "reason": "",
+      "time": "",
+      "hunan": false
+     },
+     {
+      "code": "603402",
+      "name": "陕西旅游",
+      "boards": 1,
+      "reason": "旅游",
+      "time": "10:49",
+      "hunan": true
+     },
+     {
+      "code": "601566",
+      "name": "九牧王",
+      "boards": 1,
+      "reason": "羊毛羊绒",
+      "time": "11:01",
+      "hunan": true
+     },
+     {
+      "code": "600630",
+      "name": "龙头股份",
+      "boards": 1,
+      "reason": "纺织服装",
+      "time": "11:17",
+      "hunan": true
+     },
+     {
+      "code": "600778",
+      "name": "友好集团",
+      "boards": 1,
+      "reason": "新疆零售",
+      "time": "13:00",
+      "hunan": true
+     },
+     {
+      "code": "601366",
+      "name": "利群股份",
+      "boards": 1,
+      "reason": "食品",
+      "time": "14:01",
+      "hunan": true
+     },
+     {
+      "code": "001318",
+      "name": "阳光乳业",
+      "boards": 1,
+      "reason": "乳制品+阳字辈",
+      "time": "14:29",
+      "hunan": true
+     },
+     {
+      "code": "601188",
+      "name": "龙江交通",
+      "boards": 1,
+      "reason": "",
+      "time": "14:56",
+      "hunan": true
+     }
+    ],
+    "maxB": 4
+   },
+   {
+    "name": "锂电池",
+    "count": 9,
+    "amount": 33.0,
+    "stocks": [
+     {
+      "code": "002058",
+      "name": "紫竹高科",
+      "boards": 2,
+      "reason": "固态电池铝塑膜",
+      "time": "9:48",
+      "hunan": true
+     },
+     {
+      "code": "600293",
+      "name": "三峡新材",
+      "boards": 2,
+      "reason": "拟重组（锂电新材料）",
+      "time": "9:56",
+      "hunan": true
+     },
+     {
+      "code": "600293",
+      "name": "三峡新材",
+      "boards": 2,
+      "reason": "拟重组（锂电新材料）",
+      "time": "9:56",
+      "hunan": true
+     },
+     {
+      "code": "002580",
+      "name": "圣阳股份",
+      "boards": 1,
+      "reason": "固态电池+阳字辈",
+      "time": "9:35",
+      "hunan": true
+     },
+     {
+      "code": "603906",
+      "name": "龙蟠科技",
+      "boards": 1,
+      "reason": "固态电池前驱体",
+      "time": "9:47",
+      "hunan": true
+     },
+     {
+      "code": "605378",
+      "name": "野马电池",
+      "boards": 1,
+      "reason": "锌锰电池",
+      "time": "9:49",
+      "hunan": true
+     },
+     {
+      "code": "002805",
+      "name": "丰元股份",
+      "boards": 1,
+      "reason": "固态电池",
+      "time": "10:03",
+      "hunan": true
+     },
+     {
+      "code": "301513",
+      "name": "尚水智能",
+      "boards": 1,
+      "reason": "固态电池",
+      "time": "10:05",
+      "hunan": true
+     },
+     {
+      "code": "600241",
+      "name": "时代万恒",
+      "boards": 1,
+      "reason": "锂电池",
+      "time": "10:21",
+      "hunan": true
+     },
+     {
+      "code": "002992",
+      "name": "宝明科技",
+      "boards": 1,
+      "reason": "固态电池",
+      "time": "14:25",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "短剧",
+    "count": 6,
+    "amount": 26.0,
+    "stocks": [
+     {
+      "code": "601599",
+      "name": "浙文影业",
+      "boards": 2,
+      "reason": "AI影视",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "605577",
+      "name": "龙版传媒",
+      "boards": 2,
+      "reason": "AI漫剧",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "600892",
+      "name": "大晟文化",
+      "boards": 2,
+      "reason": "三季报减亏+短剧",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "002292",
+      "name": "奥飞娱乐",
+      "boards": 2,
+      "reason": "影视(喜羊羊IP)",
+      "time": "9:31",
+      "hunan": true
+     },
+     {
+      "code": "603258",
+      "name": "电魂网络",
+      "boards": 2,
+      "reason": "AI互动影游",
+      "time": "13:59",
+      "hunan": true
+     },
+     {
+      "code": "600715",
+      "name": "文投控股",
+      "boards": 1,
+      "reason": "",
+      "time": "",
+      "hunan": false
+     }
+    ],
+    "maxB": 2
+   }
+  ],
+  "overview": {
+   "zt_amt": 618,
+   "zb_amt": 341,
+   "zt": 125,
+   "zb": 28,
+   "dt": 8,
+   "first": 114,
+   "lianban": 11,
+   "max_board": 4
+  },
+  "src": "https://www.tgb.cn/a/2wqkBVA0WAW",
+  "imgs": 8
+ },
+ "20260911": {
+  "themes": [
+   {
+    "name": "AI硬件",
+    "count": 15,
+    "amount": 159.0,
+    "stocks": [
+     {
+      "code": "600876",
+      "name": "凯盛新能",
+      "boards": 2,
+      "reason": "玻璃基板",
+      "time": "9:32",
+      "hunan": true
+     },
+     {
+      "code": "000823",
+      "name": "超声电子",
+      "boards": 2,
+      "reason": "PCB",
+      "time": "13:16",
+      "hunan": true
+     },
+     {
+      "code": "002201",
+      "name": "九鼎新材",
+      "boards": 2,
+      "reason": "玻纤",
+      "time": "13:36",
+      "hunan": true
+     },
+     {
+      "code": "600207",
+      "name": "安彩高科",
+      "boards": 1,
+      "reason": "玻璃基板",
+      "time": "9:39",
+      "hunan": true
+     },
+     {
+      "code": "605258",
+      "name": "协和电子",
+      "boards": 1,
+      "reason": "PTFE+PCB",
+      "time": "9:55",
+      "hunan": true
+     },
+     {
+      "code": "002848",
+      "name": "高斯贝尔",
+      "boards": 1,
+      "reason": "高频高速覆铜板",
+      "time": "9:56",
+      "hunan": true
+     },
+     {
+      "code": "603938",
+      "name": "三孚股份",
+      "boards": 1,
+      "reason": "发二氯二氢硅+存储上游",
+      "time": "10:15",
+      "hunan": true
+     },
+     {
+      "code": "002902",
+      "name": "铭自元磁",
+      "boards": 1,
+      "reason": "",
+      "time": "",
+      "hunan": false
+     },
+     {
+      "code": "603938",
+      "name": "三孚股份",
+      "boards": 1,
+      "reason": "",
+      "time": "10:15",
+      "hunan": true
+     },
+     {
+      "code": "605058",
+      "name": "澳弘电子",
+      "boards": 1,
+      "reason": "PCB",
+      "time": "10:20",
+      "hunan": true
+     },
+     {
+      "code": "300563",
+      "name": "神宇股份",
+      "boards": 1,
+      "reason": "高速数据线",
+      "time": "10:36",
+      "hunan": true
+     },
+     {
+      "code": "600184",
+      "name": "光电股份",
+      "boards": 1,
+      "reason": "法拉第旋光片在研",
+      "time": "13:03",
+      "hunan": true
+     },
+     {
+      "code": "603936",
+      "name": "博敏电子",
+      "boards": 1,
+      "reason": "PCB",
+      "time": "13:36",
+      "hunan": true
+     },
+     {
+      "code": "002815",
+      "name": "崇达技术",
+      "boards": 1,
+      "reason": "PCB",
+      "time": "13:39",
+      "hunan": true
+     },
+     {
+      "code": "001232",
+      "name": "嘉立创",
+      "boards": 1,
+      "reason": "PCB",
+      "time": "13:47",
+      "hunan": true
+     },
+     {
+      "code": "603386",
+      "name": "骏亚科技",
+      "boards": 1,
+      "reason": "PCB+机器人",
+      "time": "14:08",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "电力",
+    "count": 5,
+    "amount": 28.0,
+    "stocks": [
+     {
+      "code": "000993",
+      "name": "闽东电力",
+      "boards": 3,
+      "reason": "绿色电力",
+      "time": "9:32",
+      "hunan": true
+     },
+     {
+      "code": "603421",
+      "name": "鼎信通讯",
+      "boards": 3,
+      "reason": "智能电网",
+      "time": "14:44",
+      "hunan": true
+     },
+     {
+      "code": "605011",
+      "name": "杭州热电",
+      "boards": 1,
+      "reason": "热电联产",
+      "time": "9:55",
+      "hunan": true
+     },
+     {
+      "code": "002560",
+      "name": "通达股份",
+      "boards": 1,
+      "reason": "电网设备",
+      "time": "9:59",
+      "hunan": true
+     },
+     {
+      "code": "603693",
+      "name": "江苏新能",
+      "boards": 1,
+      "reason": "绿色电力",
+      "time": "10:49",
+      "hunan": true
+     }
+    ],
+    "maxB": 3
+   }
+  ],
+  "src": "https://m.tgb.cn/a/2v0p2GUgbtk-2",
+  "via": "tgb",
+  "overview": {
+   "zt_amt": 416,
+   "zb_amt": 274,
+   "zt": 40,
+   "zb": 18,
+   "dt": 21,
+   "first": 33,
+   "lianban": 7,
+   "max_board": 4
+  }
+ },
+ "20261110": {
+  "themes": [
+   {
+    "name": "机器人",
+    "count": 28,
+    "amount": 178.0,
+    "stocks": [
+     {
+      "code": "002347",
+      "name": "泰尔股份",
+      "time": "9:30",
+      "boards": 2,
+      "reason": "工业机器人"
+     },
+     {
+      "code": "002708",
+      "name": "光洋股份",
+      "time": "9:30",
+      "boards": 2,
+      "reason": "机器人零部件+羊字辈"
+     },
+     {
+      "code": "002931",
+      "name": "锋龙股份",
+      "time": "9:31",
+      "boards": 2,
+      "reason": "机器人"
+     },
+     {
+      "code": "603121",
+      "name": "华培动力",
+      "time": "10:00",
+      "boards": 2,
+      "reason": "人形机器人(触觉硬件)"
+     },
+     {
+      "code": "600609",
+      "name": "金杯汽车",
+      "time": "10:33",
+      "boards": 2,
+      "reason": "机器人"
+     },
+     {
+      "code": "603286",
+      "name": "日盈电子",
+      "time": "14:52",
+      "boards": 2,
+      "reason": "物理AI+机器人"
+     },
+     {
+      "code": "603666",
+      "name": "亿嘉和",
+      "time": "9:31",
+      "boards": 1,
+      "reason": "人形机器人(华为)"
+     },
+     {
+      "code": "301255",
+      "name": "通力科技",
+      "time": "9:32",
+      "boards": 1,
+      "reason": "行星减速机"
+     },
+     {
+      "code": "002209",
+      "name": "达意隆",
+      "time": "9:43",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "603809",
+      "name": "豪能股份",
+      "time": "9:46",
+      "boards": 1,
+      "reason": "机器人（减速机）"
+     },
+     {
+      "code": "605488",
+      "name": "福莱新材",
+      "time": "9:49",
+      "boards": 1,
+      "reason": "物理AI（数据采集手套）"
+     },
+     {
+      "code": "603037",
+      "name": "凯众股份",
+      "time": "9:49",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "002535",
+      "name": "林州重机",
+      "time": "9:53",
+      "boards": 1,
+      "reason": "机器人（机器视觉）"
+     },
+     {
+      "code": "000678",
+      "name": "襄阳轴承",
+      "time": "9:57",
+      "boards": 1,
+      "reason": "机器人轴承"
+     },
+     {
+      "code": "002009",
+      "name": "天奇股份",
+      "time": "10:03",
+      "boards": 1,
+      "reason": "物理AI（数据采集）"
+     },
+     {
+      "code": "002614",
+      "name": "奥佳华",
+      "time": "10:04",
+      "boards": 1,
+      "reason": "AI按摩机器人"
+     },
+     {
+      "code": "002870",
+      "name": "香山股份",
+      "time": "10:10",
+      "boards": 1,
+      "reason": "人形机器人"
+     },
+     {
+      "code": "688611",
+      "name": "杭州柯林",
+      "time": "10:28",
+      "boards": 1,
+      "reason": "NV工具箱"
+     },
+     {
+      "code": "002021",
+      "name": "中捷资源",
+      "time": "10:55",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "603466",
+      "name": "风语筑",
+      "time": "11:01",
+      "boards": 1,
+      "reason": "物理AI+数据采集"
+     },
+     {
+      "code": "002048",
+      "name": "宁波华翔",
+      "time": "11:22",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "002376",
+      "name": "新北洋",
+      "time": "11:28",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "002313",
+      "name": "日海智能",
+      "time": "13:00",
+      "boards": 1,
+      "reason": "端侧AI+机器人"
+     },
+     {
+      "code": "000810",
+      "name": "创维数字",
+      "time": "13:01",
+      "boards": 1,
+      "reason": "物理AI（数据采集）"
+     },
+     {
+      "code": "002036",
+      "name": "联创电子",
+      "time": "13:05",
+      "boards": 1,
+      "reason": "人形机器人"
+     },
+     {
+      "code": "603893",
+      "name": "瑞芯微",
+      "time": "13:20",
+      "boards": 1,
+      "reason": "端侧AI芯片+机器人"
+     },
+     {
+      "code": "002664",
+      "name": "信质集团",
+      "time": "14:44",
+      "boards": 1,
+      "reason": "人形机器人（电机）"
+     },
+     {
+      "code": "603278",
+      "name": "大业股份",
+      "time": "14:54",
+      "boards": 1,
+      "reason": "人形机器人（金属腱绳）"
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "漫剧",
+    "count": 16,
+    "amount": 109.0,
+    "stocks": [
+     {
+      "code": "600715",
+      "name": "文投控股",
+      "time": "9:31",
+      "boards": 2,
+      "reason": "AI漫剧"
+     },
+     {
+      "code": "600892",
+      "name": "大晟文化",
+      "time": "14:41",
+      "boards": 2,
+      "reason": "短剧"
+     },
+     {
+      "code": "002425",
+      "name": "凯撒文化",
+      "time": "9:34",
+      "boards": 1,
+      "reason": "AI游戏"
+     },
+     {
+      "code": "605398",
+      "name": "新炬网络",
+      "time": "9:38",
+      "boards": 1,
+      "reason": "短剧投流"
+     },
+     {
+      "code": "002343",
+      "name": "慈文传媒",
+      "time": "9:38",
+      "boards": 1,
+      "reason": "短剧"
+     },
+     {
+      "code": "002905",
+      "name": "金逸影视",
+      "time": "9:53",
+      "boards": 1,
+      "reason": "影视影院"
+     },
+     {
+      "code": "603533",
+      "name": "掌阅科技",
+      "time": "10:05",
+      "boards": 1,
+      "reason": "AI短剧"
+     },
+     {
+      "code": "603602",
+      "name": "纵横通信",
+      "time": "10:37",
+      "boards": 1,
+      "reason": "AI营销"
+     },
+     {
+      "code": "603598",
+      "name": "引力传媒",
+      "time": "10:43",
+      "boards": 1,
+      "reason": "AI营销+短剧"
+     },
+     {
+      "code": "002238",
+      "name": "天威视讯",
+      "time": "10:43",
+      "boards": 1,
+      "reason": "短剧（河马剧场）"
+     },
+     {
+      "code": "601595",
+      "name": "上海电影",
+      "time": "10:47",
+      "boards": 1,
+      "reason": "AI影视"
+     },
+     {
+      "code": "002995",
+      "name": "天地在线",
+      "time": "13:29",
+      "boards": 1,
+      "reason": "AI营销+字节系"
+     },
+     {
+      "code": "603058",
+      "name": "永吉股份",
+      "time": "13:54",
+      "boards": 1,
+      "reason": "AI漫剧"
+     },
+     {
+      "code": "605577",
+      "name": "龙版传媒",
+      "time": "14:28",
+      "boards": 1,
+      "reason": "AI漫剧"
+     },
+     {
+      "code": "300556",
+      "name": "丝路视觉",
+      "time": "14:48",
+      "boards": 1,
+      "reason": "AI漫剧"
+     },
+     {
+      "code": "300426",
+      "name": "华智数媒",
+      "time": "14:56",
+      "boards": 1,
+      "reason": "AI漫剧"
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "商业航天",
+    "count": 7,
+    "amount": 57.0,
+    "stocks": [
+     {
+      "code": "001379",
+      "name": "腾达科技",
+      "time": "14:14",
+      "boards": 2,
+      "reason": "商业航天"
+     },
+     {
+      "code": "603703",
+      "name": "盛洋科技",
+      "time": "14:51",
+      "boards": 2,
+      "reason": "卫星通信"
+     },
+     {
+      "code": "600261",
+      "name": "阳光照明",
+      "time": "9:30",
+      "boards": 1,
+      "reason": "商业航天"
+     },
+     {
+      "code": "605598",
+      "name": "上海港湾",
+      "time": "9:38",
+      "boards": 1,
+      "reason": "商业航天"
+     },
+     {
+      "code": "603679",
+      "name": "华体科技",
+      "time": "10:17",
+      "boards": 1,
+      "reason": "卫星通信"
+     },
+     {
+      "code": "002865",
+      "name": "钧达股份",
+      "time": "14:09",
+      "boards": 1,
+      "reason": "太空光伏"
+     },
+     {
+      "code": "002324",
+      "name": "普利特",
+      "time": "14:10",
+      "boards": 1,
+      "reason": "商业航天"
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "大消费",
+    "count": 6,
+    "amount": 20.0,
+    "stocks": [
+     {
+      "code": "600327",
+      "name": "大东方",
+      "time": "9:30",
+      "boards": 3,
+      "reason": "百货零售"
+     },
+     {
+      "code": "600510",
+      "name": "黑牡丹",
+      "time": "10:13",
+      "boards": 1,
+      "reason": "纺织服装"
+     },
+     {
+      "code": "001318",
+      "name": "阳光乳业",
+      "time": "13:00",
+      "boards": 1,
+      "reason": "乳制品"
+     },
+     {
+      "code": "603536",
+      "name": "惠发食品",
+      "time": "14:28",
+      "boards": 1,
+      "reason": "速冻食品"
+     },
+     {
+      "code": "600778",
+      "name": "友好集团",
+      "time": "14:37",
+      "boards": 1,
+      "reason": "新疆零售"
+     },
+     {
+      "code": "603955",
+      "name": "大千生态",
+      "time": "14:46",
+      "boards": 1,
+      "reason": "羽毛球机器人+宠物经济"
+     }
+    ],
+    "maxB": 3
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5363753705280265.html",
+  "via": "weibo",
+  "postTime": "2026-11-10 17:13"
+ },
+ "20261116": {
+  "themes": [
+   {
+    "name": "大消费",
+    "count": 8,
+    "amount": 24.0,
+    "stocks": [
+     {
+      "code": "002187",
+      "name": "广百股份",
+      "time": "9:30",
+      "boards": 3,
+      "reason": "百货连锁"
+     },
+     {
+      "code": "002419",
+      "name": "天虹股份",
+      "time": "9:34",
+      "boards": 1,
+      "reason": "AI零售"
+     },
+     {
+      "code": "000521",
+      "name": "长虹美菱",
+      "time": "9:47",
+      "boards": 1,
+      "reason": "小家电"
+     },
+     {
+      "code": "002959",
+      "name": "小熊电器",
+      "time": "10:42",
+      "boards": 1,
+      "reason": "小家电"
+     },
+     {
+      "code": "603983",
+      "name": "丸美生物",
+      "time": "10:50",
+      "boards": 1,
+      "reason": "美妆"
+     },
+     {
+      "code": "002035",
+      "name": "华帝股份",
+      "time": "10:54",
+      "boards": 1,
+      "reason": "厨卫产品"
+     },
+     {
+      "code": "300824",
+      "name": "北鼎股份",
+      "time": "14:28",
+      "boards": 1,
+      "reason": "小家电"
+     },
+     {
+      "code": "001318",
+      "name": "阳光乳业",
+      "time": "14:32",
+      "boards": 1,
+      "reason": "乳制品"
+     }
+    ],
+    "maxB": 3
+   },
+   {
+    "name": "短剧",
+    "count": 6,
+    "amount": 72.0,
+    "stocks": [
+     {
+      "code": "002905",
+      "name": "金逸影视",
+      "time": "9:25",
+      "boards": 2,
+      "reason": "影视影院"
+     },
+     {
+      "code": "002425",
+      "name": "凯撒文化",
+      "time": "9:38",
+      "boards": 2,
+      "reason": "AI游戏"
+     },
+     {
+      "code": "600715",
+      "name": "文投控股",
+      "time": "14:54",
+      "boards": 2,
+      "reason": "AI漫剧"
+     },
+     {
+      "code": "600386",
+      "name": "北巴传媒",
+      "time": "9:51",
+      "boards": 1,
+      "reason": "广告传媒"
+     },
+     {
+      "code": "601929",
+      "name": "吉视传媒",
+      "time": "10:12",
+      "boards": 1,
+      "reason": "AI短剧"
+     },
+     {
+      "code": "000156",
+      "name": "华数传媒",
+      "time": "14:08",
+      "boards": 1,
+      "reason": "AI短剧"
+     }
+    ],
+    "maxB": 2
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5365913876433304.html",
+  "via": "weibo",
+  "postTime": "2026-11-16 16:17"
+ },
+ "20261118": {
+  "themes": [
+   {
+    "name": "国产算力",
+    "count": 25,
+    "amount": 209.0,
+    "stocks": [
+     {
+      "code": "002685",
+      "name": "华东重机",
+      "boards": 4,
+      "reason": "控股国产GPU公司",
+      "time": "9:25",
+      "hunan": true
+     },
+     {
+      "code": "002771",
+      "name": "真视通",
+      "boards": 2,
+      "reason": "华为算力",
+      "time": "9:30",
+      "hunan": true
+     },
+     {
+      "code": "600410",
+      "name": "华胜天成",
+      "boards": 2,
+      "reason": "",
+      "time": "9:55",
+      "hunan": true
+     },
+     {
+      "code": "301391",
+      "name": "卡莱特",
+      "boards": 2,
+      "reason": "昇腾算力",
+      "time": "10:15",
+      "hunan": true
+     },
+     {
+      "code": "002843",
+      "name": "泰嘉股份",
+      "boards": 2,
+      "reason": "数据中心电源",
+      "time": "13:42",
+      "hunan": true
+     },
+     {
+      "code": "600405",
+      "name": "动力源",
+      "boards": 1,
+      "reason": "数据中心(华为)",
+      "time": "9:33",
+      "hunan": true
+     },
+     {
+      "code": "300991",
+      "name": "创益通",
+      "boards": 1,
+      "reason": "高速背板连接器",
+      "time": "9:45",
+      "hunan": true
+     },
+     {
+      "code": "000889",
+      "name": "中嘉博创",
+      "boards": 1,
+      "reason": "算力",
+      "time": "9:45",
+      "hunan": true
+     },
+     {
+      "code": "000158",
+      "name": "常山北明",
+      "boards": 1,
+      "reason": "华为昇腾",
+      "time": "10:02",
+      "hunan": true
+     },
+     {
+      "code": "300324",
+      "name": "旋极信息",
+      "boards": 1,
+      "reason": "TGU推理芯片+算力服务器",
+      "time": "10:02",
+      "hunan": true
+     },
+     {
+      "code": "002197",
+      "name": "证通电子",
+      "boards": 1,
+      "reason": "算力租赁(华为)",
+      "time": "10:23",
+      "hunan": true
+     },
+     {
+      "code": "000815",
+      "name": "美利云",
+      "boards": 1,
+      "reason": "",
+      "time": "10:50",
+      "hunan": false
+     },
+     {
+      "code": "603887",
+      "name": "城地香江",
+      "boards": 1,
+      "reason": "算力(华为)",
+      "time": "10:53",
+      "hunan": true
+     },
+     {
+      "code": "600156",
+      "name": "华升股份",
+      "boards": 1,
+      "reason": "算力租赁",
+      "time": "11:14",
+      "hunan": true
+     },
+     {
+      "code": "002955",
+      "name": "鸿合科技",
+      "boards": 1,
+      "reason": "鸿华算力引擎(昇腾)",
+      "time": "11:26",
+      "hunan": true
+     },
+     {
+      "code": "603629",
+      "name": "利通电子",
+      "boards": 1,
+      "reason": "@TGB湖南",
+      "time": "13:14",
+      "hunan": false
+     },
+     {
+      "code": "603220",
+      "name": "中贝通信",
+      "boards": 1,
+      "reason": "算力租赁(华为)",
+      "time": "13:15",
+      "hunan": true
+     },
+     {
+      "code": "002929",
+      "name": "润建股份",
+      "boards": 1,
+      "reason": "词元出海+算力",
+      "time": "13:16",
+      "hunan": true
+     },
+     {
+      "code": "688316",
+      "name": "青云科技",
+      "boards": 1,
+      "reason": "智算平台",
+      "time": "13:17",
+      "hunan": true
+     },
+     {
+      "code": "603985",
+      "name": "恒润股份",
+      "boards": 1,
+      "reason": "算力服务器",
+      "time": "13:21",
+      "hunan": true
+     },
+     {
+      "code": "301396",
+      "name": "宏景科技",
+      "boards": 1,
+      "reason": "算力租赁",
+      "time": "13:30",
+      "hunan": true
+     },
+     {
+      "code": "002272",
+      "name": "川润股份",
+      "boards": 1,
+      "reason": "",
+      "time": "13:31",
+      "hunan": false
+     },
+     {
+      "code": "002042",
+      "name": "华孚时尚",
+      "boards": 1,
+      "reason": "",
+      "time": "13:35",
+      "hunan": true
+     },
+     {
+      "code": "600186",
+      "name": "莲花控股",
+      "boards": 1,
+      "reason": "算力租赁",
+      "time": "13:40",
+      "hunan": true
+     },
+     {
+      "code": "600186",
+      "name": "莲花控股",
+      "boards": 1,
+      "reason": "算力租赁",
+      "time": "13:40",
+      "hunan": true
+     },
+     {
+      "code": "600162",
+      "name": "香江控股",
+      "boards": 1,
+      "reason": "算力服务",
+      "time": "13:42",
+      "hunan": true
+     }
+    ],
+    "maxB": 4
+   }
+  ],
+  "src": "https://www.tgb.cn/a/2wPiYVQLXUV",
+  "via": "tgb",
+  "postTime": "11.18湖南人消息汇总+晚间消息汇总",
+  "boards": 44
+ },
+ "20261111": {
+  "themes": [
+   {
+    "name": "机器人+物理AI",
+    "count": 27,
+    "amount": 236.0,
+    "stocks": [
+     {
+      "code": "002931",
+      "name": "锋龙股份",
+      "time": "9:31",
+      "boards": 3,
+      "reason": "机器人"
+     },
+     {
+      "code": "002708",
+      "name": "光洋股份",
+      "time": "10:01",
+      "boards": 3,
+      "reason": "机器人零部件"
+     },
+     {
+      "code": "002209",
+      "name": "达意隆",
+      "time": "9:25",
+      "boards": 2,
+      "reason": "机器人"
+     },
+     {
+      "code": "002313",
+      "name": "日海智能",
+      "time": "9:31",
+      "boards": 2,
+      "reason": "端侧AI+机器人"
+     },
+     {
+      "code": "603466",
+      "name": "风语筑",
+      "time": "13:24",
+      "boards": 2,
+      "reason": "物理AI+机器人"
+     },
+     {
+      "code": "605488",
+      "name": "福莱新材",
+      "time": "13:39",
+      "boards": 2,
+      "reason": "物理AI（数据采集手套）"
+     },
+     {
+      "code": "000678",
+      "name": "襄阳轴承",
+      "time": "14:23",
+      "boards": 2,
+      "reason": "机器人轴承+羊字辈"
+     },
+     {
+      "code": "001339",
+      "name": "智微智能",
+      "time": "14:53",
+      "boards": 2,
+      "reason": "物理AI（数据采集）"
+     },
+     {
+      "code": "603135",
+      "name": "中重科技",
+      "time": "9:31",
+      "boards": 1,
+      "reason": "工业机器人"
+     },
+     {
+      "code": "002520",
+      "name": "日发精机",
+      "time": "9:32",
+      "boards": 1,
+      "reason": "人形机器人"
+     },
+     {
+      "code": "002076",
+      "name": "星光股份",
+      "time": "9:32",
+      "boards": 1,
+      "reason": "物理AI(数据采集)"
+     },
+     {
+      "code": "002593",
+      "name": "日上集团",
+      "time": "9:58",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "001282",
+      "name": "三联锻造",
+      "time": "10:03",
+      "boards": 1,
+      "reason": "人形机器人"
+     },
+     {
+      "code": "001331",
+      "name": "胜通能源",
+      "time": "10:08",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "002362",
+      "name": "汉王科技",
+      "time": "10:18",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "002278",
+      "name": "神开股份",
+      "time": "10:22",
+      "boards": 1,
+      "reason": "物理AI+深海机器人"
+     },
+     {
+      "code": "002765",
+      "name": "蓝黛科技",
+      "time": "10:39",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "603028",
+      "name": "赛福天",
+      "time": "10:43",
+      "boards": 1,
+      "reason": "人形机器人"
+     },
+     {
+      "code": "002164",
+      "name": "宁波东力",
+      "time": "10:51",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "301596",
+      "name": "瑞迪智驱",
+      "time": "11:02",
+      "boards": 1,
+      "reason": "机器人/谐波减速机"
+     },
+     {
+      "code": "002148",
+      "name": "北纬科技",
+      "time": "11:29",
+      "boards": 1,
+      "reason": "宇树合作"
+     },
+     {
+      "code": "000026",
+      "name": "飞亚达",
+      "time": "13:24",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "603730",
+      "name": "岱美股份",
+      "time": "13:28",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "003032",
+      "name": "传智教育",
+      "time": "14:01",
+      "boards": 1,
+      "reason": "AI教育+人形机器人"
+     },
+     {
+      "code": "002779",
+      "name": "中坚科技",
+      "time": "14:07",
+      "boards": 1,
+      "reason": "人形机器人"
+     },
+     {
+      "code": "603040",
+      "name": "新坐标",
+      "time": "14:08",
+      "boards": 1,
+      "reason": "机器人"
+     },
+     {
+      "code": "300473",
+      "name": "德尔股份",
+      "time": "14:23",
+      "boards": 1,
+      "reason": "机器人"
+     }
+    ],
+    "maxB": 3
+   },
+   {
+    "name": "光伏",
+    "count": 7,
+    "amount": 15.0,
+    "stocks": [
+     {
+      "code": "603366",
+      "name": "日出东方",
+      "time": "9:25",
+      "boards": 4,
+      "reason": "光伏"
+     },
+     {
+      "code": "002623",
+      "name": "亚玛顿",
+      "time": "9:25",
+      "boards": 2,
+      "reason": "实控人拟变更+光伏玻璃"
+     },
+     {
+      "code": "603396",
+      "name": "金辰股份",
+      "time": "9:25",
+      "boards": 1,
+      "reason": "光伏设备"
+     },
+     {
+      "code": "600876",
+      "name": "凯盛新能",
+      "time": "9:30",
+      "boards": 1,
+      "reason": "光伏组件"
+     },
+     {
+      "code": "600293",
+      "name": "三峡新材",
+      "time": "10:03",
+      "boards": 1,
+      "reason": "赛纬重组+光伏玻璃"
+     },
+     {
+      "code": "301636",
+      "name": "泽润新能",
+      "time": "10:19",
+      "boards": 1,
+      "reason": "光伏接线盒"
+     },
+     {
+      "code": "002529",
+      "name": "海源复材",
+      "time": "10:40",
+      "boards": 1,
+      "reason": "光伏电池组件"
+     }
+    ],
+    "maxB": 4
+   },
+   {
+    "name": "半导体",
+    "count": 6,
+    "amount": 20.0,
+    "stocks": [
+     {
+      "code": "605255",
+      "name": "天普股份",
+      "time": "10:23",
+      "boards": 2,
+      "reason": "中昊芯英（TPU）"
+     },
+     {
+      "code": "600076",
+      "name": "康欣新材",
+      "time": "9:31",
+      "boards": 1,
+      "reason": "半导体修复设备"
+     },
+     {
+      "code": "600228",
+      "name": "返利科技",
+      "time": "13:29",
+      "boards": 1,
+      "reason": "成立半导体设备公司"
+     },
+     {
+      "code": "603289",
+      "name": "泰瑞机器",
+      "time": "13:30",
+      "boards": 1,
+      "reason": "拟收购半导体公司"
+     },
+     {
+      "code": "688135",
+      "name": "利扬芯片",
+      "time": "13:41",
+      "boards": 1,
+      "reason": "算力芯片测试（供货平头哥）"
+     },
+     {
+      "code": "002886",
+      "name": "沃特股份",
+      "time": "14:48",
+      "boards": 1,
+      "reason": "PTFE薄膜+半导体"
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "短剧",
+    "count": 6,
+    "amount": 66.0,
+    "stocks": [
+     {
+      "code": "600715",
+      "name": "文投控股",
+      "time": "10:12",
+      "boards": 3,
+      "reason": "AI漫剧"
+     },
+     {
+      "code": "002425",
+      "name": "凯撒文化",
+      "time": "9:37",
+      "boards": 2,
+      "reason": "AI游戏"
+     },
+     {
+      "code": "601595",
+      "name": "上海电影",
+      "time": "13:46",
+      "boards": 2,
+      "reason": "AI影视"
+     },
+     {
+      "code": "002919",
+      "name": "名臣健康",
+      "time": "11:27",
+      "boards": 1,
+      "reason": "游戏(字节合作)"
+     },
+     {
+      "code": "603258",
+      "name": "电魂网络",
+      "time": "13:00",
+      "boards": 1,
+      "reason": "AI短剧"
+     },
+     {
+      "code": "301052",
+      "name": "果麦文化",
+      "time": "14:56",
+      "boards": 1,
+      "reason": "短剧"
+     }
+    ],
+    "maxB": 3
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5364119260630183.html",
+  "via": "weibo",
+  "postTime": "2026-11-11 17:25"
+ }
+}

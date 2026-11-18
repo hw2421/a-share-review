@@ -1,0 +1,1 @@
+window.DATA_VER="2fe50d24f3df";

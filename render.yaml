@@ -1,0 +1,13 @@
+# Render 一键部署：https://render.com/deploy
+services:
+  - type: web
+    name: a-share-review
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 app.py
+    healthCheckPath: /api/status
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
