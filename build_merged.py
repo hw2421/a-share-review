@@ -63,7 +63,12 @@ if os.path.exists(ovp):
     except Exception as e:
         print("修正表读取失败：%s" % e)
 
-streaks = fd.compute_streaks(pools, hunan_boards)
+# 连板数口径（v36）：模拟交易数据全部以同花顺复盘为准。
+# 同花顺涨停池接口最早只支持 20260101（更早 date 参数不合法，官方无历史数据），
+# 因此 2026 起连板数完全由同花顺涨停池逐日递推，湖南人 OCR 标注不再覆盖；
+# 2025 及以前维持复盘 OCR 锚点（同花顺无历史可替换）。
+streaks = fd.compute_streaks(pools,
+                             {d: v for d, v in hunan_boards.items() if d < CUT})
 for d in dates:
     for s in pools[d]:
         s["boards"] = streaks[d].get(s["code"], 1)

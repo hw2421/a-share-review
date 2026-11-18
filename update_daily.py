@@ -156,12 +156,9 @@ def main():
         data = json.load(open(os.path.join(OUT, "data.json"), encoding="utf-8"))
         dates = set(data["dates"])
         _pl = {d: v for d, v in pool_cache.items() if d in dates and v}
-        try:
-            _hb = json.load(open(os.path.join(OUT, ".hunan_boards.json"),
-                                 encoding="utf-8"))
-        except Exception:
-            _hb = {}
-        _stk = fd.compute_streaks(_pl, {d: v for d, v in _hb.items() if d in _pl})
+        # v36：pool_cache 全部是同花顺涨停池（接口最早 20260101），
+        # 连板数纯递推，不再用湖南人 OCR 板数覆盖（模拟交易口径以同花顺为准）。
+        _stk = fd.compute_streaks(_pl)
         for _d in _pl:
             for s in _pl[_d]:
                 s["boards"] = _stk[_d].get(s["code"], 1)

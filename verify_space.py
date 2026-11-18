@@ -63,7 +63,9 @@ def load_pools():
                 continue
             for c, b in m.items():
                 hb.setdefault(d, {})[c] = b
-    st = fd.compute_streaks(pools, hb)
+    # v36：2026 起连板数纯同花顺递推（模拟交易口径），OCR 锚点只用于 2025 及以前
+    anchors36 = {d: v for d, v in hb.items() if d < CUT}
+    st = fd.compute_streaks(pools, anchors36)
     for d in pools:
         for s in pools[d]:
             s["boards"] = st[d].get(s["code"], 1)
