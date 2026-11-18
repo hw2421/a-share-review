@@ -3,7 +3,7 @@
 覆盖对象：最近 N 个交易日的空间龙头 / 空间压制股 / 题材龙头。
 流程：
   1) 新浪日K（520 根，不复权）逐只刷新 -> .stock_kline_cache.json / .sup_kline_cache.json
-  2) sup_klines.refresh 重建压制股断板段；stock_klines.refresh 重建 klines 分片
+  2) sup_klines.refresh 重建压制股断板段；klines 分片按「只增不减」就地打补丁
   3) data.json / data.js 里的 klines（近 60 根）与 supKlines 同步更新
   4) --publish 时发布站点
 用法：python3 refresh_klines.py [--recent 12] [--publish] [--force]
@@ -38,6 +38,44 @@ def trading_window():
         return False
     hm = now.hour * 60 + now.minute
     return 9 * 60 + 25 <= hm <= 15 * 60 + 10
+
+
+def patch_shards(codes, cache):
+    """把刷新后的日K就地写回 klines/klines_*.json：逐桶读写，覆盖只增不减。"""
+    import glob
+    import stock_klines as SK
+    hit = miss = 0
+    for fp in sorted(glob.glob(os.path.join(SK.KDIR, "klines_*.json"))):
+        b_idx = int(os.path.basename(fp).split("_")[1].split(".")[0])
+        try:
+            obj = json.load(open(fp, encoding="utf-8"))
+        except Exception:
+            continue
+        touched = False
+        for c in codes:
+            bars = cache.get(c) or []
+            if not bars:
+                continue
+            if c in obj:
+                # 同一日期用新抓的，旧窗口里缓存没有的日期保留原值，再并入最新几日
+                cmap = {b[0]: b for b in bars}
+                old_bars = obj[c]
+                seen = {b[0] for b in old_bars}
+                merged = [cmap.get(b[0], b) for b in old_bars]
+                merged += [b for b in bars[-15:] if b[0] not in seen]
+                merged.sort(key=lambda x: x[0])
+                if merged != old_bars:
+                    obj[c] = merged
+                    touched = True
+                hit += 1
+            elif SK.bucket_of(c) == b_idx:
+                obj[c] = bars[-60:]      # 新进分片的个股：先放近 60 根
+                touched = True
+                miss += 1
+        if touched:
+            with open(fp, "w", encoding="utf-8") as f:
+                json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
+    print("[kline] 分片补丁：更新 %d 只，新增 %d 只" % (hit, miss), flush=True)
 
 
 def load_json(p, default):
@@ -90,10 +128,15 @@ def main():
     sup_c = load_json(SUP_F, {})
     sup_codes = {s["code"] for day in stages for s in (day.get("suppressStocks") or [])}
 
-    # ---- 1) 逐只刷新日K ----
-    ok = fail = 0
+    # ---- 1) 逐只刷新日K（同花顺实时优先，取不到回落新浪；与本地历史按日期合并）----
+    ok = fail = ths_n = 0
     for i, code in enumerate(sorted(need), 1):
-        bars = fd.sina_kline(code, 520)
+        live = fd.ths_kline(code)
+        if len(live) >= 2:
+            ths_n += 1
+            bars = fd.merge_klines(stock_c.get(code) or [], live, 520)
+        else:
+            bars = fd.sina_kline(code, 520)
         if bars:
             stock_c[code] = bars
             if code in sup_c or code in sup_codes:
@@ -102,20 +145,25 @@ def main():
         else:
             fail += 1
         if i % 50 == 0:
-            log("  进度 %d/%d（成功 %d）" % (i, len(need), ok))
+            log("  进度 %d/%d（成功 %d / 同花顺 %d）" % (i, len(need), ok, ths_n))
         time.sleep(0.22)
     with open(STOCK_F, "w", encoding="utf-8") as f:
         json.dump(stock_c, f, ensure_ascii=False)
     with open(SUP_F, "w", encoding="utf-8") as f:
         json.dump(sup_c, f, ensure_ascii=False)
-    log("日K刷新完成：成功 %d / 失败 %d" % (ok, fail))
+    log("日K刷新完成：成功 %d / 失败 %d（其中同花顺 %d，新浪兜底 %d）"
+        % (ok, fail, ths_n, ok - ths_n))
     if not ok:
         log("全部失败（接口不可用），保留旧数据")
         return 1
 
-    # ---- 2) 重建压制股断板段与个股分片 ----
+    # ---- 2) 重建压制股断板段 + 就地更新个股日K分片 ----
+    # 不再调用 stock_klines.refresh 重切分片：它需要按全期需求集重算窗口，
+    # 而这里只有近 N 个交易日的需求集，重切会裁掉历史窗口（且要整份重载
+    # 380MB 缓存，8GB 上限下容易 OOM）。改为按 code 就地打补丁：旧窗口日期
+    # 全部保留，只把最新 15 根的日期并进来，覆盖只增不减。
     sup = sup_klines.refresh(dates, stages)
-    stock_klines.refresh(dates, stages, td)
+    patch_shards(need, stock_c)
 
     # ---- 3) 同步 data.json / data.js ----
     kl = data.get("klines") or {}

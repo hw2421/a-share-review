@@ -388,6 +388,27 @@ def main():
             _pc = next((t["count"] for t in TD[_ds[_k - 1]] if t["name"] == _nm), 0)
             _st[_d] = "加强" if _c > _pc else ("转弱" if _c < _pc else "反复")
         stage_calc[_nm] = _st
+    # v35：题材炒作页只保留博客列的板块，赚钱效应里由涨停原因归属出来的板块
+    # 当天可能没有题材块，此时阶段按「赚钱效应自身序列」补算（build_merged 5.6.1b）。
+    _mseq = {}
+    for _d in sorted(M):
+        for _g in M[_d]:
+            _mseq.setdefault(_g["theme"], []).append((_d, _g["count"]))
+    stage_money = {}
+    for _nm, _arr in _mseq.items():
+        _arr.sort()
+        _st = {}
+        for _k, (_d, _c) in enumerate(_arr):
+            if _k == 0:
+                _st[_d] = "启动"; continue
+            _gap = tidx[_d] - tidx[_arr[_k - 1][0]]
+            if _gap >= 5:
+                _st[_d] = "启动"; continue
+            if _gap >= 2:
+                _st[_d] = "反复"; continue
+            _pc = _arr[_k - 1][1]
+            _st[_d] = "加强" if _c > _pc else ("转弱" if _c < _pc else "反复")
+        stage_money[_nm] = _st
     n_grp = 0
     for d, gs in M.items():
         lad = LAD.get(d) or {}
@@ -404,11 +425,12 @@ def main():
             elif (e.get("maxB") != g.get("maxB") or e.get("ladder") != g.get("ladder")
                   or e.get("count") != g.get("count")):
                 err("赚钱效应 %s「%s」梯队与 ladders 不一致" % (d, nm))
+            _want = stage_calc.get(nm, {}).get(d) or stage_money.get(nm, {}).get(d)
             if g.get("stage") not in ("启动", "加强", "转弱", "反复"):
                 err("赚钱效应 %s「%s」题材阶段缺失或非法：%s" % (d, nm, g.get("stage")))
-            elif g["stage"] != stage_calc.get(nm, {}).get(d):
+            elif g["stage"] != _want:
                 err("赚钱效应 %s「%s」阶段与题材炒作页不一致：%s != %s"
-                    % (d, nm, g["stage"], stage_calc.get(nm, {}).get(d)))
+                    % (d, nm, g["stage"], _want))
             if any(k in g for k in old_keys):
                 err("赚钱效应 %s「%s」仍带冗余旧字段" % (d, nm))
             if "avg2" not in g or "n2" not in g or "leadCode" not in g:

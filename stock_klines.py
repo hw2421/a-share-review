@@ -172,6 +172,18 @@ def refresh(dates, days, theme_detail, pools=None):
     total = 0
     for b, obj in enumerate(buckets):
         p = os.path.join(KDIR, "klines_%d.json" % b)
+        # v35：继承上一轮同桶数据（覆盖只增不减）。逐桶读旧再写，避免整份
+        # 分片常驻内存——盘中刷新只有近 12 日需求集，按本次 need 重切会把
+        # 历史股票日的窗口裁掉，导致 verify_space 用分片复算 boardEarn 对不上。
+        try:
+            old = json.load(open(p, encoding="utf-8"))
+        except Exception:
+            old = {}
+        for c, bars in old.items():
+            if c in obj:
+                obj[c] = merge_bars(bars, obj[c])
+            else:
+                obj[c] = bars
         with open(p, "w", encoding="utf-8") as f:
             json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
         total += len(obj)

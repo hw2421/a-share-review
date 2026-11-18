@@ -353,8 +353,15 @@ n_syn = 0
 for d in dates:
     lad = ladders.get(d, {})
     by_name = {t["name"]: t for t in (theme_detail.get(d) or [])}
+    # v35（用户口径）：当日有湖南人复盘（淘股吧文章 / 微博 / Excel 长图）时，
+    # 题材定义只认博客里列出的板块——不再把「历史题材映射 carry + 同花顺涨停原因」
+    # 聚合出来的板块混进当天的题材炒作图。没有复盘的交易日才用池兜底。
+    has_art = theme_source.get(d) in ("tgb", "weibo", "excel")
+    allowed = set(by_name) if has_art else None
     keep = []
     for nm, e in lad.items():
+        if allowed is not None and nm not in allowed:
+            continue
         if nm in fd.NON_THEME:
             continue
         if e["maxB"] < MIN_BOARD or e["count"] < MIN_STOCKS:
@@ -554,6 +561,39 @@ for i in range(1, len(dates)):
     if rows:
         rows.sort(key=lambda g: (-g["maxB"], -g["count"], g["theme"]))
         money[d] = rows
+
+# ---- 5.6.1b 题材阶段补全（v35）----
+# 题材炒作页只保留「湖南人博客里列出的板块」，因此有些赚钱效应题材（由涨停原因
+# 归属出来的板块）当天没有题材块、拿不到阶段。这类题材用「自身赚钱效应序列」
+# 按同一套规则补算阶段，避免卡片上出现空阶段。
+_mseq = {}
+for _d in sorted(money):
+    for _g in money[_d]:
+        _mseq.setdefault(_g["theme"], []).append((_d, _g["count"]))
+_mstage = {}
+for _nm, _arr in _mseq.items():
+    _arr.sort()
+    _st = {}
+    for _k, (_d, _c) in enumerate(_arr):
+        if _k == 0:
+            _st[_d] = "启动"; continue
+        _gap = DIDX[_d] - DIDX[_arr[_k - 1][0]]
+        if _gap >= 5:
+            _st[_d] = "启动"; continue
+        if _gap >= 2:
+            _st[_d] = "反复"; continue
+        _pc = _arr[_k - 1][1]
+        _st[_d] = "加强" if _c > _pc else ("转弱" if _c < _pc else "反复")
+    _mstage[_nm] = _st
+_n_fill = 0
+for _d in money:
+    for _g in money[_d]:
+        if not _g.get("stage"):
+            _g["stage"] = _mstage.get(_g["theme"], {}).get(_d, "")
+            _g["stageSrc"] = "money"
+            _n_fill += 1
+if _n_fill:
+    print("题材阶段补全：%d 个赚钱效应题材日无对应题材块，按赚钱效应序列补算" % _n_fill)
 print("赚钱效应：%d 个交易日 / %d 个题材（板块当日有 ≥3 板个股再涨停、"
       "且板块至少 %d 只涨停；日均涨幅仅统计 2 板+个股）"
       % (len(money), sum(len(v) for v in money.values()), MIN_MONEY_STOCKS))

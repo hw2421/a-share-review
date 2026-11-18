@@ -923,3 +923,67 @@ python3 app.py                         # 默认 8000 端口，或 PORT=8000 pyth
 - `.gitignore` 排除的大缓存（`.stock_kline_cache.json` 等）不影响站点运行；只有「重建全量日K分片」才需要它们，日常增量不需要；
 - `data.json`/`data.js`/`klines/` 是站点运行数据，随提交更新；日常构建后记得 `git commit && git push` 同步；
 - 访问令牌不要写进仓库或文档，用完应立即在 GitHub → Settings → Developer settings → Tokens 撤销轮换。
+
+## 29. v35 题材口径与日K数据源（博客定义 + 同花顺实时）
+
+> 对应本次反馈：「抓取的题材定义从 https://www.tgb.cn/blog/444409 获取，日K 数据实时从同花顺获取，重新推送，生成 github 链接的二维码」。
+
+### 29.1 题材定义：只认博客里列的板块
+
+抓取入口本来就是该博客（`fetch_data.TGB_BLOG = https://www.tgb.cn/blog/444409`），
+`tgb_articles()` 解析第一页 30 篇，取当天那篇「X.X 湖南人消息汇总 + 晚间消息汇总」，
+正文是图片 → OCR（`rapidocr`）→ 解析复盘表（板块 / 涨停只数 / 最高板 / 个股），
+写入 `.theme_backfill.json`，再由 `update_daily.py --slot 5 --force` 重建。
+
+v35 改的是**题材块的入选口径**：以前除了博客列的板块，还会用「历史题材映射 + 同花顺涨停原因」
+补出一批板块（占 30%），现在**当天有博客复盘就只保留博客里列出的板块**；只有当天博客没发复盘
+（42 天，占 3%）才用涨停池兜底补块（`src=ztpool`）。
+
+| 指标 | v34 | v35 |
+|---|---|---|
+| 题材块 | 3795 | 2901（article 2843 + ztpool 58） |
+| 题材日 | 1363 | 1363 |
+| 结构（`src`） | article + ztpool 混排 | 博客优先，仅在缺文章日兜底 |
+
+副作用：赚钱效应里由「同花顺涨停原因」归属出来的板块，当天可能没有题材块 → 拿不到阶段。
+这 296 个题材日的阶段改为**按赚钱效应自身序列**用同一套四分类规则补算，字段标 `stageSrc=money`，
+页面不再出现空阶段；`verify_space.py` 同步按「题材块优先、缺块回落到赚钱效应序列」独立复算，**0 异常**。
+
+### 29.2 日K：同花顺实时优先，新浪兜底
+
+新增 `fetch_data.ths_kline()`：
+
+```
+GET https://d.10jqka.com.cn/v6/line/hs_<code>/01/last.js
+Referer: http://stockpage.10jqka.com.cn/<code>/
+```
+
+返回 JSONP，`data` 字段为 `日期,开,高,低,收,量,额,...` 分号分隔，一次 140 根。
+实测与新浪同日的开高低收、成交量**逐根一致**（600000 / 000001 / 300750 / 688981 全对得上）。
+
+`refresh_klines.py` 改为：
+
+1. **同花顺取最近 140 根**（不复权）；
+2. `merge_klines()` 与本地 `.stock_kline_cache.json` 的历史**按日期合并**（同日以同花顺为准，更早的保留）——既让最新数据来自同花顺，又不丢 520 根的压制段计算所需历史；
+3. 同花顺取不到（个别北交所代码，如 `830799`）自动回落新浪；
+4. 日志打印 `成功 N / 失败 M（其中同花顺 X，新浪兜底 Y）`。
+
+### 29.3 二维码
+
+| 用途 | 文件 |
+|---|---|
+| GitHub 仓库 | `/workspace/a-share-review-qrcode-github.png` → `https://github.com/hw2421/a-share-review` |
+| 在线站点 | `/workspace/a-share-review-qrcode-site.png` → 原分享链接 |
+
+（仓库是私有的，扫码会跳到登录页，登录后即可见。）
+
+### 29.4 顺带修掉一个隐性 bug：增量刷日K会把分片裁小
+
+`refresh_klines.py` 只拿得到「近 12 个交易日」的需求集，而 `stock_klines.refresh()` 是按需求集
+重切 `klines/klines_*.json` 分片的。于是每跑一次盘中刷新，历史股票日的窗口就被裁掉一批，
+表现是：`verify_space.py` 用分片独立复算 `boardEarn` 时出现 48 处不一致（数据本身没错，
+是分片少了复算需要的 K 线）。
+
+修法（`stock_klines.py`）：先把上一轮分片读进来，本轮写盘时按 `code` **合并保留**——
+同一只股票同一日期以新一轮为准（新数据覆盖旧数据），上一轮有、本轮需求集没覆盖到的个股/窗口原样保留。
+这样覆盖**只增不减**，盘中增量刷新不会再破坏全期可点性。

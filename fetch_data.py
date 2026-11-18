@@ -354,8 +354,69 @@ def limit_down_rate(name, code):
     return 0.10
 
 
+# ------------------------------------------------------------------ 日K（同花顺优先）
+#
+# 用户口径：日K 实时从同花顺取。同花顺 v6 日K接口一次返回最近 140 根「不复权」日线，
+# 与新辛接口的近期数据逐根一致（老数据因复权口径不同会有差异，故只用于增量刷新，
+# 历史由本地缓存接管）。字段：date,open,high,low,close,volume,amount,...
+THS_KLINE_URL = "https://d.10jqka.com.cn/v6/line/hs_%s/01/last.js"
+THS_KLINE_N = 140
+
+
+def ths_kline(code, n=THS_KLINE_N):
+    """同花顺不复权日K [[date,open,close,low,high,volume], ...]（升序）"""
+    code = fix_code(code)
+    if not code:
+        return []
+    url = THS_KLINE_URL % code
+    txt = http(url, "http://stockpage.10jqka.com.cn/%s/" % code, timeout=20).strip()
+    if not txt or "quotebridge" not in txt:
+        return []
+    i, j = txt.find("("), txt.rfind(")")
+    if i < 0 or j <= i:
+        return []
+    try:
+        obj = json.loads(txt[i + 1:j])
+    except Exception:
+        return []
+    out = []
+    for row in (obj.get("data") or "").split(";"):
+        p = row.split(",")
+        if len(p) < 7:
+            continue
+        try:
+            out.append([p[0], float(p[1]), float(p[4]),
+                        float(p[3]), float(p[2]), int(float(p[5]))])
+        except Exception:
+            continue
+    out.sort(key=lambda b: b[0])
+    return out[-n:] if n else out
+
+
+def merge_klines(old, new, n=520):
+    """按日期合并：新数据覆盖旧数据同一天，历史更早的旧数据保留。"""
+    book = {}
+    for b in old or []:
+        if b and len(b) >= 2:
+            book[b[0]] = b
+    for b in new or []:
+        if b and len(b) >= 2:
+            book[b[0]] = b
+    bars = [book[d] for d in sorted(book)]
+    return bars[-n:] if n else bars
+
+
+def kline_live(code, n=520, prefer="ths"):
+    """实时日K：同花顺优先，取不到（如北交所个别代码）回落新浪。"""
+    if prefer == "ths":
+        bars = ths_kline(code)
+        if len(bars) >= 2:
+            return bars
+    return sina_kline(code, n)
+
+
 def sina_kline(code, n=60):
-    """不复权日K [[date,open,close,low,high,volume], ...]（用于前端日K弹窗/成交量）"""
+    """不复权日K [[date,open,close,low,high,volume], ...]（同花顺取不到时兜底）"""
     url = ("https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/"
            "CN_MarketData.getKLineData?symbol=%s&scale=240&ma=no&datalen=%d"
            % (tx_code(code), n))
