@@ -780,16 +780,32 @@ v23stat = S.get("v23stat", {})          # 战法 T日复盘→T+1 参与 的触�
 kl_main = {}
 
 # ---- 5.7 当日连板梯队（2 板及以上，含题材；供「连板梯队」页） ----
+# v47：当日没抓到题材的连板股，沿用「昨日复盘」的题材归类。
+#   theme_at[d] 严格只认当日湖南人复盘清单（v39.2 口径，战法/题材梯队不能污染），
+#   清单外的连板股题材会留空。连板股是连续涨停的强势股，昨日复盘通常已有题材归类，
+#   当日一旦漏抓就回退到前一交易日的 theme_at（即「昨日复盘的题材归类」）。
+#   注意：只改连板梯队展示层 lb，不动 theme_at，故不影响战法逐笔/赚钱效应统计口径。
 lb = {}
-for d in dates:
+_n_lb_fill = 0
+for _i, d in enumerate(dates):
     m = theme_at.get(d, {})
+    _pd = dates[_i - 1] if _i > 0 else None
+    pm = theme_at.get(_pd, {}) if _pd else {}       # 昨日复盘的题材归类
     # 第 5 列 = 首次封板时间（连板梯队页展示「涨停时间」）
-    rows = [[s["name"], s["boards"], m.get(s["code"], ""), s["code"],
-             seal_time(s)]
-            for s in pools[d] if s["boards"] >= 2]
+    rows = []
+    for s in pools[d]:
+        if s["boards"] < 2:
+            continue
+        _th = m.get(s["code"], "")
+        if not _th:                                  # 当日没抓到 → 沿用昨日复盘
+            _th = pm.get(s["code"], "")
+            if _th:
+                _n_lb_fill += 1
+        rows.append([s["name"], s["boards"], _th, s["code"], seal_time(s)])
     rows.sort(key=lambda x: (-x[1], x[2] or "zzz", x[3]))
     if rows:
         lb[d] = rows
+print("连板梯队：当日漏抓题材、沿用昨日复盘归类 %d 个股票日" % _n_lb_fill)
 
 # 梯队输出瘦身：只留展示需要的计数字段（个股明细见 lb / themeDetail，避免 data.js 过大）
 ladders_out = {d: {nm: {"count": e["count"], "boards": e["boards"],

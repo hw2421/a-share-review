@@ -186,6 +186,7 @@ def main():
     # ---- 6 题材梯队（明细表/赚钱效应/连板梯队 同源） ----
     LAD = D.get("ladders") or {}
     LB = D.get("lb") or {}
+    LF6 = D.get("ladderFull") or {}   # v47：判断连板股当日复盘是否真有该股
     for day in days:
         d = day["date"]
         lad = LAD.get(d) or {}
@@ -218,9 +219,17 @@ def main():
                 err("%s 空间龙头 %s %d板 > 题材「%s」最高板 %s"
                     % (d, s["name"], s["boards"], nm, e.get("maxB")))
         # 当日 2 板以上的连板股，其题材梯队必须包含该板数
+        # v47：题材为「沿用昨日复盘」的回退股（当日 ladderFull 无此股），其题材当日
+        #      本就漏抓、可能无当日梯队，故跳过本条「当日梯队」检查，改由第 15 段
+        #      验证该题材可追溯到当日或昨日复盘，避免把合法的昨日归类误报。
         for row in LB.get(d) or []:
             name, boards, nm = row[0], row[1], (row[2] if len(row) > 2 else "")
             if not nm or not boards or boards < 2:
+                continue
+            _code = row[3] if len(row) > 3 else ""
+            _in_today = any(any(str(s.get("code")) == str(_code) for s in arr)
+                            for arr in (LF6.get(d) or {}).values())
+            if not _in_today:             # 回退题材：当日无梯队属正常
                 continue
             e = lad.get(nm)
             if not e:
@@ -940,6 +949,53 @@ def main():
                 % (k, sum(x.get("n") or 0 for x in arr), len(RV45))); n_v45 += 1
     print("v45 断板涨跌幅 / 三档情绪 / 首板家数 / 买入逻辑：逐笔 %d、断板股票日复核 %d"
           "（缺分片 %d），异常 %d" % (len(RV45), n_v45_chk, n_v45_skip, n_v45))
+
+    # ---- 15 v47 口径：连板梯队当日漏抓题材须沿用「昨日复盘」归类 ----
+    # 回退源只能是「当日或前一交易日」复盘清单里该股的题材（theme_at 的两档取值）。
+    # 若某股的两日复盘都无归类，题材必须保持空——不能凭空造题材、也不能取更早的陈旧归类。
+    LFV47 = D.get("ladderFull") or {}
+    LB47 = D.get("lb") or {}
+    DATESET47 = dates
+
+    def _theme_in(code, day):
+        """该股在 day 复盘清单里的题材（ladderFull 覆盖当日全部题材的全部涨停股）。"""
+        for nm, arr in (LFV47.get(day) or {}).items():
+            for s in arr:
+                if str(s.get("code")) == str(code):
+                    return nm
+        return ""
+
+    # 该股全期曾被复盘归入的所有题材：用作「昨日无复盘→累积 carry 兜底」的合法来源。
+    # carry 本就是历史复盘清单的累积，故回退题材必须能追溯到该股任一历史复盘题材，
+    # 绝不允许凭空造题材名。
+    _theme_ever47 = {}
+    for _day, _thm in LFV47.items():
+        for _nm, _arr in _thm.items():
+            for _s in _arr:
+                _theme_ever47.setdefault(str(_s.get("code")), set()).add(_nm)
+
+    n_lbfill47, n_lbempty47, n_lbbad47 = 0, 0, 0
+    for _i, day in enumerate(DATESET47):
+        _pd = DATESET47[_i - 1] if _i > 0 else None
+        for row in (LB47.get(day) or []):
+            _code = str(row[3])
+            _th = row[2]
+            if not _th:
+                n_lbempty47 += 1
+                continue
+            _today_th = _theme_in(_code, day)
+            _prev_th = _theme_in(_code, _pd) if _pd else ""
+            _source_ok = (_th == _today_th or _th == _prev_th or
+                          _th in _theme_ever47.get(_code, ()))
+            if not _source_ok:
+                err("v47 %s %s(%s) 题材「%s」无可追溯来源（当日 %s / 昨日 %s / 历史 %s）"
+                    % (day, row[0], _code, _th, _today_th or "-", _prev_th or "-",
+                       "/".join(sorted(_theme_ever47.get(_code, ()))) or "-"))
+                n_lbbad47 += 1
+            elif not _today_th:       # 当日复盘无归类 → 属回退（昨日 or 历史 carry）
+                n_lbfill47 += 1
+    print("v47 连板梯队题材回退：当日漏抓沿用昨日/历史复盘 %d 个股票日、仍空 %d，异常 %d"
+          % (n_lbfill47, n_lbempty47, n_lbbad47))
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
