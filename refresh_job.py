@@ -91,6 +91,13 @@ def main():
         pass
     write_status(state="done", step="完成", ok=True, msg="", ver=ver, latest=latest)
     log("完成，版本 %s，数据截至 %s" % (ver, latest))
+    # 手动刷新成功后也同步 GitHub Pages（常驻站点），无变化时脚本自动跳过
+    try:
+        ps = subprocess.run([sys.executable, os.path.join(BASE, "pages_sync.py")],
+                            capture_output=True, text=True, timeout=600)
+        log("Pages 同步：%s" % ((ps.stdout or "").strip().splitlines()[-1][:120] if (ps.stdout or "").strip() else "无输出"))
+    except Exception as e:
+        log("Pages 同步失败（不影响本站）：%s" % e)
     return 0
 
 
