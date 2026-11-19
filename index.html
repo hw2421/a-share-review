@@ -2343,11 +2343,16 @@ function stockKBars(code, atDate){
     return local;
   };
   if(SK_BUCKET[b]) return Promise.resolve(take(SK_BUCKET[b]));
-  /* GitHub Pages 对大 JSON 分片可能不发布，回落 raw.githubusercontent（CORS 允许跨域） */
+  /* GitHub Pages 对 121MB 的日K分片发布不稳定（时 404 / 时超时）：
+     github.io 上直接走 raw.githubusercontent（CORS 允许跨域），其他托管先试本地路径 */
   var RAW_KL = 'https://raw.githubusercontent.com/hw2421/a-share-review/main/klines/klines_'+b+'.json?v='+KVER;
-  return fetch('klines/klines_'+b+'.json?v='+KVER)
-    .then(r=> r.ok ? r.json() : Promise.reject(0))
-    .catch(()=> fetch(RAW_KL).then(r=> r.ok ? r.json() : {}))
+  var onGHPages = /github\.io$/.test(location.hostname);
+  var first = onGHPages
+    ? fetch(RAW_KL).then(r=> r.ok ? r.json() : Promise.reject(0))
+    : fetch('klines/klines_'+b+'.json?v='+KVER).then(r=> r.ok ? r.json() : Promise.reject(0));
+  return first
+    .catch(()=> fetch(onGHPages ? 'klines/klines_'+b+'.json?v='+KVER : RAW_KL)
+                     .then(r=> r.ok ? r.json() : {}))
     .then(o=>{ SK_BUCKET[b] = o; return take(o); })
     .catch(()=>{ SK_BARS[code] = local; return local; });
 }
