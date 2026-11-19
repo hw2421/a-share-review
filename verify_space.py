@@ -691,16 +691,11 @@ def main():
             # ③ 一字买不进不得进逐笔
             if _yizi(code, B, name):
                 err("v32 %s %s %s 一字涨停却进入逐笔" % (m, B, name)); n_v29 += 1
-            # ④ 战法二前置：板块赚钱效应 + 梯队有助攻（战法一 v32 已删除）
-            arrB = _barr(B, th)
-            mxB = max((x.get("boards") or 1) for x in arrB) if arrB else 0
+            # ④ 战法二前置（v38）：昨日节点 + 买入日板块赚钱效应延续（why 留痕）
             if m == "trialLead":
-                okm, mdesc = _money_ok(B, th)
-                if not okm:
-                    err("v32 %s %s %s 板块「%s」%s" % (m, B, name, th, mdesc)); n_v29 += 1
-                if mxB < 3 or not _assist(B, th, mxB):
-                    err("v32 %s %s %s 板块「%s」梯队/助攻不足（最高 %d 板）"
-                        % (m, B, name, th, mxB)); n_v29 += 1
+                if "延续" not in str(t.get("why") or ""):
+                    err("v32 %s %s %s why 缺「赚钱效应延续」留痕"
+                        % (m, B, name)); n_v29 += 1
             # ⑤ 分战法条件
             cmx = _cand_max(B, th)
             if m == "spaceDragon":

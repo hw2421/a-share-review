@@ -345,15 +345,15 @@ for d in dates:
         e["stocks"] = slim_stocks(e["stocks"])
     ladders[d] = lad
 
-# ---- 3.4 题材炒作入链门槛（v30 用户口径）----
-# 「板块有连板且板块涨停 3 个以上就纳入题材炒作图」：
-#   板块 maxB >= 2（有连板）且池内该题材真实涨停股 >= 3 只。
+# ---- 3.4 题材炒作入链门槛（v38 用户口径）----
+# 「板块有 5 个涨停且有连板的题材都抓取显示」：
+#   板块 maxB >= 2（有连板）且池内该题材真实涨停股 >= 5 只。
 # 家数 / 梯队 / 个股一律取当日真实涨停池，不再使用文章标注家数，
 # 也不再有「池推估算(≈)」块 —— 必须涨停才统计。
 # 注：本段只重建 themeDetail / themeDates（题材炒作图与线路图的数据源）。
 # theme_at / ladders / ladderFull / money 均在本段之前生成，strategies.build
 # 也不读 theme_detail，因此战法、机会池、交易复盘、boardEarn 口径完全不受影响。
-MIN_BOARD, MIN_STOCKS = 2, 3
+MIN_BOARD, MIN_STOCKS = 2, 5
 n_syn = 0
 for d in dates:
     lad = ladders.get(d, {})
@@ -389,7 +389,7 @@ for d in dates:
     else:
         theme_detail.pop(d, None)
         theme_source.pop(d, None)
-print("按真实涨停池重建题材块，新建 %d 个（门槛：有连板≥2板且板块≥3只涨停）" % n_syn)
+print("按真实涨停池重建题材块，新建 %d 个（门槛：有连板≥2板且板块≥5只涨停）" % n_syn)
 # 非交易日（周末/节假日）的题材块无法挂到任何一行，直接丢弃（如 2026-09-13 周日）
 _drop = [d for d in theme_detail if d not in pool_map]
 if _drop:
@@ -682,96 +682,148 @@ ladders_out = {d: {nm: {"count": e["count"], "boards": e["boards"],
                    for nm, e in v.items()}
                for d, v in ladders.items()}
 
-# ---- 5.8 复盘决策页数据（v37）：昨日涨停溢价 / 板块3b带2b / 2进3放量 ----
-# 方法论：①开盘看昨日涨停溢价确认大环境；②板块 3板带2板且昨日2b今日赚钱=资金方向确认；
-#         ③昨日2板股今日放量（量比≥1.5）且不破开盘价=2进3可确认。
+# ---- 5.8 复盘决策页数据（v38 简化版）----
+# 只统计三件事：
+#   ① 今天市场阶段；
+#   ② 上一个空间龙头断板后今天的表现（断板大亏＝跌停 / 连续杀跌 → 提示风险）；
+#   ③ 有赚钱效应且有 3 板龙头的题材梯队：连板股给涨停时间 + 涨停形态
+#      （一字 / T字 / 换手），首板只报数量；昨日次高板断板股给今日涨跌幅。
 def _dbar(c, d):
     b = (KBARS.get(str(c)) or {}).get(d)
     return b if (b and len(b) >= 6) else None
 
+def _prev_close(code, d):
+    rec = KBARS.get(str(code))
+    if not rec or d not in rec or not rec[d]:
+        return None
+    i = DIDX.get(d)
+    if i is None:
+        return None
+    for j in range(i - 1, -1, -1):
+        b = rec.get(dates[j])
+        if b and len(b) >= 3 and b[2]:
+            return b[2]
+    return None
+
+def _lim_of(code, name=""):
+    if "ST" in (name or "").upper():
+        return .05
+    if code.startswith(("30", "688")):
+        return .20
+    if code.startswith(("8", "4", "92")):
+        return .30
+    return .10
+
+def _shape(code, d, name=""):
+    """涨停形态：一字 / T字 / 换手（梯队个股均为当日涨停股）。"""
+    b = _dbar(code, d)
+    pv = _prev_close(code, d)
+    if not b or len(b) < 5 or not pv:
+        return ""
+    lim = _lim_of(code, name)
+    if b[2] / pv - 1 < lim - .006:
+        return ""
+    if b[1] == b[3] and b[3] == b[2]:                      # 开=低=收：全天一字
+        return "一字"
+    if b[1] == b[2] and b[1] / pv - 1 >= lim - .006:       # 涨停开盘收盘未开：T字
+        return "T字"
+    return "换手"
+
+def _big_loss(entries, end_d):
+    """断板后大亏判定（上一空间龙头批次）：断板日大长阴 / 跌停 / 连续两日跌≥6%。"""
+    reasons, seen = [], set()
+    for code, nm, bd in entries:
+        rec = KBARS.get(str(code)) or {}
+        lim = _lim_of(code, nm)
+        bb, pv = rec.get(bd), _prev_close(code, bd)
+        if bb and pv:
+            chg = bb[2] / pv - 1
+            if chg <= -.07 or (bb[2] < bb[1] and (bb[1] - bb[2]) / pv >= .05):
+                reasons.append("%s 断板日大长阴（%+.1f%%）" % (nm, chg * 100))
+        i0, i1 = DIDX.get(bd), DIDX.get(end_d)
+        if i0 is None or i1 is None:
+            continue
+        consec = 0
+        for j in range(i0 + 1, i1 + 1):
+            dd = dates[j]
+            b, p = rec.get(dd), _prev_close(code, dd)
+            if not b or not p:
+                continue
+            chg = b[2] / p - 1
+            if chg <= -(lim - .006):
+                reasons.append("%s %s 跌停（%+.1f%%）" % (nm, dd, chg * 100))
+            consec = consec + 1 if chg <= -.06 else 0
+            if consec >= 2:
+                reasons.append("%s 连续杀跌（连两日跌≥6%%）" % nm)
+                consec = -999
+    out = []
+    for r in reasons:
+        if r not in seen:
+            seen.add(r)
+            out.append(r)
+    return out
+
 decision = {}
-for _i in range(1, len(dates)):
-    _d, _pd = dates[_i], dates[_i - 1]
-    _pool_pd = {s["code"]: s for s in (pools.get(_pd) or [])}
-    if not _pool_pd:
-        continue
-    _b_d, _b_pd = streaks.get(_d) or {}, streaks.get(_pd) or {}
+for _i, _d in enumerate(dates):
+    _pd = dates[_i - 1] if _i > 0 else None
+    _pool_d = {s["code"] for s in (pools.get(_d) or [])}
+    _dec = {"stage": next((x.get("stage") for x in days if x["date"] == _d), None)}
 
-    # ① 昨日涨停 → 今日溢价（开盘 / 收盘，按连板高度分组）
-    rows, agg = [], {}
-    for _c, _e in _pool_pd.items():
-        _b0, _b1 = _dbar(_c, _pd), _dbar(_c, _d)
-        if not _b0 or not _b0[2] or not _b1:
-            continue
-        _pc = _b0[2]
-        _op = round((_b1[1] / _pc - 1) * 100, 2)
-        _cp = round((_b1[2] / _pc - 1) * 100, 2)
-        _b = int(_b_pd.get(_c) or 1)
-        _g = "3p" if _b >= 3 else str(_b)
-        _a = agg.setdefault(_g, {"n": 0, "o": 0.0, "c": 0.0, "w": 0})
-        _a["n"] += 1; _a["o"] += _op; _a["c"] += _cp; _a["w"] += (_cp > 0)
-        if _b >= 2:
-            rows.append({"code": _c, "name": _e.get("name"), "b": _b, "op": _op, "cp": _cp})
-    if agg:
-        for _a in agg.values():
-            _a["o"] = round(_a["o"] / _a["n"], 2)
-            _a["c"] = round(_a["c"] / _a["n"], 2)
-            _a["w"] = round(_a["w"] * 100.0 / _a["n"])
-        _n = sum(_a["n"] for _a in agg.values())
-        _ao = round(sum(_a["o"] * _a["n"] for _a in agg.values()) / _n, 2)
-        _ac = round(sum(_a["c"] * _a["n"] for _a in agg.values()) / _n, 2)
-        _aw = round(sum(_a["w"] * _a["n"] for _a in agg.values()) / _n)
-        _light = ("ok" if _ac >= 2 and _aw >= 55
-                  else "warn" if _ao >= 0 and _aw >= 40 else "stop")
-        rows.sort(key=lambda x: (-x["b"], -x["cp"]))
-        decision[_d] = {"prem": {"n": _n, "ao": _ao, "ac": _ac, "aw": _aw,
-                                 "light": _light, "g": agg, "rows": rows}}
+    # ① 上一个空间龙头：最近一次整批断板批次（suppressStocks），断板后到今天的表现
+    _ev = next((days[_k] for _k in range(_i, -1, -1)
+                if days[_k].get("suppressStocks")), None)
+    if _ev:
+        _stocks = []
+        for _s in _ev["suppressStocks"]:
+            _c = str(_s.get("code") or "")
+            _bd = str(_s.get("breakDate") or "")
+            if not _c or not _bd or _bd > _d:
+                continue
+            _rec = KBARS.get(_c) or {}
+            _c0 = (_rec.get(_bd) or [None, None, None])[2]
+            _cum = None
+            if _c0 and _rec.get(_d) and _rec[_d] and _rec[_d][2]:
+                _cum = round((_rec[_d][2] / _c0 - 1) * 100, 2)
+            _stocks.append({"code": _c, "name": _s.get("name"),
+                            "boards": _s.get("boards"), "brk": _bd,
+                            "today": chg_on(_c, _d), "cum": _cum})
+        _bd0 = min((str(s.get("breakDate") or _ev["date"])
+                    for s in _ev["suppressStocks"]), default=_ev["date"])
+        _loss = _big_loss([(s["code"], s["name"], s["brk"]) for s in _stocks], _d)
+        _dec["dragon"] = {
+            "ev": _ev["date"], "stocks": _stocks, "loss": _loss,
+            "verdict": ("risk" if _loss else "ok") if _stocks else None,
+        }
 
-    # ② 板块 3b带2b 判定
-    _blocks = []
-    for _t in theme_detail.get(_d) or []:
-        _cs = [s.get("code") for s in (_t.get("stocks") or []) if s.get("code")]
-        if not _cs:
+    # ② 赚钱效应题材梯队（板块有 3 板龙头）
+    _themes = []
+    _LF_d = ladder_full.get(_d) or {}
+    _LF_pd = (ladder_full.get(_pd) or {}) if _pd else {}
+    for _g in sorted(money.get(_d) or [],
+                     key=lambda x: (-x.get("maxB") or 0, -x.get("count") or 0)):
+        if (_g.get("maxB") or 0) < 3:
             continue
-        _maxb = max((_b_d.get(_c) or 0) for _c in _cs)
-        _has3 = _maxb >= 3
-        _has2 = any((_b_d.get(_c) or 0) == 2 for _c in _cs)
-        _y2b = [c for c in _cs if (_b_pd.get(c) or 0) == 2]
-        _y2bw = None
-        if _y2b:
-            _w = _n2 = 0
-            for _c in _y2b:
-                _b0, _b1 = _dbar(_c, _pd), _dbar(_c, _d)
-                if _b0 and _b0[2] and _b1 and _b1[2]:
-                    _n2 += 1; _w += (_b1[2] / _b0[2] - 1 > 0)
-            _y2bw = round(_w * 100.0 / _n2) if _n2 else None
-        _blocks.append({"name": _t["name"], "count": _t.get("count"),
-                        "maxB": _t.get("maxB"), "b3": _has3, "b2": _has2,
-                        "y2b": _y2bw, "ok": bool(_has3 and _has2 and (_y2bw or 0) >= 50),
-                        "lead": [s.get("name") for s in (_t.get("stocks") or [])
-                                 if (_b_d.get(s.get("code")) or 0) == _maxb and _maxb >= 3][:2]})
-    if _blocks:
-        decision.setdefault(_d, {})["board"] = _blocks
-
-    # ③ 2进3放量（昨日 2 板股今日表现）
-    _t23 = []
-    for _c, _v in _b_pd.items():
-        if _v != 2:
-            continue
-        _b0, _b1 = _dbar(_c, _pd), _dbar(_c, _d)
-        if not _b0 or not _b0[2] or not _b1:
-            continue
-        _pc = _b0[2]
-        _vr = round(_b1[5] / _b0[5], 2) if _b0[5] else None
-        _t23.append({"code": _c,
-                     "name": (_pool_pd.get(_c) or {}).get("name"),
-                     "op": round((_b1[1] / _pc - 1) * 100, 2),
-                     "cp": round((_b1[2] / _pc - 1) * 100, 2),
-                     "vr": _vr, "b3": (_b_d.get(_c) or 0) == 3,
-                     "ok": bool(_vr and _vr >= 1.5 and _b1[2] >= _b1[1] and _b1[2] / _pc - 1 > 0)})
-    if _t23:
-        _t23.sort(key=lambda x: (-(x["ok"] is True), -(x["vr"] or 0)))
-        decision.setdefault(_d, {})["t23"] = _t23
+        _nm = _g["theme"]
+        _full = _LF_d.get(_nm) or []
+        _big = [{"code": x["code"], "name": x["name"], "boards": x["boards"],
+                 "t": x.get("t") or "", "shape": _shape(x["code"], _d, x.get("name") or "")}
+                for x in _full if (x.get("boards") or 1) >= 2]
+        _n1 = sum(1 for x in _full if (x.get("boards") or 1) == 1)
+        # 昨日次高板断板 → 今日涨跌幅
+        _nb = []
+        if _pd:
+            _yl = _LF_pd.get(_nm) or []
+            _ylb = sorted({(x.get("boards") or 1) for x in _yl}, reverse=True)
+            if len(_ylb) >= 2 and _ylb[1] >= 2:
+                for _x in _yl:
+                    if (_x.get("boards") or 1) != _ylb[1] or _x["code"] in _pool_d:
+                        continue
+                    _nb.append({"name": _x.get("name"), "code": _x["code"],
+                                "b": _ylb[1], "chg": chg_on(_x["code"], _d)})
+        _themes.append({"name": _nm, "count": _g.get("count"), "maxB": _g.get("maxB"),
+                        "lead": _g.get("lead"), "big": _big, "n1": _n1, "nb": _nb})
+    _dec["themes"] = _themes
+    decision[_d] = _dec
 
 # ---- 6. 组装输出 ----
 data = {
@@ -796,7 +848,7 @@ data = {
     "excludedConsecYizi": excludedConsecYizi,  # v18：连续一字开盘剔除清单（d, code）
     "v23stat": v23stat,            # 战法触发统计（供校验与口径说明）
     "stockBreak": stock_break,      # 个股连板周期 -> 断板后 5 个交易日（日K窗口锚点）
-    "decision": decision,           # v37：复盘决策页（昨日溢价 / 3b带2b / 2进3放量）
+    "decision": decision,           # v38：复盘决策页（市场阶段 / 空间龙头断板表现 / 赚钱效应题材梯队）
     "klines": kl_main,              # 兼容字段（空）：日K一律走 klines_N.json 分片
     "tgb": D.get("tgb", ""),
     "spaceSeries": space_series,
