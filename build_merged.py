@@ -682,6 +682,97 @@ ladders_out = {d: {nm: {"count": e["count"], "boards": e["boards"],
                    for nm, e in v.items()}
                for d, v in ladders.items()}
 
+# ---- 5.8 复盘决策页数据（v37）：昨日涨停溢价 / 板块3b带2b / 2进3放量 ----
+# 方法论：①开盘看昨日涨停溢价确认大环境；②板块 3板带2板且昨日2b今日赚钱=资金方向确认；
+#         ③昨日2板股今日放量（量比≥1.5）且不破开盘价=2进3可确认。
+def _dbar(c, d):
+    b = (KBARS.get(str(c)) or {}).get(d)
+    return b if (b and len(b) >= 6) else None
+
+decision = {}
+for _i in range(1, len(dates)):
+    _d, _pd = dates[_i], dates[_i - 1]
+    _pool_pd = {s["code"]: s for s in (pools.get(_pd) or [])}
+    if not _pool_pd:
+        continue
+    _b_d, _b_pd = streaks.get(_d) or {}, streaks.get(_pd) or {}
+
+    # ① 昨日涨停 → 今日溢价（开盘 / 收盘，按连板高度分组）
+    rows, agg = [], {}
+    for _c, _e in _pool_pd.items():
+        _b0, _b1 = _dbar(_c, _pd), _dbar(_c, _d)
+        if not _b0 or not _b0[2] or not _b1:
+            continue
+        _pc = _b0[2]
+        _op = round((_b1[1] / _pc - 1) * 100, 2)
+        _cp = round((_b1[2] / _pc - 1) * 100, 2)
+        _b = int(_b_pd.get(_c) or 1)
+        _g = "3p" if _b >= 3 else str(_b)
+        _a = agg.setdefault(_g, {"n": 0, "o": 0.0, "c": 0.0, "w": 0})
+        _a["n"] += 1; _a["o"] += _op; _a["c"] += _cp; _a["w"] += (_cp > 0)
+        if _b >= 2:
+            rows.append({"code": _c, "name": _e.get("name"), "b": _b, "op": _op, "cp": _cp})
+    if agg:
+        for _a in agg.values():
+            _a["o"] = round(_a["o"] / _a["n"], 2)
+            _a["c"] = round(_a["c"] / _a["n"], 2)
+            _a["w"] = round(_a["w"] * 100.0 / _a["n"])
+        _n = sum(_a["n"] for _a in agg.values())
+        _ao = round(sum(_a["o"] * _a["n"] for _a in agg.values()) / _n, 2)
+        _ac = round(sum(_a["c"] * _a["n"] for _a in agg.values()) / _n, 2)
+        _aw = round(sum(_a["w"] * _a["n"] for _a in agg.values()) / _n)
+        _light = ("ok" if _ac >= 2 and _aw >= 55
+                  else "warn" if _ao >= 0 and _aw >= 40 else "stop")
+        rows.sort(key=lambda x: (-x["b"], -x["cp"]))
+        decision[_d] = {"prem": {"n": _n, "ao": _ao, "ac": _ac, "aw": _aw,
+                                 "light": _light, "g": agg, "rows": rows}}
+
+    # ② 板块 3b带2b 判定
+    _blocks = []
+    for _t in theme_detail.get(_d) or []:
+        _cs = [s.get("code") for s in (_t.get("stocks") or []) if s.get("code")]
+        if not _cs:
+            continue
+        _maxb = max((_b_d.get(_c) or 0) for _c in _cs)
+        _has3 = _maxb >= 3
+        _has2 = any((_b_d.get(_c) or 0) == 2 for _c in _cs)
+        _y2b = [c for c in _cs if (_b_pd.get(c) or 0) == 2]
+        _y2bw = None
+        if _y2b:
+            _w = _n2 = 0
+            for _c in _y2b:
+                _b0, _b1 = _dbar(_c, _pd), _dbar(_c, _d)
+                if _b0 and _b0[2] and _b1 and _b1[2]:
+                    _n2 += 1; _w += (_b1[2] / _b0[2] - 1 > 0)
+            _y2bw = round(_w * 100.0 / _n2) if _n2 else None
+        _blocks.append({"name": _t["name"], "count": _t.get("count"),
+                        "maxB": _t.get("maxB"), "b3": _has3, "b2": _has2,
+                        "y2b": _y2bw, "ok": bool(_has3 and _has2 and (_y2bw or 0) >= 50),
+                        "lead": [s.get("name") for s in (_t.get("stocks") or [])
+                                 if (_b_d.get(s.get("code")) or 0) == _maxb and _maxb >= 3][:2]})
+    if _blocks:
+        decision.setdefault(_d, {})["board"] = _blocks
+
+    # ③ 2进3放量（昨日 2 板股今日表现）
+    _t23 = []
+    for _c, _v in _b_pd.items():
+        if _v != 2:
+            continue
+        _b0, _b1 = _dbar(_c, _pd), _dbar(_c, _d)
+        if not _b0 or not _b0[2] or not _b1:
+            continue
+        _pc = _b0[2]
+        _vr = round(_b1[5] / _b0[5], 2) if _b0[5] else None
+        _t23.append({"code": _c,
+                     "name": (_pool_pd.get(_c) or {}).get("name"),
+                     "op": round((_b1[1] / _pc - 1) * 100, 2),
+                     "cp": round((_b1[2] / _pc - 1) * 100, 2),
+                     "vr": _vr, "b3": (_b_d.get(_c) or 0) == 3,
+                     "ok": bool(_vr and _vr >= 1.5 and _b1[2] >= _b1[1] and _b1[2] / _pc - 1 > 0)})
+    if _t23:
+        _t23.sort(key=lambda x: (-(x["ok"] is True), -(x["vr"] or 0)))
+        decision.setdefault(_d, {})["t23"] = _t23
+
 # ---- 6. 组装输出 ----
 data = {
     "updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -705,6 +796,7 @@ data = {
     "excludedConsecYizi": excludedConsecYizi,  # v18：连续一字开盘剔除清单（d, code）
     "v23stat": v23stat,            # 战法触发统计（供校验与口径说明）
     "stockBreak": stock_break,      # 个股连板周期 -> 断板后 5 个交易日（日K窗口锚点）
+    "decision": decision,           # v37：复盘决策页（昨日溢价 / 3b带2b / 2进3放量）
     "klines": kl_main,              # 兼容字段（空）：日K一律走 klines_N.json 分片
     "tgb": D.get("tgb", ""),
     "spaceSeries": space_series,

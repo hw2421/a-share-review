@@ -60,6 +60,8 @@
   nav button.on[data-t="review"]{background:#9c3f18;color:#fff;border-color:#ff9d70;box-shadow:0 0 9px rgba(255,122,69,.5)}
   nav button[data-t="chance"]{background:rgba(224,64,151,.15);border-color:rgba(224,64,151,.45);color:#f7b2dd}
   nav button.on[data-t="chance"]{background:#8c1f61;color:#fff;border-color:#ff9ed7;box-shadow:0 0 9px rgba(224,64,151,.5)}
+  nav button[data-t="decision"]{background:rgba(38,198,218,.14);border-color:rgba(38,198,218,.42);color:#9fe8f2}
+  nav button.on[data-t="decision"]{background:#0e6a78;color:#fff;border-color:#5fe0ef;box-shadow:0 0 9px rgba(38,198,218,.5)}
   .page{display:none;padding:12px 16px}
   .page.on{display:block}
   .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
@@ -534,6 +536,7 @@
       <button data-t="ladder">连板梯队</button>
       <button data-t="review">交易复盘</button>
       <button data-t="chance">当日机会</button>
+      <button data-t="decision">复盘决策</button>
     </nav>
     <span class="upd" id="upd">--</span>
     <span class="alert" id="alert" title="点击查看详情"></span>
@@ -657,6 +660,20 @@
       <span id="ch-sum" class="ch-sum"></span>
     </div>
     <div id="ch-list" class="scroll"></div>
+  </div>
+</section>
+
+<section class="page" id="page-decision">
+  <div class="card">
+    <h3>复盘决策 <span class="sub">① 昨日涨停溢价（大环境） → ② 板块3b带2b（资金方向） → ③ 2进3放量（买点） → ④ 试错链条（参与资格）</span></h3>
+    <div class="ch-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button id="dc-prev" class="ch-go">◀ 上一交易日</button>
+      <select id="dc-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
+      <button id="dc-next" class="ch-go">下一交易日 ▶</button>
+      <button id="dc-today" class="ch-go">今日</button>
+      <span id="dc-live" class="sub" style="margin-left:4px"></span>
+    </div>
+    <div id="dc-body"></div>
   </div>
 </section>
 
@@ -3004,6 +3021,248 @@ function initHistNav(){
   focusMarket(ds[ds.length-1]);        // 初始只刷新摘要/明细表，不重复渲染其它页
 }
 
+/* ================= 复盘决策页（v37） ================= */
+/* 同花顺当日实时快照（today.js，JSONP 直连）：昨收/开盘/现价/累计成交量/时间戳 */
+function thsTodayJsonp(code, timeout){
+  return new Promise(res=>{
+    if(/^[4892]/.test(code)){ res(null); return; }        // 北交所无 v6 接口
+    const CB='quotebridge_v6_line_hs_'+code+'_01_today';
+    const done=v=>{ try{delete window[CB];}catch(e){window[CB]=undefined;}
+                    s.remove(); clearTimeout(t); res(v); };
+    const s=document.createElement('script');
+    const t=setTimeout(()=>done(null), timeout||6000);
+    window[CB]=obj=>{
+      try{
+        const o=(obj||{})['hs_'+code];
+        if(!o || !o[11] || !o[7]){ done(null); return; }
+        done({date:o[1], prevc:+o[7], open:+o[8], low:+o[9], last:+o[11],
+              vol:+(o[13]||0), dt:String(o.dt||'')});
+      }catch(e){ done(null); }
+    };
+    s.onerror=()=>done(null);
+    s.src='https://d.10jqka.com.cn/v6/line/hs_'+code+'/01/today.js?r='+Date.now();
+    document.head.appendChild(s);
+  });
+}
+function dcTradeMin(dt){                    // dt "HHMM" -> 已交易分钟数（0~240）
+  const h=+dt.slice(0,2)||9, m=+dt.slice(2,4)||30, t=h*60+m;
+  if(t<=690) return Math.max(0, t-570);     // 09:30-11:30
+  return Math.min(240, 120+Math.max(0, t-780));
+}
+function dcLightTag(l){
+  const m={ok:['绿灯 · 大环境可做','#2ebd85'],warn:['黄灯 · 谨慎参与','#f0b90b'],
+           stop:['红灯 · 停手休息','#f5455c']};
+  return '<span style="background:'+m[l][1]+'22;color:'+m[l][1]+';border:1px solid '+m[l][1]+
+         '55;border-radius:6px;padding:2px 10px;font-weight:800">'+m[l][0]+'</span>';
+}
+const _pct=v=> v==null? '-' :
+  '<span style="color:'+(v>=0?C.up:C.down)+'">'+(v>0?'+':'')+v.toFixed(2)+'%</span>';
+let DC_DATE=null;
+function renderDecision(){
+  const ds=window.REVIEW.dates, sel=document.getElementById('dc-date');
+  if(sel.options.length!==ds.length)
+    sel.innerHTML=ds.slice().reverse().map(d=>'<option value="'+d+'">'+fmtDate(d)+'</option>').join('');
+  if(!DC_DATE||!ds.includes(DC_DATE)) DC_DATE=ds[ds.length-1];
+  sel.value=DC_DATE;
+  paintDecision();
+}
+function dcBindK(root){                     // 表格里的个股可点开日K
+  root.querySelectorAll('[data-c]').forEach(el=>{
+    el.style.cursor='pointer';
+    el.onclick=ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, null, el.dataset.d||DC_DATE); };
+  });
+}
+function dcSec(title, inner){
+  return '<div class="card" style="margin-top:12px"><h3>'+title+'</h3>'+inner+'</div>';
+}
+async function paintDecision(){
+  const R=window.REVIEW, body=document.getElementById('dc-body'), d=DC_DATE, ds=R.dates;
+  const D=(R.decision||{})[d]||{};
+  const isToday = d===R.today;
+  const live=document.getElementById('dc-live');
+  /* ---------- ④ 试错链条（先算，徽章要在标题区显示） ---------- */
+  const tr=(R.review.trialLead||[]).filter(t=>t.d<=d).sort((a,b)=>a.d.localeCompare(b.d));
+  const last=tr[tr.length-1];
+  const chainVerdict = !last ? null : (last.pnl>-7 ? 'go':'stop');
+  live.innerHTML = last? ('试错链条：'+fmtDate(last.d)+' '+last.name+' '+last.boards+'板 '+
+    _pct(last.pnl)+' → '+(chainVerdict==='go'
+      ? '<b style="color:#2ebd85">无大亏，可继续试</b>'
+      : '<b style="color:#f5455c">大亏，试错窗口关闭</b>')) : '试错链条：暂无记录';
+  let html='';
+  /* ---------- ① 昨日涨停溢价 ---------- */
+  {
+    let inner;
+    if(D.prem){
+      const p=D.prem, g=p.g||{};
+      const row=(k,nm)=>g[k]? '<td>'+(nm||k)+'板</td><td>'+g[k].n+'</td><td>'+_pct(g[k].o)+
+        '</td><td>'+_pct(g[k].c)+'</td><td style="color:'+(g[k].w>=50?C.up:C.down)+'">'+g[k].w+'%</td>' : '';
+      inner='<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'+
+        dcLightTag(p.light)+'<span class="sub">昨日涨停 '+p.n+' 只 · 平均开盘 '+_pct(p.ao)+
+        ' · 平均收盘 '+_pct(p.ac)+' · 收盘赚钱率 '+p.aw+'%</span></div>'+
+        '<table style="border-collapse:collapse;width:100%;font-size:12px"><tr style="color:#7e8ea6">'+
+        '<th style="text-align:left;padding:3px 6px">高度</th><th>只数</th><th>平均开盘溢价</th>'+
+        '<th>平均收盘溢价</th><th>收盘赚钱率</th></tr>'+row('1','首')+row('2','2')+row('3p','3板+')+
+        '</table>'+
+        (p.rows&&p.rows.length? '<div class="sub" style="margin:8px 0 4px">昨日 2 板及以上个股今日表现（点名称看日K）：</div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:5px">'+p.rows.map(r=>
+            '<span data-c="'+r.code+'" data-n="'+r.name+'" style="background:#152238;border:1px solid #2b3a56;'+
+            'border-radius:5px;padding:2px 7px;font-size:11.5px">'+r.name+' <b>'+r.b+'板</b> '+_pct(r.op)+'→'+_pct(r.cp)+'</span>'
+          ).join('')+'</div>' : '');
+      body.innerHTML = dcSec('① 昨日涨停溢价率 · 大环境', inner) + '<div id="dc-rest"></div>';
+    }else{
+      body.innerHTML = dcSec('① 昨日涨停溢价率 · 大环境',
+        '<div class="sub" id="dc-prem-live">'+(isToday?'盘中实时计算中…（收盘后由定时构建补齐历史口径）':'该日无昨日涨停数据')+'</div>') +
+        '<div id="dc-rest"></div>';
+    }
+  }
+  const rest=document.getElementById('dc-rest');
+  /* ---------- ② 板块 3b带2b ---------- */
+  {
+    let inner;
+    if(D.board&&D.board.length){
+      inner='<table style="border-collapse:collapse;width:100%;font-size:12px">'+
+        '<tr style="color:#7e8ea6"><th style="text-align:left;padding:3px 6px">板块</th><th>涨停</th><th>最高板</th>'+
+        '<th>3板股</th><th>2板股</th><th>昨日2b今日赚钱率</th><th>判定</th></tr>'+
+        D.board.map(b=>{
+          const ok=b.ok, hot=ok?'background:rgba(46,189,133,.14);color:#2ebd85;font-weight:700':'color:#c9d6ea';
+          return '<tr style="border-top:1px solid #1d2a42;'+(ok?'background:rgba(46,189,133,.07)':'')+'">'+
+            '<td style="padding:4px 6px;'+hot+'">'+b.name+(b.lead&&b.lead.length? ' <span class="sub">龙头 '+b.lead.join('/')+'</span>':'')+'</td>'+
+            '<td style="text-align:center">'+b.count+'</td><td style="text-align:center">'+b.maxB+'板</td>'+
+            '<td style="text-align:center;color:'+(b.b3?'#2ebd85':'#667')+'">'+(b.b3?'√':'-')+'</td>'+
+            '<td style="text-align:center;color:'+(b.b2?'#2ebd85':'#667')+'">'+(b.b2?'√':'-')+'</td>'+
+            '<td style="text-align:center">'+(b.y2b==null?'-':(b.y2b+'%'))+'</td>'+
+            '<td style="text-align:center">'+(ok?'<b style="color:#2ebd85">资金方向确认</b>':'-')+'</td></tr>';
+        }).join('')+'</table>'+
+        '<div class="sub" style="margin-top:6px">判定口径：板块内同时有 ≥3板股 与 2板股，且昨日该板块 2 板股今日收盘赚钱率 ≥50% → 资金方向确认，买其龙头。</div>';
+    }else inner='<div class="sub">该日无题材块数据</div>';
+    rest.insertAdjacentHTML('beforeend', dcSec('② 板块 3板带2b · 资金方向', inner));
+  }
+  /* ---------- ③ 2进3放量 ---------- */
+  {
+    let inner;
+    if(D.t23&&D.t23.length){
+      inner='<table style="border-collapse:collapse;width:100%;font-size:12px">'+
+        '<tr style="color:#7e8ea6"><th style="text-align:left;padding:3px 6px">个股（昨日2板）</th><th>开盘溢价</th>'+
+        '<th>收盘溢价</th><th>量比（今/昨全天量）</th><th>晋级3板</th><th>放量确认</th></tr>'+
+        D.t23.map(t=>'<tr style="border-top:1px solid #1d2a42">'+
+          '<td style="padding:4px 6px"><span data-c="'+t.code+'" data-n="'+(t.name||t.code)+'" data-d="'+d+'">'+(t.name||t.code)+'</span></td>'+
+          '<td style="text-align:center">'+_pct(t.op)+'</td><td style="text-align:center">'+_pct(t.cp)+'</td>'+
+          '<td style="text-align:center;color:'+(t.vr>=1.5?'#2ebd85':'#c9d6ea')+'">'+(t.vr==null?'-':t.vr+'×')+'</td>'+
+          '<td style="text-align:center;color:'+(t.b3?'#f5455c':'#667')+'">'+(t.b3?'√':'-')+'</td>'+
+          '<td style="text-align:center">'+(t.ok?'<b style="color:#2ebd85">确认</b>':'-')+'</td></tr>').join('')+'</table>'+
+        '<div class="sub" style="margin-top:6px">历史口径：今日成交量 ≥ 昨日全天量 1.5 倍、收盘高于开盘且上涨 → 放量确认。盘中实时确认见「今日」页。</div>';
+    }else if(isToday) inner='<div class="sub" id="dc-t23-live">盘中实时监测中…</div>';
+    else inner='<div class="sub">该日无昨日 2 板股（或行情缺失）</div>';
+    rest.insertAdjacentHTML('beforeend', dcSec('③ 2进3 · 放量确认', inner));
+  }
+  /* ---------- ④ 试错链条 ---------- */
+  {
+    const rows=tr.slice(-6).reverse().map(t=>
+      '<tr style="border-top:1px solid #1d2a42"><td style="padding:4px 6px">'+fmtDate(t.d)+'</td>'+
+      '<td><span data-c="'+t.code+'" data-n="'+t.name+'" data-d="'+t.d+'">'+t.name+'</span></td>'+
+      '<td style="text-align:center">'+t.boards+'板</td><td style="text-align:center">'+_pct(t.pnl)+'</td>'+
+      '<td class="sub">'+(t.why||'').slice(0,40)+'</td></tr>').join('');
+    const v = chainVerdict==='go'
+      ? '<b style="color:#2ebd85">绿灯：上一试错无大亏（pnl ≥ -7%），下一个愿意继续试</b>'
+      : chainVerdict==='stop'
+      ? '<b style="color:#f5455c">红灯：上一试错大亏（pnl < -7%），试错窗口关闭，等空间情绪修复</b>'
+      : '<span class="sub">暂无试错龙头模拟记录</span>';
+    rest.insertAdjacentHTML('beforeend', dcSec('④ 试错链条 · 参与资格', v+
+      (rows? '<table style="border-collapse:collapse;width:100%;font-size:12px;margin-top:6px">'+
+        '<tr style="color:#7e8ea6"><th style="text-align:left;padding:3px 6px">买入日</th><th>标的</th><th>高度</th>'+
+        '<th>盈亏</th><th style="text-align:left">逻辑</th></tr>'+rows+'</table>' : '')));
+  }
+  dcBindK(body);
+  /* ---------- 今日实时：① 溢价 + ③ 放量盘中确认 ---------- */
+  if(isToday){
+    const pd=ds[ds.indexOf(d)-1];
+    const yPool=R.recentPools[pd]||[];
+    const codes=yPool.slice(0,80);
+    const t23y=(R.lb[pd]||[]).filter(r=>r[1]===2);          // 昨日2板
+    if(codes.length){
+      const snap={};
+      await Promise.all(codes.map(async s=>{
+        const q=await thsTodayJsonp(s.code,6000);
+        if(q) snap[s.code]=q;
+      }));
+      const t=snap[codes[0].code]? snap[codes[0].code].dt : '';
+      // ① 实时溢价
+      const agg={};
+      codes.forEach(s=>{
+        const q=snap[s.code]; if(!q||!q.open) return;
+        const op=round2((q.open/q.prevc-1)*100), cp=round2((q.last/q.prevc-1)*100);
+        const b=s.boards||1, g=b>=3?'3p':String(b);
+        const a=agg[g]=agg[g]||{n:0,o:0,c:0,w:0}; a.n++; a.o+=op; a.c+=cp; a.w+=(cp>0);
+      });
+      Object.values(agg).forEach(a=>{a.o=round2(a.o/a.n);a.c=round2(a.c/a.n);a.w=Math.round(a.w*100/a.n);});
+      const el=document.getElementById('dc-prem-live');
+      if(el&&Object.keys(agg).length){
+        const n=Object.values(agg).reduce((x,a)=>x+a.n,0);
+        const ao=round2(Object.values(agg).reduce((x,a)=>x+a.o*a.n,0)/n);
+        const ac=round2(Object.values(agg).reduce((x,a)=>x+a.c*a.n,0)/n);
+        const aw=Math.round(Object.values(agg).reduce((x,a)=>x+a.w*a.n,0)/n);
+        const light= ac>=2&&aw>=55?'ok':(ao>=0&&aw>=40?'warn':'stop');
+        el.innerHTML=dcLightTag(light)+' <span class="sub">实时 '+fmtDT(t)+' · 昨日涨停 '+n+
+          ' 只 · 平均开盘 '+_pct(ao)+' · 现价口径 '+_pct(ac)+' · 赚钱率 '+aw+'%</span>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">'+
+          codes.filter(s=>(s.boards||1)>=2&&snap[s.code]&&snap[s.code].open).map(s=>{
+            const q=snap[s.code];
+            return '<span data-c="'+s.code+'" data-n="'+s.name+'" style="background:#152238;border:1px solid #2b3a56;border-radius:5px;padding:2px 7px;font-size:11.5px">'+
+              s.name+' <b>'+s.boards+'板</b> '+_pct(round2((q.open/q.prevc-1)*100))+'→'+_pct(round2((q.last/q.prevc-1)*100))+'</span>';
+          }).join('')+'</div>';
+        if(el) dcBindK(el.parentElement||el);
+      }else if(el) el.innerHTML='<span class="sub">实时行情不可用（接口超时 / 北交所个股）</span>';
+      // ③ 实时放量（昨日2板）
+      const t23el=document.getElementById('dc-t23-live');
+      if(t23el&&t23y.length){
+        const rows=[];
+        await Promise.all(t23y.slice(0,20).map(async r=>{
+          const code=r[3], name=r[0];
+          const [q,bars]=await Promise.all([thsTodayJsonp(code,6000), thsJsonp(code,7000)]);
+          if(!q||!q.open||!bars||!bars.length) return;
+          const yb=bars[bars.length-1];
+          const prevc=yb[2], pv=yb[5]||0;
+          const prog=pv? round2(q.vol/pv*100):null;        // 累计量/昨日全天量 %
+          const mins=dcTradeMin(q.dt||'');
+          const need=Math.round(Math.min(240,mins*1.5));   // 时间进度×1.5 的量能要求
+          const ok= q.last>q.prevc && prog!=null && prog>=Math.max(20,need);
+          rows.push({code,name,op:round2((q.open/prevc-1)*100),cp:round2((q.last/prevc-1)*100),
+                     prog,mins,ok,last:q.last>=q.open});
+        }));
+        if(rows.length){
+          rows.sort((a,b)=>(b.ok?1:0)-(a.ok?1:0)||(b.prog||0)-(a.prog||0));
+          t23el.innerHTML='<div class="sub">实时 '+fmtDT((snap[codes[0].code]||{}).dt||'')+
+            ' · 口径：累计量已达「时间进度×1.5 × 昨日全天量」且现价＞昨收 → 实时放量确认（给足时间）</div>'+
+            '<table style="border-collapse:collapse;width:100%;font-size:12px;margin-top:4px">'+
+            '<tr style="color:#7e8ea6"><th style="text-align:left;padding:3px 6px">个股（昨日2板）</th><th>开盘</th><th>现价</th>'+
+            '<th>量能进度</th><th>时间进度</th><th>高于开盘</th><th>判定</th></tr>'+
+            rows.map(r=>'<tr style="border-top:1px solid #1d2a42">'+
+              '<td style="padding:4px 6px"><span data-c="'+r.code+'" data-n="'+r.name+'" data-d="'+d+'">'+r.name+'</span></td>'+
+              '<td style="text-align:center">'+_pct(r.op)+'</td><td style="text-align:center">'+_pct(r.cp)+'</td>'+
+              '<td style="text-align:center;color:'+(r.prog>=150?'#2ebd85':'#c9d6ea')+'">'+r.prog+'%</td>'+
+              '<td style="text-align:center">'+Math.round(r.mins/240*100)+'%</td>'+
+              '<td style="text-align:center;color:'+(r.last?'#2ebd85':'#667')+'">'+(r.last?'√':'-')+'</td>'+
+              '<td style="text-align:center">'+(r.ok?'<b style="color:#2ebd85">放量确认</b>':'等待')+'</td></tr>').join('')+'</table>';
+          dcBindK(t23el.parentElement||t23el);
+        }else t23el.innerHTML='<span class="sub">实时行情不可用</span>';
+      }
+    }
+  }
+}
+function dcStep(n){
+  const ds=window.REVIEW.dates, i=ds.indexOf(DC_DATE);
+  DC_DATE=ds[Math.max(0,Math.min(ds.length-1,i+n))];
+  document.getElementById('dc-date').value=DC_DATE;
+  paintDecision();
+}
+function round2(v){ return Math.round(v*100)/100; }
+function fmtDT(dt){ return dt&&dt.length>=4? dt.slice(0,2)+':'+dt.slice(2,4) : ''; }
+/* 日期导航事件 */
+document.getElementById('dc-date').onchange=e=>{ DC_DATE=e.target.value; paintDecision(); };
+document.getElementById('dc-prev').onclick=()=>dcStep(-1);
+document.getElementById('dc-next').onclick=()=>dcStep(1);
+document.getElementById('dc-today').onclick=()=>{ DC_DATE=window.REVIEW.today; document.getElementById('dc-date').value=DC_DATE; paintDecision(); };
+
 /* ================= tabs ================= */
 function switchTab(t){
   try{ sessionStorage.setItem('sd_tab', t); }catch(e){}   // v30：刷新重载后回到原页签
@@ -3021,6 +3280,7 @@ function switchTab(t){
   if(tlist) tlist.scrollTop = 0;              // 题材按时间降序，最新在最上
   if(t==='ladder') renderLadder(LADDER_DATE);
   if(t==='chance') renderChance();
+  if(t==='decision') renderDecision();
   if(t==='market' && mktChart) setTimeout(()=>mktChart.resize(), 30);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.t));
