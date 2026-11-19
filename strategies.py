@@ -338,7 +338,8 @@ def build(ctx):
             bb, pv = rec.get(bd), prev_close(c, bd)
             if bb and pv:
                 chg = bb[2] / pv - 1
-                if chg <= -.07 or (bb[2] < bb[1] and (bb[1] - bb[2]) / pv >= .05):
+                # 大长阴：收盘跌幅 ≥7%，或收阴且实体 ≥5%（须当日收跌）
+                if chg <= -.07 or (chg < 0 and bb[2] < bb[1] and (bb[1] - bb[2]) / pv >= .05):
                     reasons.append("%s 断板日大长阴" % nm)
             i0, i1 = DIDX.get(bd), DIDX.get(B)
             if i0 is None or i1 is None:

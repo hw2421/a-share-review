@@ -738,7 +738,9 @@ def _big_loss(entries, end_d):
         bb, pv = rec.get(bd), _prev_close(code, bd)
         if bb and pv:
             chg = bb[2] / pv - 1
-            if chg <= -.07 or (bb[2] < bb[1] and (bb[1] - bb[2]) / pv >= .05):
+            # 大长阴：收盘跌幅 ≥7%，或收阴且实体 ≥5%（须当日收跌——涨停开盘
+            # 回落但现价仍上涨不算大亏）
+            if chg <= -.07 or (chg < 0 and bb[2] < bb[1] and (bb[1] - bb[2]) / pv >= .05):
                 reasons.append("%s 断板日大长阴（%+.1f%%）" % (nm, chg * 100))
         i0, i1 = DIDX.get(bd), DIDX.get(end_d)
         if i0 is None or i1 is None:

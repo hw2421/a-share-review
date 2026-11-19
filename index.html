@@ -2767,6 +2767,9 @@ function dcSec(title, inner){
 function paintDecision(){
   const R=window.REVIEW, body=document.getElementById('dc-body'), d=DC_DATE;
   const D=(R.decision||{})[d]||{};
+  const isToday = d===R.today;
+  const chgTxt=(v, live)=> v==null ? (live? '<span class="c-gold">盘中…</span>' : '-')
+                                   : '<span style="color:'+(v>=0?C.up:C.down)+'">'+(v>0?'+':'')+v+'%</span>';
   let html='';
   /* ---------- ① 市场阶段 + 交易机会判断 ---------- */
   {
@@ -2786,8 +2789,8 @@ function paintDecision(){
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+
         dg.stocks.map(x=>'<span data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+d+
           '" style="background:#152238;border:1px solid #2b3a56;border-radius:5px;padding:3px 8px;font-size:12px">'+
-          x.name+' <b>'+x.boards+'板</b> · '+fmtDate(x.brk)+'断板 · 今日 '+_pct(x.today)+
-          ' · 断板后累计 '+_pct(x.cum)+'</span>').join('')+'</div>'+
+          x.name+' <b>'+x.boards+'板</b> · '+fmtDate(x.brk)+'断板 · 今日 '+chgTxt(x.today, isToday)+
+          ' · 断板后累计 '+chgTxt(x.cum, isToday)+'</span>').join('')+'</div>'+
         (risk&&dg.loss&&dg.loss.length?
           '<div class="sub" style="color:#f5455c;margin-top:8px">断板后大亏：'+dg.loss.join('；')+
           ' → 上一个龙头断板直接大亏，谨慎参与、提示风险。</div>'
