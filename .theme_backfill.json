@@ -3884,5 +3884,76 @@
   "src": "https://sina.cn/news/detail/5364119260630183.html",
   "via": "weibo",
   "postTime": "2026-11-11 17:25"
+ },
+ "20261119": {
+  "themes": [
+   {
+    "name": "光刻机",
+    "count": 8,
+    "amount": 47.0,
+    "stocks": [
+     {
+      "code": "603030",
+      "name": "全筑股份",
+      "time": "9:25",
+      "boards": 3,
+      "reason": "光刻机光源"
+     },
+     {
+      "code": "603324",
+      "name": "盛剑科技",
+      "time": "9:37",
+      "boards": 3,
+      "reason": "光刻胶"
+     },
+     {
+      "code": "603931",
+      "name": "格林达",
+      "time": "9:31",
+      "boards": 1,
+      "reason": "光刻胶用显影液/剥离液"
+     },
+     {
+      "code": "002165",
+      "name": "红宝丽",
+      "time": "9:32",
+      "boards": 1,
+      "reason": "光刻胶清洗剂"
+     },
+     {
+      "code": "600619",
+      "name": "海立股份",
+      "time": "11:20",
+      "boards": 1,
+      "reason": "光刻机冷却系统"
+     },
+     {
+      "code": "603078",
+      "name": "江化微",
+      "time": "13:06",
+      "boards": 1,
+      "reason": "光刻胶配套试剂"
+     },
+     {
+      "code": "603928",
+      "name": "兴业股份",
+      "time": "14:45",
+      "boards": 1,
+      "reason": "光刻胶用树脂"
+     },
+     {
+      "code": "001358",
+      "name": "兴欣新材",
+      "time": "14:50",
+      "boards": 1,
+      "reason": "光刻胶"
+     }
+    ],
+    "maxB": 3
+   }
+  ],
+  "src": "https://sina.cn/news/detail/5367025914609979.html",
+  "via": "weibo",
+  "postTime": "2026-11-19 17:55"
  }
 }

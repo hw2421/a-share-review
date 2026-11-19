@@ -367,6 +367,35 @@
   .rv-tbl .rv-thm:hover{color:#fff;border-bottom-color:#fff}
   .rv-tbl .rv-brs{color:#ffbd9e;font-size:10px}
   .rv-tbl .rv-no{color:var(--dim2);font-size:10px}
+  /* v45：买入逻辑列（明细表，卖出原因前一列） */
+  .rv-tbl .rv-lg{max-width:300px;min-width:190px;white-space:normal;line-height:1.5;
+        color:#9fb6d6;font-size:10px}
+  /* v45：买入逻辑共性卡（四维统计 + 结论） */
+  .lg-card{margin-top:10px;border:1px solid #24344f;border-radius:9px;padding:9px 11px;
+        background:linear-gradient(180deg,rgba(61,139,255,.07),rgba(61,139,255,.02))}
+  .lg-card h4{margin:0 0 6px;font-size:12.5px;color:#9fc6ff}
+  .lg-card h4 .sub{font-weight:400;color:var(--dim2);font-size:10px;margin-left:6px}
+  .lg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:9px}
+  .lg-box{border:1px solid #1f2c42;border-radius:8px;padding:7px 9px;background:#101a2b}
+  .lg-box b.t{display:block;font-size:11.5px;color:#ffd24a;margin-bottom:5px}
+  .lg-tbl{width:100%;border-collapse:collapse;font-size:10.5px}
+  .lg-tbl th{color:var(--dim2);font-weight:600;text-align:right;padding:2px 4px;
+        border-bottom:1px solid var(--line);white-space:nowrap}
+  .lg-tbl th:first-child,.lg-tbl td:first-child{text-align:left}
+  .lg-tbl td{padding:2px 4px;text-align:right;border-bottom:1px dashed rgba(31,41,55,.55);
+        white-space:nowrap;font-variant-numeric:tabular-nums}
+  .lg-read{margin-top:9px;font-size:11.5px;line-height:1.85;color:#c9d6e8}
+  .lg-read i{font-style:normal;color:#8ce3bf;font-weight:800}
+  /* v45：全站「口径」说明统一折叠 */
+  details.kj{margin-top:6px;border-left:2px solid #2b3a56;padding-left:8px}
+  details.kj>summary{cursor:pointer;color:#78849a;font-size:10.5px;list-style:none}
+  details.kj>summary::-webkit-details-marker{display:none}
+  details.kj>summary:hover{color:#9fc6ff}
+  details.kj[open]>summary{color:#9fc6ff;margin-bottom:4px}
+  details.kj .kjb{color:#8e9bb0;font-size:11px;line-height:1.8}
+  /* 涨停形态缩写（空间情绪明细表 / 决策页）：共用 .sp 配色，此处只补基础排版 */
+  .mtable .sp,.dc-sp{font-style:normal;font-size:9px;margin-left:3px;border-radius:2px;
+       padding:0 3px;font-weight:700;white-space:nowrap}
   /* v18：同一时期各战法横向对比 */
   .rv-cmp{margin:10px 0 0;border-top:1px dashed var(--line);padding-top:9px}
   .rv-cmp h4{margin:0 0 6px;font-size:12px;color:var(--gold)}
@@ -696,6 +725,11 @@ const STAGE_BG = {'节点':'rgba(159,227,224,.85)','补涨':'rgba(255,210,74,.75
 const STAGE_TXT = {'节点':'#1f4f4c','补涨':'#5a4300','突破':'#fff','主升':'#fff'};
 
 function fmtDate(d){ return d.slice(4,6)+'-'+d.slice(6,8); }
+/* v45：全站「口径」说明统一折叠展示（默认收起，点开才看规则细节） */
+function kjNote(body, title){
+  return '<details class="kj"><summary>'+(title||'口径说明')+' ▾</summary>'+
+         '<div class="kjb">'+body+'</div></details>';
+}
 function chgSpan(v){
   if(v==null) return '<span class="c-gold">?</span>';
   return '<span class="'+(v>0?'c-up':'c-down')+'">'+(v>0?'+':'')+v+'%</span>';
@@ -956,7 +990,8 @@ function renderMarket(){
       th += '<td class="stk-cell" data-code="'+s.code+'" data-name="'+s.name+'" data-date="'+d.date+'" '+
         'title="点击查看该股日K（箭头指当日）">'+
         '<b class="'+(hotDay?'lead-hot':'')+'" style="'+hotBg+'">'+s.name+'</b>'+
-        '<em style="font-style:normal;color:'+C.up+';margin-left:3px">'+s.boards+'板</em></td>'+
+        '<em style="font-style:normal;color:'+C.up+';margin-left:3px">'+s.boards+'板</em>'+
+        (s.s? '<em class="sp '+shapeCls(s.s)+'" title="'+SP_TIP+'">'+s.s+'</em>':'')+'</td>'+
         '<td class="'+(s.theme?'th-cell':'')+'" data-th="'+(s.theme||'')+'" data-dt="'+d.date+'"'+
         (s.theme? ' title="点击 → 题材炒作页「'+s.theme+'」'+fmtDate(d.date)+'（闪动提示）"':'')+'>'+
         (s.theme? '<b style="color:'+tcol+'">'+s.theme+'</b> ':'<span style="color:'+C.dim2+'">—</span>')+
@@ -1793,7 +1828,7 @@ function renderReview(){
       '<td>'+t.hold+'日</td>'+
       '<td>'+f2(t.sell)+'</td></tr>';
   });
-  if(!n) html += '<tr><td colspan="13" style="text-align:center;color:'+C.dim2+
+  if(!n) html += '<tr><td colspan="14" style="text-align:center;color:'+C.dim2+
     ';padding:16px">该时间段内无符合条件的交易，请调整起止日期或点「全部区间」</td></tr>';
   html += '</tbody></table>';
   document.getElementById('rv-table').innerHTML = html;
@@ -1847,7 +1882,43 @@ function renderReview(){
     };
   });
   applyRvNote();
+  renderLogic();            // v45：买入逻辑共性（全期统计，不随区间变化）
   renderCompare();          // 同区间两战法对比随明细一起刷新
+}
+
+/* v45：买入逻辑（赚钱效应）共性——市场阶段 / 题材情况 / 个股形态 / 涨停时机四维拆解，
+   结论由后端按全期逐笔真实统计生成（reviewStat.read），不在前端写死观点。*/
+function renderLogic(){
+  const host=document.getElementById('rv-logic'); if(!host) return;
+  const S=(window.REVIEW||{}).reviewStat;
+  if(!S || !S.total){ host.innerHTML=''; return; }
+  const t=S.total, hit=v=> v>=0? C.up : '#2ebd85';
+  const tbl=arr=>{
+    if(!arr || !arr.length) return '<div class="sub">—</div>';
+    return '<table class="lg-tbl"><thead><tr><th>分组</th><th>笔数</th><th>胜率</th>'+
+      '<th>笔均</th><th>盈亏比</th></tr></thead><tbody>'+
+      arr.map(r=>'<tr><td>'+r.k+'</td><td>'+r.n+'</td>'+
+        '<td style="color:'+(r.win>=50?C.up:'#2ebd85')+'">'+r.win.toFixed(1)+'%</td>'+
+        '<td style="color:'+hit(r.avg)+'">'+(r.avg>0?'+':'')+r.avg.toFixed(2)+'%</td>'+
+        '<td>'+(r.pf? r.pf.toFixed(2):'—')+'</td></tr>').join('')+
+      '</tbody></table>';
+  };
+  const box=(title,arr)=>'<div class="lg-box"><b class="t">'+title+'</b>'+tbl(arr)+'</div>';
+  host.innerHTML='<div class="lg-card"><h4>买入逻辑 · 赚钱效应共性 '+
+    '<span class="sub">全期 '+t.n+' 笔 · 胜率 '+t.win.toFixed(1)+'% · 笔均 '+
+    (t.avg>0?'+':'')+t.avg.toFixed(2)+'% · 盈亏比 '+(t.pf?t.pf.toFixed(2):'—')+
+    '（全期统计、不随上方区间变化；只统计实际买到的笔，分四维看哪一类最容易赚钱）</span></h4>'+
+    '<div class="lg-grid">'+
+      box('① 市场阶段',S.stage)+
+      box('② 题材热度 · 板块当日涨停家数',S.cnt)+
+      box('③ 题材梯队 · 首板家数',S.b1)+
+      box('④ 龙头板位（题材最高连板）',S.boards)+
+      box('⑤ 个股涨停形态',S.shape)+
+      box('⑥ 涨停时机 · 首次封板时间',S.seal)+
+      box('⑦ 量能（较前一交易日）',S.vol)+
+    '</div>'+
+    '<div class="lg-read">'+(S.read||[]).map(x=>'· '+x).join('<br>')+'</div>'+
+    '</div>';
 }
 
 /* v43：明细表冻结列偏移——「买入日」列实际宽度写入 CSS 变量，供「个股」列 left 吸附 */
@@ -1922,9 +1993,9 @@ function renderCompare(){
       '<td>'+x.cap.toFixed(2)+'%</td></tr>';
   });
   h+='</tbody></table>'+
-    '<div class="rv-cmp-tip">同一区间横向对比 · 金色为该项最优 · 紫色底为当前查看的战法。'+
-    '指标口径与上方明细完全一致（盈亏比 = 笔均盈利 / |笔均亏损|；模拟累积盈利按 100% 起始资金、'+
-    '每笔 '+pos+'% 仓位复利）。切换起止日期 / 战法 / 参与模拟 / 仓位后自动刷新。</div>';
+    '<div class="rv-cmp-tip">同一区间横向对比 · 金色为该项最优 · 紫色底为当前查看的战法。</div>'+
+    kjNote('指标口径与上方明细完全一致（盈亏比 = 笔均盈利 / |笔均亏损|；模拟累积盈利按 100% 起始资金、'+
+    '每笔 '+pos+'% 仓位复利）。切换起止日期 / 战法 / 参与模拟 / 仓位后自动刷新。', '口径 · 对比指标');
   host.innerHTML=h;
 }
 
@@ -2188,9 +2259,11 @@ function thsJsonp(code, timeout){
     document.head.appendChild(s);
   });
 }
-/* ---- 同花顺实时快照 today.js（JSONP）：当日涨跌幅一律以此为准 ----
-   回调名 quotebridge_v6_line_hs_<code>_01_today；字段 7=昨收 8=今开 9=最低
-   11=现价 13=累计量 1=日期。返回 {prevc,open,low,last,vol,date,chg}。 */
+/* ---- 同花顺实时快照 today.js（JSONP）：只取当日 OHLC，不取涨跌幅 ----
+   回调名 quotebridge_v6_line_hs_<code>_01_today；实测字段 1=日期 7=今开 8=最高
+   9=最低 11=现价 13=累计量（v45 修正：旧版把 7 当昨收、8 当今开，实际 7 是今开、
+   8 是最高价，导致 20261119 华东重机 +4.07% 被算成 −5.43%）。
+   本接口没有昨收，涨跌幅一律用日K分片里「上一根收盘价」现算。 */
 function thsTodayJsonp(code, timeout){
   return new Promise(res=>{
     const sym = /^[4892]/.test(code) ? null : 'hs_'+code;
@@ -2204,10 +2277,9 @@ function thsTodayJsonp(code, timeout){
       try{
         const o = (obj||{})[sym];
         if(!o) return done(null);
-        const prevc=+o['7'], op=+o['8'], low=+o['9'], last=+o['11'], vol=+o['13'];
-        if(!(prevc>0 && last>0)) return done(null);
-        done({date:o['1'], prevc, open:op, low, last, vol,
-              chg: +(((last/prevc-1)*100).toFixed(2))});
+        const op=+o['7'], high=+o['8'], low=+o['9'], last=+o['11'], vol=+o['13'];
+        if(!(last>0)) return done(null);
+        done({date:String(o['1']||''), open:op, high, low, last, vol});
       }catch(e){ done(null); }
     };
     s.onerror = ()=>done(null);
@@ -2851,16 +2923,25 @@ function paintDecision(){
     const dg=D.dragon||{};
     let inner;
     if(dg && dg.stocks && dg.stocks.length){
-      const risk = dg.verdict==='risk';
-      const chip = risk
-        ? '<span id="dc-chip" style="background:rgba(245,69,92,.15);color:#f5455c;border:1px solid #f5455c55;'+
-          'border-radius:6px;padding:2px 10px;font-weight:800">⚠ 风险提示</span>'
-        : '<span id="dc-chip" style="background:rgba(46,189,133,.15);color:#2ebd85;border:1px solid #2ebd8555;'+
-          'border-radius:6px;padding:2px 10px;font-weight:800">'+
-          (dg.fresh? '✓ 情绪尚可' : '✓ 情绪较好')+'</span>';
+      /* v45 三档情绪判定：风险提示（断板后大跌/今日仍绿）· 风险一般（今日止跌收红）·
+         情绪高涨（反包 / 较昨日创新高）。判定在后端逐股算好，前端只负责展示。 */
+      const vd = dg.verdict || 'normal';
+      const CH = {
+        risk:  {c:'#f5455c', bg:'rgba(245,69,92,.15)', ico:'⚠', t:'风险提示',
+                d:'断板后大跌 / 今日仍在跌，谨慎参与'},
+        normal:{c:'#f0b90b', bg:'rgba(240,185,11,.15)', ico:'⚠', t:'风险一般',
+                d:'今日止跌收红，观察明日能否修复'},
+        hot:   {c:'#ff7a45', bg:'rgba(255,122,69,.16)', ico:'🔥', t:'情绪高涨',
+                d:'反包 / 较昨日创新高，情绪已修复'}
+      }[vd] || {c:'#78849a', bg:'rgba(120,132,154,.15)', ico:'·', t:'待观察', d:''};
+      const chip = '<span id="dc-chip" style="background:'+CH.bg+';color:'+CH.c+
+        ';border:1px solid '+CH.c+'55;border-radius:6px;padding:2px 10px;font-weight:800">'+
+        CH.ico+' '+CH.t+'</span>';
       const _brk=fmtDate(dg.brk||dg.stocks.map(x=>x.brk).sort()[0]||dg.ev);
       const _lead=dg.fresh ? ('昨日空间龙头 '+_brk+' 今日断板')
                            : ('上一个空间龙头 '+_brk+' 断板');
+      const _moods=(dg.moods||[]);
+      const _trig=_moods.filter(m=>m.txt).map(m=>m.name+' '+m.txt).join('；');
       inner='<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+chip+
         '<span class="sub">'+_lead+'（'+(dg.stocks[0]||{}).boards+'板'+
         (dg.stocks.length>1?' 等'+dg.stocks.length+'只':'')+
@@ -2871,15 +2952,18 @@ function paintDecision(){
           x.name+' <b>'+x.boards+'板</b> · '+fmtDate(x.brk)+'断板 · '+
           (dg.fresh? '断板当日 ':'今日 ')+
           '<b data-live="'+x.code+'" class="dc-live">'+chgTxt(x.today, isToday)+'</b>'+
-          (dg.fresh? '' : ' · 断板后累计 '+chgTxt(x.cum, isToday))+'</span>').join('')+'</div>'+
-        '<div id="dc-dragon-note" class="sub" style="margin-top:8px;'+(risk?'color:#f5455c':'')+'">'+
-        (risk&&dg.loss&&dg.loss.length?
-          '断板后大亏：'+dg.loss.join('；')+' → '+
-          (dg.fresh? '昨日龙头今日断板即大亏，谨慎参与、提示风险。'
-                   : '上一个龙头断板直接大亏，谨慎参与、提示风险。')
-        : (dg.fresh? '判断口径：昨日空间龙头今日断板但未大亏（无跌停、无连续杀跌）→ 情绪尚可，观察明日能否修复。'
-                    : '判断口径：上一空间龙头断板后无大亏（无跌停、无连续杀跌）→ 情绪较好，愿意继续试错买龙头。'))+
-        '</div>'+
+          (dg.fresh? '' : ' · 断板后累计 '+chgTxt(x.cum, isToday))+
+          (x.mood&&x.mood.txt? ' · <span style="color:'+CH.c+'">'+x.mood.txt+'</span>':'')+
+          '</span>').join('')+'</div>'+
+        '<div id="dc-dragon-note" class="sub" style="margin-top:8px;'+
+        (vd==='risk'?'color:#f5455c':(vd==='hot'?'color:#ff9d6e':''))+'">'+
+        '情绪判定：<b>'+CH.t+'</b> —— '+CH.d+
+        (_trig? '（当前触发：'+_trig+'）':'')+
+        (dg.loss&&dg.loss.length? '<br>断板后大亏：'+dg.loss.join('；') : '')+'</div>'+
+        kjNote('判定规则：<b>风险提示</b>＝断板日大跌（≤−7% / 跌停 / 连续两日跌≥6%）或今日继续收绿；'+
+          '<b>风险一般</b>＝今日止跌收红（断板当日自己收红也算）；'+
+          '<b>情绪高涨</b>＝今日收盘高于昨日最高价（反包）或最高价、收盘同时高于昨日（创新高）。'+
+          '多只龙头取最弱一档，风险优先提示。', '口径 · 情绪判定规则')+
         '<div class="sub" style="margin-top:10px;font-weight:700;color:#9fc6ff">'+
         (dg.fresh? '最新断板空间龙头 · 断板日K' : '上一个空间龙头 · 断板后日K')+
         '<span style="font-weight:400;color:#78849a;margin-left:6px">（默认展示 · 点击图可放大）</span></div>'+
@@ -2913,16 +2997,17 @@ function paintDecision(){
             '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'+
             '<b style="color:#ffd24a;font-size:13.5px">'+t.name+'</b>'+
             '<span class="sub">涨停 '+t.count+' 只 · 最高 '+t.maxB+' 板'+
+            ' · <b style="color:#9fc6ff">首板 '+(t.b1||0)+' 只</b>'+
             (t.lead? ' · 龙头 '+t.lead : '')+
             ((t.big||[]).length? ' · 连板 '+(t.big||[]).length+' 只' : '')+'</span></div>'+
             (rows? '<div style="display:flex;flex-wrap:wrap;gap:6px">'+rows+'</div>' : '')+
             (nbs? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+nbs+'</div>' : '')+
             '</div>';
         }).join('')+'</div>'+
-        '<div class="sub" style="margin-top:6px">口径：只列「有赚钱效应且板块有 3 板龙头」的题材；'+
-        '只展示连板股（2 板及以上），不展示首板；个股标注涨停形态'+
+        kjNote('只列「有赚钱效应且板块有 3 板龙头」的题材；个股明细只展示连板股（2 板及以上），'+
+        '不展示首板，但会标出该题材当日<b>首板股数量</b>；个股标注涨停形态'+
         '（一字 / 赚钱 / 赚T / 普通 / 长腿 / 地天）与首次封板时间；'+
-        '紫色卡 = 该板块昨日次高板断板股的今日表现。</div>';
+        '紫色卡 = 该板块昨日次高板断板股的今日表现。', '口径 · 题材梯队');
     }else inner='<div class="sub">当日无「有赚钱效应且有 3 板龙头」的题材</div>';
     html+=dcSec('赚钱效应题材梯队 · 资金方向', inner);
   }
@@ -2962,10 +3047,11 @@ function paintDecision(){
           '</div>';
       }).join('');
       inner=hotBar+'<div style="display:flex;flex-direction:column;gap:8px">'+cards+'</div>'+
-        '<div class="sub" style="margin-top:6px">口径：昨日涨停股按题材分组看今天的表现（只列有具体题材的板块）；'+
-        '统计（晋级 / 红盘 / 均值）按该题材昨日全部涨停股计算，个股明细<b>只列连板股（2 板及以上）</b>、'+
+        kjNote('昨日涨停股按题材分组看今天的表现（只列有具体题材的板块）；'+
+        '统计（晋级 / 红盘 / 均值）按该题材昨日全部涨停股计算，个股明细只列连板股（2 板及以上）、'+
         '不展示首板；个股标注今日连板高度 + 涨停时间 + 今日涨跌幅，点击个股名看日K。晋级（今天买的人明天能出）与'+
-        '红盘率高、均值为正 = 持续赚钱效应，最强者即人气板块；晋级 0、均值深绿的题材（今日涨停明日闷杀型）小心参与。</div>';
+        '红盘率高、均值为正 = 持续赚钱效应，最强者即人气板块；晋级 0、均值深绿的题材（今日涨停明日闷杀型）小心参与。',
+        '口径 · 赚钱效应统计');
     }else inner='<div class="sub">当日无昨日涨停数据（开篇首日 / 昨日涨停股无题材映射）</div>';
     html+=dcSec('昨日涨停 → 今日赚钱效应 · 哪类涨停股次日有肉', inner);
   }
@@ -3055,16 +3141,25 @@ async function dcLiveChg(root, d){
   const els=[...root.querySelectorAll('.dc-live')];
   const codes=[...new Set(els.map(e=>e.dataset.live).filter(Boolean))];
   const snap={};
-  await Promise.all(codes.map(async c=>{ snap[c]=await thsTodayJsonp(c, 8000); }));
+  const kBars={};
+  await Promise.all(codes.map(async c=>{
+    snap[c]=await thsTodayJsonp(c, 8000);
+    try{ kBars[c]=await stockKBars(c); }catch(e){ kBars[c]=[]; }
+  }));
   if(seq!==_dcLiveSeq) return;                 // 已切走日期/重绘，丢弃旧结果
   let worst=0;                         // 断板龙头中今日最差涨跌幅
   els.forEach(e=>{
     const s=snap[e.dataset.live];
-    if(!s || (!s.chg && s.chg!==0)) return;
-    e.innerHTML='<span style="color:'+(s.chg>=0?C.up:C.down)+'">'+
-      (s.chg>0?'+':'')+s.chg.toFixed(2)+'%</span>';
-    e.title='同花顺实时 '+s.date+' '+s.last+'（昨收 '+s.prevc+'）';
-    if(s.chg<worst) worst=s.chg;
+    if(!s || !(s.last>0)) return;
+    // 昨收取「该股上一根日K的收盘价」——与图上完全同源，绝不用 today.js 的今开冒充
+    let prev=null;
+    (kBars[e.dataset.live]||[]).forEach(b=>{ if(b[0]<s.date) prev=b[2]; else if(b[0]>s.date) return; });
+    if(!prev) return;
+    const chg=(s.last/prev-1)*100;
+    e.innerHTML='<span style="color:'+(chg>=0?C.up:C.down)+'">'+
+      (chg>0?'+':'')+chg.toFixed(2)+'%</span>';
+    e.title='同花顺实时 '+s.date+' '+s.last+'（昨收 '+prev.toFixed(2)+'）';
+    if(chg<worst) worst=chg;
   });
   // 同花顺实时若已现断板大亏（≤−7%）→ 徽章与文案即时转风险，与实时口径一致
   if(worst<=-7){

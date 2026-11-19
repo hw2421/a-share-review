@@ -31,6 +31,7 @@
 退出码 0 = 全部通过；1 = 存在问题（逐条打印）
 """
 import glob
+import bisect
 import json
 import os
 import re
@@ -90,6 +91,18 @@ def main():
         return bool(re.fullmatch(r"\d{6}", c) and c[:2] in
                     ("60", "68", "00", "30", "83", "87", "43", "92", "90"))
 
+    # 次新股（上市不足 60 个交易日）：build_merged 用 .stock_kline_cache 判定，
+    # 校验脚本必须同口径豁免，否则 2021 年新上市的连板股会被误报「更高换手连板」。
+    _kcv = json.load(open(os.path.join(OUT, ".stock_kline_cache.json"), encoding="utf-8"))
+    _ipo = {}
+    for _c, _b in _kcv.items():
+        if _b and len(_b) >= 100 and len(_b) < 500 and _b[0][0] > dates[0]:
+            _ipo[_c] = bisect.bisect_left(dates, _b[0][0])
+
+    def _is_new(code, i):
+        ii = _ipo.get(str(code))
+        return ii is not None and i - ii < 60
+
     # ---- 1 / 2 空间龙头与空间高度 ----
     for i, day in enumerate(days):
         d = day["date"]
@@ -124,7 +137,7 @@ def main():
                 err("%s %s 是次新股，不应作为空间龙头" % (d, s["name"]))
         # 空间高度必须是"换手口径"最高：不允许存在更高的非一字、非次新涨停股
         for p in pools[d]:
-            if p.get("new") or p["boards"] <= top:
+            if p.get("new") or _is_new(p["code"], i) or p["boards"] <= top:
                 continue
             if not fd.all_yizi_run(p["code"], p["boards"], i, dates, yz):
                 err("%s 存在更高换手连板 %s %d板 > 空间高度 %d"
@@ -334,6 +347,12 @@ def main():
                 continue
             n_pt += 1
             if len([x for x in kd if x > d]) >= 5:
+                continue
+            # 停牌：窗口内连续缺 2 天以上、且窗口后仍有日K → 不是数据缺失
+            _gap = [dates[j] for j in range(i + 1, min(i + 6, len(dates)))
+                    if dates[j] not in kd]
+            if len(_gap) >= 2 and any(x > end5 for x in kd):
+                n_na += 1
                 continue
             # 数据源已终止（停牌/退市）：日K最后一根早于最新交易日且不超过 end5
             if tail and tail < dates[-1] and tail <= end5:
@@ -779,7 +798,7 @@ def main():
     if set(meta.keys()) != set(RV_METHODS):
         err("v42 reviewMeta 战法集合不符：%s" % sorted(meta.keys())); n_v29 += 1
     uni29 = (meta.get("summit") or {}).get("uni") or ""
-    for kw in ("v44", "山顶洞人", "当日题材炒作里有赚钱效应", "龙头为换手（非一字）",
+    for kw in ("v45", "山顶洞人", "当日题材炒作里有赚钱效应", "龙头为换手（非一字）",
                "盘中 −7% 无条件止损", "一字涨停买不进"):
         if kw not in uni29:
             err("v44 统一口径 uni 缺关键字「%s」" % kw); n_v29 += 1
@@ -826,6 +845,101 @@ def main():
                  ("：" + ",".join(thin[:8])) if thin else ""))
     except Exception as e:
         print("历史交易日历校验跳过：%s" % e)
+
+    # ---- 14 v45 口径：断板涨跌幅不被盘中快照污染 / 首板家数 / 三档情绪 / 买入逻辑 ----
+    # 用户报障：20261119 华东重机断板当日实际 +4.07%，页面显示 −5.43% / +2.58%。
+    # 根因是 sup_kline_cache 的盘中快照覆盖了 stock_kline_cache 的收盘价。
+    # 这里用「点击日K」用的分片（收盘完整日）独立复算，确保页面数字与图上一致。
+    SH_OK = {"一字", "赚T", "地天", "普通", "长腿", "赚钱", "低开"}
+    _bk = {}
+
+    def _shard_bars(code):
+        code = str(code)
+        bkt = sum(int(x) for x in code if x.isdigit()) % 8
+        if bkt not in _bk:
+            try:
+                _bk[bkt] = json.load(open(os.path.join(
+                    OUT, "klines", "klines_%d.json" % bkt), encoding="utf-8"))
+            except Exception:
+                _bk[bkt] = {}
+        return _bk[bkt].get(code) or []
+
+    n_v45, n_v45_skip, n_v45_chk = 0, 0, 0
+    for day in days:
+        d = day["date"]
+        dec = (D.get("decision") or {}).get(d) or {}
+        dg = dec.get("dragon") or {}
+        for st in (dg.get("stocks") or []):
+            bars = _shard_bars(st["code"])
+            idx = {b[0]: i for i, b in enumerate(bars)}
+            i = idx.get(d)
+            if i is None or i == 0:
+                n_v45_skip += 1
+                continue
+            n_v45_chk += 1
+            cur, prev = bars[i], bars[i - 1]
+            exp = round((cur[2] / prev[2] - 1) * 100, 2)
+            got = st.get("today")
+            if got is None or abs(exp - got) > 0.02:
+                err("v45 %s %s 断板涨跌幅 %s 与日K复算 %.2f%% 不符"
+                    % (d, st["name"], got, exp)); n_v45 += 1
+            if st.get("cum") is not None:
+                j = idx.get(st.get("brk"))
+                if j is not None and bars[j][2]:
+                    ec = round((cur[2] / bars[j][2] - 1) * 100, 2)
+                    if abs(ec - st["cum"]) > 0.02:
+                        err("v45 %s %s 断板后累计 %s 与日K复算 %.2f%% 不符"
+                            % (d, st["name"], st["cum"], ec)); n_v45 += 1
+            # 三档情绪独立复算
+            fresh = bool(dg.get("fresh"))
+            lim = 0.20 if str(st["code"]).startswith(("30", "688")) else 0.10
+            if fresh:
+                expm = "normal" if exp >= 0 else "risk"
+            elif exp >= 0:
+                expm = ("hot" if (cur[2] > prev[4] or
+                                  (cur[4] > prev[4] and cur[2] > prev[2])) else "normal")
+            else:
+                expm = "risk"
+            got_m = (st.get("mood") or {}).get("mood")
+            if got_m and got_m != expm:
+                err("v45 %s %s 情绪档 %s ≠ 复算 %s（今日 %+.2f%%）"
+                    % (d, st["name"], got_m, expm, exp)); n_v45 += 1
+        # 空间龙头形态标签
+        for sp in (day.get("spaceFull") or []):
+            if sp.get("s") and sp["s"] not in SH_OK:
+                err("v45 %s %s 涨停形态非法 %s" % (d, sp["name"], sp["s"])); n_v45 += 1
+        # 题材梯队首板家数
+        LFV2 = (D.get("ladderFull") or {}).get(d) or {}
+        for th in (dec.get("themes") or []):
+            arr = LFV2.get(th["name"]) or []
+            exp_b1 = sum(1 for x in arr if (x.get("boards") or 1) == 1)
+            if th.get("b1") != exp_b1:
+                err("v45 %s 题材「%s」首板家数 %s ≠ 复算 %s"
+                    % (d, th["name"], th.get("b1"), exp_b1)); n_v45 += 1
+
+    RV45 = (D.get("review") or {}).get("summit") or []
+    for t in RV45:
+        if not str(t.get("logic") or "").startswith("赚钱效应龙头"):
+            err("v45 逐笔 %s %s 缺「买入逻辑」摘要" % (t["d"], t["name"])); n_v45 += 1
+        if t.get("t") and not re.fullmatch(r"\d{2}:\d{2}", str(t["t"])):
+            err("v45 逐笔 %s %s 封板时间格式异常 %s" % (t["d"], t["name"], t["t"]))
+            n_v45 += 1
+        if t.get("shape") and t["shape"] not in SH_OK:
+            err("v45 逐笔 %s %s 涨停形态非法 %s" % (t["d"], t["name"], t["shape"]))
+            n_v45 += 1
+        if t.get("b1") is None or t.get("cnt") is None:
+            err("v45 逐笔 %s %s 缺首板/板块家数" % (t["d"], t["name"])); n_v45 += 1
+    RS = D.get("reviewStat") or {}
+    if (RS.get("total") or {}).get("n") != len(RV45):
+        err("v45 reviewStat 总数 %s ≠ 逐笔 %d"
+            % ((RS.get("total") or {}).get("n"), len(RV45))); n_v45 += 1
+    for k in ("stage", "boards", "cnt", "b1", "seal", "shape", "vol"):
+        arr = RS.get(k) or []
+        if sum(x.get("n") or 0 for x in arr) != len(RV45):
+            err("v45 reviewStat「%s」分组笔数合计 %d ≠ 逐笔 %d"
+                % (k, sum(x.get("n") or 0 for x in arr), len(RV45))); n_v45 += 1
+    print("v45 断板涨跌幅 / 三档情绪 / 首板家数 / 买入逻辑：逐笔 %d、断板股票日复核 %d"
+          "（缺分片 %d），异常 %d" % (len(RV45), n_v45_chk, n_v45_skip, n_v45))
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")

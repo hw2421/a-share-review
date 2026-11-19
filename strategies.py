@@ -43,6 +43,28 @@ META = {
 }
 
 
+def _logic_txt(t):
+    """「买入逻辑」列：把这一笔为什么买浓缩成一句可读标签（v45）。"""
+    parts = ["赚钱效应龙头"]
+    if t.get("stage"):
+        parts.append(t["stage"])
+    if t.get("boards"):
+        parts.append("%d板" % t["boards"])
+    if t.get("t"):
+        parts.append(t["t"] + "封板")
+    if t.get("cnt"):
+        parts.append("板块%d只" % t["cnt"])
+    if t.get("b1") is not None:
+        parts.append("首板%d只" % t["b1"])
+    if t.get("shape"):
+        parts.append(t["shape"])
+    if t.get("vmax"):
+        parts.append("近100日最大量")
+    elif t.get("volx"):
+        parts.append("量%.1f倍" % t["volx"])
+    return "｜".join(parts)
+
+
 def build(ctx):
     dates = ctx["dates"]
     DIDX = ctx["DIDX"]
@@ -409,7 +431,8 @@ def build(ctx):
     # ---------------- 7. 买入执行 ----------------
     review = {m: [] for m in METHODS}
 
-    def try_buy(B, code, th, why, need_boards):
+    def try_buy(B, code, th, why, need_boards, meta=None):
+        meta = meta or {}
         e = daily.get(B, {}).get(code)
         if not e:
             stats["no_limit"] += 1
@@ -458,7 +481,13 @@ def build(ctx):
             "sellD": sell_d, "hold": hold, "reason": reason,
             "pnl": round((sell - buy_px) / buy_px * 100, 2),
             "sealed": bool(e["sealed"]), "method": "summit",
+            # v45：买入逻辑字段（明细表「买入逻辑」列 + 共性分析同源）
+            "b1": meta.get("b1"), "cnt": meta.get("cnt"), "maxB": meta.get("maxB"),
+            "t": (e.get("time") or "")[:5], "shape": meta.get("shape") or "",
+            "volx": meta.get("volx"), "vmax": bool(meta.get("vmax")),
+            "lad": meta.get("lad") or "",
         }
+        t["logic"] = _logic_txt(t)
         review["summit"].append(t)
         stats["fire"] += 1
         stats["burst"] += 1 if t["burst"] else 0
@@ -492,7 +521,26 @@ def build(ctx):
                    "（当日涨停 %d 只 / 最高 %d 板 / 梯队 %s）· 龙头非一字%s"
                    % (nm, bd, g.get("count") or 0, g.get("maxB") or bd,
                       g.get("ladder") or "-", vtxt))
-            if try_buy(B, c, nm, why, bd) == "traded":
+            # v45：买入逻辑字段（首板家数 / 板块家数 / 涨停形态 / 封板时间 / 量能）
+            _lad = ladder_of(B).get(nm) or []
+            _b1 = sum(1 for x in _lad if (x.get("boards") or 1) == 1)
+            _vx = None
+            try:
+                _vp = vol_prev(c, B)
+                _vx = round(vol_of(c, B) / _vp, 2) if _vp else None
+            except Exception:
+                _vx = None
+            _shp = ""
+            if ctx.get("shape_of"):
+                try:
+                    _shp = ctx["shape_of"](c, B, e.get("name") or "")
+                except Exception:
+                    _shp = ""
+            _meta = {"b1": _b1, "cnt": g.get("count") or 0,
+                     "maxB": g.get("maxB") or bd, "shape": _shp,
+                     "volx": _vx, "vmax": is_max_vol100(c, B),
+                     "lad": g.get("ladder") or ""}
+            if try_buy(B, c, nm, why, bd, _meta) == "traded":
                 stats["m1"] += 1
 
     # ---------------- 9. 去重排序 ----------------
@@ -509,6 +557,156 @@ def build(ctx):
     # 选股日即为近 100 日最大量的笔数（放量的最佳形态，仅统计不额外过滤）
     stats["maxvol"] = sum(1 for t in review["summit"]
                           if "近100日最大量" in str(t.get("why") or ""))
+
+    # ---------------- 9.5 买入逻辑共性（v45 用户要求） ----------------
+    # 把「赚钱效应买入」按 市场阶段 / 题材情况 / 个股形态 / 涨停时机 四维拆开，
+    # 每组给 笔数 / 胜率 / 笔均收益 / 盈亏比，再由这些数字生成结论（不写死观点）。
+    def _m(rows):
+        n = len(rows)
+        if not n:
+            return None
+        w = [t["pnl"] for t in rows if t["pnl"] > 0]
+        lo = [t["pnl"] for t in rows if t["pnl"] < 0]
+        aw = sum(w) / len(w) if w else 0.0
+        al = sum(lo) / len(lo) if lo else 0.0
+        return {"n": n, "win": round(len(w) / n * 100, 1),
+                "avg": round(sum(t["pnl"] for t in rows) / n, 2),
+                "aw": round(aw, 2), "al": round(al, 2),
+                "pf": round(abs(aw / al), 2) if al else 0}
+
+    def _bucket(rows, key, order):
+        g = defaultdict(list)
+        for t in rows:
+            g[key(t)].append(t)
+        out = []
+        for k in order:
+            if g.get(k):
+                out.append(dict(k=k, **_m(g[k])))
+        return out
+
+    def _k_stage(t):
+        return t.get("stage") or "无阶段"
+
+    def _k_boards(t):
+        b = t.get("boards") or 0
+        return "%d板" % b if b <= 4 else "5板及以上"
+
+    def _k_cnt(t):
+        c = t.get("cnt") or 0
+        return "3-4只" if c <= 4 else ("5-6只" if c <= 6 else "7只以上")
+
+    def _k_b1(t):
+        b = t.get("b1")
+        if b is None:
+            return "未知"
+        return "0-1只" if b <= 1 else ("2-3只" if b <= 3 else "4只以上")
+
+    def _k_seal(t):
+        s = str(t.get("t") or "")
+        if len(s) < 5:
+            return "未知"
+        hh, mm = int(s[:2]), int(s[3:5])
+        v = hh * 60 + mm
+        if v <= 9 * 60 + 35:
+            return "≤09:35"
+        if v <= 10 * 60 + 30:
+            return "09:36-10:30"
+        if v <= 13 * 60 + 30:
+            return "10:31-13:30"
+        return "13:31 之后"
+
+    def _k_shape(t):
+        return t.get("shape") or "未知"
+
+    def _k_vol(t):
+        if t.get("vmax"):
+            return "近100日最大量"
+        v = t.get("volx")
+        if v is None:
+            return "未知"
+        return "明显放量" if v >= 1.2 else ("平量" if v >= 0.9 else "缩量")
+
+    _all = review["summit"]
+    _tot = _m(_all)
+    _S = {
+        "total": _tot,
+        "stage": _bucket(_all, _k_stage, ["突破", "主升", "补涨", "节点", "无阶段"]),
+        "boards": _bucket(_all, _k_boards, ["3板", "4板", "5板及以上"]),
+        "cnt": _bucket(_all, _k_cnt, ["3-4只", "5-6只", "7只以上"]),
+        "b1": _bucket(_all, _k_b1, ["0-1只", "2-3只", "4只以上", "未知"]),
+        "seal": _bucket(_all, _k_seal, ["≤09:35", "09:36-10:30", "10:31-13:30",
+                                        "13:31 之后", "未知"]),
+        "shape": _bucket(_all, _k_shape, ["赚钱", "普通", "长腿", "赚T", "低开", "地天",
+                                          "一字", "未知"]),
+        "vol": _bucket(_all, _k_vol, ["近100日最大量", "明显放量", "平量", "缩量", "未知"]),
+        "years": _bucket(_all, lambda t: t["d"][:4], sorted({t["d"][:4] for t in _all})),
+    }
+
+    def _best(arr, minn=30):
+        arr = [x for x in arr if x and x["n"] >= minn]
+        return max(arr, key=lambda x: x["avg"]) if arr else None
+
+    def _worst(arr, minn=30):
+        arr = [x for x in arr if x and x["n"] >= minn]
+        return min(arr, key=lambda x: x["avg"]) if arr else None
+
+    _read = []
+    if _tot:
+        _read.append(
+            "总体：全期 %d 笔，胜率 %.1f%%，笔均 %+.2f%%（盈利笔均 %+.2f%% / 亏损笔均 %+.2f%%），"
+            "盈亏比 %.2f。" % (_tot["n"], _tot["win"], _tot["avg"], _tot["aw"],
+                             _tot["al"], _tot["pf"]))
+    for _key, _lab in (("stage", "市场阶段"), ("cnt", "题材热度（板块当日涨停家数）"),
+                       ("b1", "题材梯队（首板家数）"), ("boards", "龙头板位"),
+                       ("shape", "个股涨停形态"), ("seal", "涨停时机（首次封板时间）"),
+                       ("vol", "量能")):
+        _a, _b = _best(_S[_key]), _worst(_S[_key])
+        if _a and _b and _a["k"] != _b["k"]:
+            _read.append("%s：最好「%s」%d 笔 / 胜率 %.1f%% / 笔均 %+.2f%%；最差「%s」"
+                         "%d 笔 / 胜率 %.1f%% / 笔均 %+.2f%%（差 %.1f 个百分点）。"
+                         % (_lab, _a["k"], _a["n"], _a["win"], _a["avg"],
+                            _b["k"], _b["n"], _b["win"], _b["avg"],
+                            _a["avg"] - _b["avg"]))
+    # 三条「反直觉但数据如此」的结论：只在数据确实成立时才写，避免主观发挥
+    if _tot:
+        _vb = {x["k"]: x for x in _S["vol"]}
+        _vm, _vq = _vb.get("近100日最大量"), _vb.get("缩量")
+        if _vm and _vq and _vq["avg"] > _vm["avg"] + 0.3:
+            _read.append("量能反直觉：缩量涨停 %d 笔 / 胜率 %.1f%% / 笔均 %+.2f%%，反而优于"
+                         "近100日最大量（%d 笔 / 胜率 %.1f%% / 笔均 %+.2f%%）——连板中继的惜售板"
+                         "分歧小，高位放量多是换手分歧板；放量只作确认，不做必要条件。"
+                         % (_vq["n"], _vq["win"], _vq["avg"], _vm["n"], _vm["win"], _vm["avg"]))
+        _bb = {x["k"]: x for x in _S["b1"]}
+        _bz = _bb.get("0-1只")
+        if _bz and _bz["avg"] < 0:
+            _read.append("最好用的排雷条件：板块当日首板 ≤1 只（梯队断层、只剩高标孤军）时 "
+                         "%d 笔 / 胜率 %.1f%% / 笔均 %+.2f%% —— 这类「没有跟风」的龙头直接放弃，"
+                         "比任何技术形态都管用。" % (_bz["n"], _bz["win"], _bz["avg"]))
+        _sb = {x["k"]: x for x in _S["seal"]}
+        _se, _sl = _sb.get("≤09:35"), _sb.get("13:31 之后")
+        if _se and _sl and (_se["avg"] - _sl["avg"]) >= 2:
+            _read.append("涨停时机：早盘封板（≤09:35）%d 笔 / 胜率 %.1f%% / 笔均 %+.2f%%，"
+                         "尾盘（13:31 后）%d 笔 / 胜率 %.1f%% / 笔均 %+.2f%% —— 封板越早越是主动资金，"
+                         "尾盘偷袭板次日溢价明显更差。" % (_se["n"], _se["win"], _se["avg"],
+                                                          _sl["n"], _sl["win"], _sl["avg"]))
+    # 可复制性：胜率 / 盈亏比 / 分组稳定性三件事同时看，避免只看单年运气
+    if _tot:
+        _wins = [x["win"] for x in _S["stage"] if x["n"] >= 30]
+        _spread = (max(_wins) - min(_wins)) if len(_wins) >= 2 else 0
+        if _tot["win"] >= 52 and _tot["pf"] >= 1.8 and _spread <= 20:
+            _lvl, _lvltxt = "高", "各分组胜率差距小、盈亏比稳定"
+        elif _tot["win"] >= 48 and _tot["pf"] >= 1.3:
+            _lvl, _lvltxt = "中", "整体为正但分组差异明显，需挑阶段"
+        else:
+            _lvl, _lvltxt = "偏低", "整体优势不明显"
+        _read.append("可复制性：%s——%s（胜负由「买最强题材的龙头」这一条规则决定，"
+                     "参数少、无需主观选股）。" % (_lvl, _lvltxt))
+        _read.append("盘前选定 + 盘中触发：盘前（前一交易日收盘后）即可锁定候选——"
+                     "昨日涨停梯队里已有 3 板+龙头的题材、龙头是谁、板块有几只涨停、"
+                     "首板几只，全部是收盘数据；盘中只需等该龙头再次封板（涨停价）触发买入，"
+                     "不预测、不打提前量。唯一无法盘前确定的是「今天还能不能涨停」，"
+                     "所以执行上是条件单 / 盯板，不是竞价挂单。")
+    _S["read"] = _read
 
     print("山顶洞人逐笔：%d 笔（当日赚钱效应题材龙头 · 涨停买入）；候选龙头 %d 个"
           "（同一股属多题材只记一笔）；其中当日为近100日最大量 %d 笔"
@@ -551,7 +749,7 @@ def build(ctx):
           (len(chances_out), sum(len(v) for v in chances_out.values()),
            sum(1 for v in chances_out.values() for x in v if x["yizi"])), flush=True)
 
-    UNI = ("【统一口径 v44 · 单一战法「山顶洞人」】① 时点：本页日期即买入日（当日）；"
+    UNI = ("【统一口径 v45 · 单一战法「山顶洞人」】① 时点：本页日期即买入日（当日）；"
            "当日题材炒作里有赚钱效应的题材，当日以涨停价买入其龙头股。"
            "② 买入价一律以涨停价打板；盘中冲击涨停后回落炸板，也按涨停价模拟买入、纳入统计。"
            "③ 一字涨停买不进，只进机会池、不纳入模拟。"
@@ -559,12 +757,15 @@ def build(ctx):
            "连板股（与题材炒作页★赚钱效应金框同源）；龙头 = 该题材当日最高连板个股，"
            "同一只股属多个题材只记一笔。"
            "⑤ 卖出：次日仍涨停持仓，首个收盘未涨停日尾盘按收盘价卖出，"
-           "盘中 −7% 无条件止损；遇一字跌停无换手卖不出，顺延至首个可成交日。")
+           "盘中 −7% 无条件止损；遇一字跌停无换手卖不出，顺延至首个可成交日。"
+           "⑥ 明细表「买入逻辑」列＝该笔的买入依据摘要（题材阶段 / 板位 / 首板家数 / "
+           "封板时间 / 涨停形态 / 量能），由当日真实数据生成，不做主观修饰。")
 
     meta_out = {m: dict(v, uni=UNI) for m, v in META.items()}
 
     return {
         "review": review,
+        "reviewStat": _S,               # v45：买入逻辑共性（阶段 / 题材 / 形态 / 时机）
         "reviewMeta": meta_out,
         "chances": chances_out,
         "kMarks": kMarks,

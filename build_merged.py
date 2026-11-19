@@ -6,6 +6,7 @@ import os
 import sys
 import re
 import datetime
+import bisect
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fetch_data as fd
@@ -477,8 +478,18 @@ else:
 
 # ---- 5.6 本地日K（收盘价）缓存：赚钱效应涨跌幅 + 主包日K尾部补齐，避免重复网络请求 ----
 def _load_kbars():
-    kb = {}
-    for fn in (".stock_kline_cache.json", ".sup_kline_cache.json", ".kline_cache.json"):
+    """合并三份日K缓存。同一「股票日」只能有一条（v45 修正）：
+
+    旧版按文件顺序直接覆盖，`sup_kline_cache`（压制股日K，盘中抓取）里的
+    盘中快照会盖掉 `stock_kline_cache` 的收盘价——例如 20261119 华东重机
+    收盘 7.67（+4.07%），盘中快照 7.56（+2.58%）覆盖后，决策页「断板当日」
+    与赚钱效应均值全都算错。改为：同一交易日取成交量更大的一条
+    （收盘完整日的成交量必然 ≥ 盘中快照），成交量相同（除权口径差异）时
+    以最后加载的 .stock_kline_cache 为准。
+    """
+    kb, fixed = {}, 0
+    for fn in (".kline_cache.json", ".sup_kline_cache.json",
+               ".stock_kline_cache.json"):          # 越靠后越权威
         p = os.path.join(OUT, fn)
         if not os.path.exists(p):
             continue
@@ -488,29 +499,50 @@ def _load_kbars():
                     continue
                 rec = kb.setdefault(str(c), {})
                 for b in bars:
-                    if b and len(b) >= 5:
-                        rec[b[0]] = b
+                    if not b or len(b) < 5:
+                        continue
+                    old = rec.get(b[0])
+                    if old is not None and (b[5] if len(b) > 5 else 0) < (old[5] if len(old) > 5 else 0):
+                        fixed += 1
+                        continue
+                    rec[b[0]] = b
         except Exception as e:
             print("日K缓存读取失败 %s：%s" % (fn, e))
+    if fixed:
+        print("日K缓存去重：丢弃 %d 条盘中快照（保留收盘完整日）" % fixed)
     return kb
 
 KBARS = _load_kbars()
 CLOSE = {c: {d: b[2] for d, b in rec.items()} for c, rec in KBARS.items()}
 DIDX = {d: i for i, d in enumerate(dates)}
+# 每只个股自己的日K日期表：涨跌幅一律按「该股上一根日K」算，而不是按全站交易日历。
+# 全站 dates 由涨停池推出，个别交易日（如 2022-05-05/06 涨停池为空）会缺席，
+# 按日历回退会把「跨 3 个交易日」的涨幅当成单日涨幅（湖南发展 2022-05-09 曾算出 +27.4%）。
+CODE_DATES = {c: sorted(rec) for c, rec in KBARS.items()}
+
+def _prev_bar(code, d):
+    """交易日 d 之前最近一根有完整 OHLC 的日K（停牌则顺延到停牌前最后一根）。"""
+    code = str(code)
+    ds = CODE_DATES.get(code)
+    if not ds:
+        return None
+    rec = KBARS.get(code) or {}
+    k = bisect.bisect_left(ds, d)
+    for j in range(k - 1, -1, -1):
+        b = rec.get(ds[j])
+        if b and len(b) >= 5 and b[2]:
+            return b
+    return None
 
 def chg_on(code, d):
-    """个股在交易日 d 的涨跌幅（不复权收盘价环比上一交易日），无数据返回 None。"""
-    rec = CLOSE.get(str(code))
-    if not rec or d not in rec or not rec[d]:
+    """个股在交易日 d 的涨跌幅（不复权收盘价环比上一根日K），无数据返回 None。"""
+    b = (KBARS.get(str(code)) or {}).get(d)
+    if not b or len(b) < 3 or not b[2]:
         return None
-    i = DIDX.get(d)
-    if i is None or i == 0:
+    pb = _prev_bar(code, d)
+    if not pb or not pb[2]:
         return None
-    for j in range(i - 1, -1, -1):
-        if dates[j] in rec:
-            prev = rec[dates[j]]
-            return round((rec[d] / prev - 1) * 100, 2) if prev else None
-    return None
+    return round((b[2] / pb[2] - 1) * 100, 2)
 
 # ---- 5.6.0 题材阶段（四分类，与前端 TStages 完全同一算法） ----
 # 赚钱效应卡片「题材后」展示的当日阶段，必须与题材炒作页同一口径：
@@ -550,17 +582,9 @@ def _dbar(c, d):
     return b if (b and len(b) >= 6) else None
 
 def _prev_close(code, d):
-    rec = KBARS.get(str(code))
-    if not rec or d not in rec or not rec[d]:
-        return None
-    i = DIDX.get(d)
-    if i is None:
-        return None
-    for j in range(i - 1, -1, -1):
-        b = rec.get(dates[j])
-        if b and len(b) >= 3 and b[2]:
-            return b[2]
-    return None
+    """上一根日K的收盘价（停牌顺延到停牌前最后一天；按个股日K而非全站日历）。"""
+    pb = _prev_bar(code, d)
+    return pb[2] if pb else None
 
 def _lim_of(code, name=""):
     if "ST" in (name or "").upper():
@@ -677,6 +701,42 @@ for code in {s["code"] for v in pools.values() for s in v}:
         for r in runs
     ]
 
+def _up_shape(code, d, name=""):
+    """涨停形态（v43 用户口径，六分类；非涨停返回空串）：
+
+      一字  —— 涨停开盘且全天未开板（最低价 = 涨停价）；
+      赚T   —— 涨停开盘、振幅 < 8%（T 字板，盘中开板又封回）；
+      地天  —— 跌停开盘、涨停收盘（地天板），优先级最高；
+      普通  —— 振幅 8%~12%；
+      长腿  —— 振幅大于 12%（大长腿）；
+      赚钱  —— 高开涨停（开盘高于昨收、振幅 < 8%）；
+      低开  —— 低开涨停且振幅 < 8%（用户口径未单列，保留中性标注避免误判）。
+
+    振幅 = (最高价 − 最低价) / 昨收；价格全部用不复权日K，涨停/跌停价按
+    主板 10% / 创业板科创板 20% / 北交所 30% / ST 5% 四舍五入到分。"""
+    b = _dbar(code, d)
+    pv = _prev_close(code, d)
+    if not b or len(b) < 5 or not pv:
+        return ""
+    lim = _lim_of(code, name)
+    up_lim = round(pv * (1 + lim), 2)
+    dn_lim = round(pv * (1 - lim), 2)
+    if b[2] < up_lim - .011:                     # 收盘不在涨停价 → 不是涨停股
+        return ""
+    amp = (b[4] - b[3]) / pv * 100               # 振幅（相对昨收）
+    if b[1] <= dn_lim + .011:
+        return "地天"
+    if b[3] >= up_lim - .004:                    # 最低价即涨停价：全天一字未开板
+        return "一字"
+    if b[1] >= up_lim - .011:                    # 涨停开盘、盘中开板
+        return "赚T" if amp < 8 else ("普通" if amp <= 12 else "长腿")
+    if amp > 12:
+        return "长腿"
+    if amp >= 8:
+        return "普通"
+    return "赚钱" if b[1] > pv else "低开"
+
+
 # ---- 5.6.25 三战法复盘 / 板块赚钱效应验证 / K线骷髅头（统一由 strategies.py 计算）----
 import strategies
 import money_effect as ME
@@ -702,9 +762,11 @@ S = strategies.build({
     "KBARS": KBARS, "CLOSE": CLOSE, "carry": carry,
     "yz": fd.yizi_map(pools),
     "ladder_full": ladder_full,     # 当日真实涨停梯队（题材卡浮层 / 板块助攻同源）
+    "shape_of": _up_shape,          # v45：涨停形态（明细表「买入逻辑」列同源）
     "board_earn": BOARD_EARN,       # v29：三战法共同前置（板块赚钱效应验证）
 })
 review = S["review"]              # {method: [trade,...]}
+reviewStat = S.get("reviewStat", {})   # v45：买入逻辑共性统计
 reviewMeta = S["reviewMeta"]
 chances = S["chances"]            # v17：当日机会池 d -> [opp]（含一字买不进 / 炸板）
 kMarks = S["kMarks"]
@@ -745,42 +807,6 @@ ladders_out = {d: {nm: {"count": e["count"], "boards": e["boards"],
 #   ④ nextday：昨日涨停股今日分组表现（晋级 / 红盘 / 均值 / 最差），
 #      识别持续赚钱效应与人气板块；
 #   ⑤ pools：三大选股池（盘前关注池 / 当日涨停备选池 / 活跃股池）。
-def _up_shape(code, d, name=""):
-    """涨停形态（v43 用户口径，六分类；非涨停返回空串）：
-
-      一字  —— 涨停开盘且全天未开板（最低价 = 涨停价）；
-      赚T   —— 涨停开盘、振幅 < 8%（T 字板，盘中开板又封回）；
-      地天  —— 跌停开盘、涨停收盘（地天板），优先级最高；
-      普通  —— 振幅 8%~12%；
-      长腿  —— 振幅大于 12%（大长腿）；
-      赚钱  —— 高开涨停（开盘高于昨收、振幅 < 8%）；
-      低开  —— 低开涨停且振幅 < 8%（用户口径未单列，保留中性标注避免误判）。
-
-    振幅 = (最高价 − 最低价) / 昨收；价格全部用不复权日K，涨停/跌停价按
-    主板 10% / 创业板科创板 20% / 北交所 30% / ST 5% 四舍五入到分。"""
-    b = _dbar(code, d)
-    pv = _prev_close(code, d)
-    if not b or len(b) < 5 or not pv:
-        return ""
-    lim = _lim_of(code, name)
-    up_lim = round(pv * (1 + lim), 2)
-    dn_lim = round(pv * (1 - lim), 2)
-    if b[2] < up_lim - .011:                     # 收盘不在涨停价 → 不是涨停股
-        return ""
-    amp = (b[4] - b[3]) / pv * 100               # 振幅（相对昨收）
-    if b[1] <= dn_lim + .011:
-        return "地天"
-    if b[3] >= up_lim - .011:                    # 最低价即涨停价：全天一字未开板
-        return "一字"
-    if b[1] >= up_lim - .011:                    # 涨停开盘、盘中开板
-        return "赚T" if amp < 8 else ("普通" if amp <= 12 else "长腿")
-    if amp > 12:
-        return "长腿"
-    if amp >= 8:
-        return "普通"
-    return "赚钱" if b[1] > pv else "低开"
-
-
 # 梯队浮层的个股涨停形态：ladderFull 生成于本段之前，这里统一回填（减少前端重复计算）
 _n_shape = 0
 for _sd, _sthm in ladder_full.items():
@@ -790,6 +816,60 @@ for _sd, _sthm in ladder_full.items():
             if _sx["s"]:
                 _n_shape += 1
 print("梯队个股涨停形态回填：%d 个股票日（一字/赚T/地天/普通/长腿/赚钱/低开）" % _n_shape)
+
+# 空间情绪明细表的龙头股：名称旁同样展示涨停形态缩写（v45）
+_n_sf = 0
+for _day in days:
+    for _s in (_day.get("spaceFull") or []):
+        _s["s"] = _up_shape(_s.get("code"), _day.get("date"), _s.get("name") or "")
+        if _s["s"]:
+            _n_sf += 1
+print("空间龙头涨停形态回填：%d 个股票日" % _n_sf)
+
+def _mood(entries, d, fresh):
+    """空间龙头断板后的情绪三档（v45 用户口径）：
+
+      risk   风险提示 —— 断板日大跌 / 跌停 / 连续杀跌，且今日仍在跌
+      normal 风险一般 —— 今日止跌收红（fresh：断板当日自己收红）
+      hot    情绪高涨 —— 今日反包（收盘 > 昨日最高）或较昨日创新高（最高 > 昨日最高且收红）
+
+    返回 (verdict, note, per_stock)。多只龙头取「最弱」一档（风险优先提示）。
+    """
+    per, lv = [], []
+    for code, nm, bd in entries:
+        b, pv = _dbar(code, d), _prev_close(code, d)
+        if not b or not pv:
+            continue
+        chg = b[2] / pv - 1
+        lim = _lim_of(code, nm)
+        pb = _prev_bar(code, d)
+        kind, txt = "normal", ""
+        if fresh:                                  # 断板当日就是今天：没有「昨日反包」可比
+            if chg <= -(lim - .006) or chg <= -.07:
+                kind, txt = "risk", "断板当日大跌"
+            elif chg >= 0:
+                kind, txt = "normal", "断板当日仍收红"
+            else:
+                kind, txt = "risk", "断板当日收绿"
+        elif chg >= 0 and pb:
+            if b[2] > pb[4]:
+                kind, txt = "hot", "反包（收盘 > 昨日最高）"
+            elif b[4] > pb[4] and b[2] > pb[2]:
+                kind, txt = "hot", "较昨日创新高"
+            else:
+                kind, txt = "normal", "止跌收红"
+        elif chg >= 0:
+            kind, txt = "normal", "止跌收红"
+        else:
+            kind, txt = "risk", "今日继续收绿"
+        per.append({"code": code, "name": nm, "chg": round(chg * 100, 2),
+                    "mood": kind, "txt": txt})
+        lv.append(kind)
+    # 风险优先
+    verdict = ("risk" if "risk" in lv else
+               ("normal" if "normal" in lv else ("hot" if lv else None)))
+    return verdict, per
+
 
 def _big_loss(entries, end_d):
     """断板后大亏判定（上一空间龙头批次）：断板日大长阴 / 跌停 / 连续两日跌≥6%。"""
@@ -859,12 +939,18 @@ for _i, _d in enumerate(dates):
         _bd0 = min((str(s.get("breakDate") or _ev["date"])
                     for s in _ev["suppressStocks"]), default=_ev["date"])
         _loss = _big_loss([(s["code"], s["name"], s["brk"]) for s in _stocks], _d)
+        # v45：三档情绪判定（风险提示 / 风险一般 / 情绪高涨），逐股给出触发依据
+        _vd, _moods = _mood([(s["code"], s["name"], s["brk"]) for s in _stocks],
+                            _d, _bd0 == _d)
+        for _s in _stocks:
+            _s["mood"] = next((m for m in _moods if m["code"] == _s["code"]), None)
         _dec["dragon"] = {
             "ev": _ev["date"], "stocks": _stocks, "loss": _loss,
             # fresh=True：昨日空间龙头今日断板 → 展示的就是今天刚断的这批
             "fresh": _bd0 == _d,
             "brk": _bd0,
-            "verdict": ("risk" if _loss else "ok") if _stocks else None,
+            "verdict": _vd if _stocks else None,
+            "moods": _moods,
         }
 
     # ② 赚钱效应题材梯队（板块有 3 板龙头）
@@ -894,6 +980,8 @@ for _i, _d in enumerate(dates):
                     _nb.append({"name": _x.get("name"), "code": _x["code"],
                                 "b": _ylb[1], "chg": chg_on(_x["code"], _d)})
         _themes.append({"name": _nm, "count": _g.get("count"), "maxB": _g.get("maxB"),
+                        # v45：首板股数量（用户要求梯队里列明首板多少个）
+                        "b1": sum(1 for x in _full if (x.get("boards") or 1) == 1),
                         "lead": _g.get("lead"), "big": _big, "nb": _nb})
     _dec["themes"] = _themes
 
@@ -1001,6 +1089,7 @@ data = {
     "money": money,                 # 赚钱效应：板块当日有 ≥3 板个股再涨停的题材
     "moneyDays": dates,             # 全期均有本地行情口径（区分"有行情"与"当日无达标题材"）
     "review": review,               # 三战法逐笔（前端按自定义时间段筛选）
+    "reviewStat": reviewStat,       # v45：买入逻辑共性（市场阶段 / 题材 / 形态 / 涨停时机）
     "chances": chances,            # v17：当日机会池（全量符合买点候选，含一字/炸板）
     "reviewMeta": reviewMeta,      # 各战法买入 / 卖出逻辑说明
     "boardEarn": BOARD_EARN_SLIM,  # v29：板块赚钱效应验证（题材日 -> 题材 -> 明细）
