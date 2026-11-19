@@ -1034,3 +1034,45 @@ Referer: http://stockpage.10jqka.com.cn/<code>/
 | boardEarn 题材日 | 2948 | 2944 |
 | 当日机会池 | 850 条 | 846 条 |
 | 校验 | — | **0 异常** |
+
+## 31. v36 GitHub Pages 常驻站点（防沙箱休眠）
+
+> 对应本次反馈：「把这个 html 推送 GitHub，参照 strength-training-journal 的逻辑，目的是防止沙箱休眠」。
+
+### 31.1 发布方式（与 journal 完全同构）
+
+仓库根目录就是站点内容（`index.html` / `data.js` / `version.js` / `klines/` / `echarts.min.js`），
+加了 `.nojekyll`，Pages 从 **main 分支根目录**直出：
+
+- **常驻地址**：`https://hw2421.github.io/a-share-review/`（静态托管，永不休眠）；
+- 二维码：`/workspace/a-share-review-qrcode-pages.png`；
+- 带后端的应用地址不变（`/api/refresh` 手动刷新仍走它）。
+
+### 31.2 防休眠链路
+
+```
+hunan_poll（16:30-23:30 每半小时，抓到即止）
+  └→ update_daily 重建数据
+       └→ pages_sync.py：git 提交 index.html/data.js/version.js/klines 变化并推送
+            └→ GitHub Pages 自动重新发布（约 1 分钟）
+```
+
+令牌放在本地 `.gh_token`（已加入 `.gitignore`，严禁入库）；`pages_sync.py` 无变化时不推送。
+
+### 31.3 踩到的坑与修复
+
+1. **Pages 对大文件发布不稳定**：121MB 的 `klines/` 分片在发布后时而 404、时而超时
+   （构建状态却显示 built）。修复：`index.html` 在 `github.io` 域名下**直接从
+   `raw.githubusercontent.com` 取分片**（raw 有 CORS `*`，单文件 15MB 稳定）；
+   其他托管仍走相对路径。
+2. **发布窗口期 CDN 短暂 404**：每次推送触发重新发布后的几分钟内，`data.js`/`version.js`
+   偶发 404。修复：加载脚本用 `document.write` 同步链——主源 `onerror` 立即回落
+   raw 源，页面不会出现"未找到 data.js"。
+3. Pages 每日只重建一次（抓取成功那次），频次远低于 10 次/小时上限。
+
+### 31.4 局限
+
+- Pages 是纯静态：`⟳ 刷新`按钮的**后端抓取**在 github.io 上不可用，页面会自动退回
+  静态模式（版本指纹比对 + 同花顺代理兜底）；数据更新仍依赖沙箱内定时抓取后自动推送；
+- 沙箱休眠期间无人抓数据，Pages 停留在最后一次成功构建的数据——这正是「防休眠」的意义：
+  **站点永不下线，数据在沙箱醒来后自动补齐并推送**。
