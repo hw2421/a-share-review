@@ -1087,10 +1087,10 @@ def main():
     for c in (MW.get("cats") or []):
         if len(c.get("stocks") or []) > c.get("n", 0):
             err("v48 分类「%s」代表股数 > 笔数" % c.get("k")); n_v48 += 1
-    # v49④：分类须按「此类个股数 n」降序排列
-    CN = [c.get("n", 0) for c in (MW.get("cats") or [])]
-    if CN != sorted(CN, reverse=True):
-        err("v49 形态分类未按个股数降序：%s" % CN); n_v48 += 1
+    # v50①：分类须按「占比 pct」降序排列（同占比按 n 降序）
+    CP = [(c.get("pct", 0), c.get("n", 0)) for c in (MW.get("cats") or [])]
+    if CP != sorted(CP, key=lambda x: (-x[0], -x[1])):
+        err("v50 形态分类未按占比降序：%s" % CP); n_v48 += 1
     # v49⑤：同一类形态内代表个股按题材强度（当日 maxB/count）非递增
     def _thstrength(day, th):
         g = (LAD48.get(day) or {}).get(th) or {}
@@ -1100,9 +1100,41 @@ def main():
         st = [_thstrength(x[2], x[4]) for x in sk]
         if st != sorted(st, reverse=True):
             err("v49 分类「%s」代表股未按题材强度降序：%s" % (c.get("k"), st)); n_v48 += 1
-    print("v48/v49 个股赚钱效应：事件 %d 笔、分类 %d、规模组 %d，剔除平淡晋级 %d 例，独立复核异常 %d"
-          % (len(EV), len(MW.get("cats") or []), len(MW.get("caps") or []),
-             MW.get("droppedPlain", 0), n_v48))
+    # ---- v50②：全量事件池 eventsAll 独立复核（前端动态切分的数据源） ----
+    EVALL = MW.get("eventsAll") or []
+    DROPALL = MW.get("droppedEvents") or []
+    rngall = MW.get("allRange") or []
+    need = ("d0", "d", "code", "name", "theme", "b0", "b", "s0", "s1",
+            "tags", "open", "low", "chg", "cap", "capv", "why", "zt10", "prim")
+    for e in EVALL:
+        code, d = str(e.get("code", "")), e.get("d", "")
+        if any(k not in e for k in need):
+            err("v50 eventsAll 事件缺字段 %s(%s)" % (d, code)); n_v48 += 1
+        if rngall and not (rngall[0] <= d <= rngall[1]):
+            err("v50 eventsAll %s %s 超出全量区间" % (d, code)); n_v48 += 1
+        lim = 0.05 if "ST" in e.get("name", "") else (0.20 if code.startswith(("30", "688"))
+              else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
+        if abs(e.get("chg", 0) - lim * 100) > 1.0:
+            err("v50 eventsAll %s %s 今日涨幅异常 %s" % (d, code, e.get("chg"))); n_v48 += 1
+        if code in yz48.get(e.get("d0"), ()) or code in yz48.get(d, ()):
+            err("v50 eventsAll %s %s 含一字" % (d, code)); n_v48 += 1
+        if e.get("prim") == "普通换手连板晋级" and not (
+                e.get("zt10", 0) >= 5 or "N字反包次日涨停" in (e.get("tags") or [])):
+            err("v50 eventsAll %s %s 平淡晋级未剔除" % (d, code)); n_v48 += 1
+    for e in DROPALL:
+        d, code = e.get("d", ""), str(e.get("code", ""))
+        if rngall and not (rngall[0] <= d <= rngall[1]):
+            err("v50 droppedEvents %s %s 超出全量区间" % (d, code)); n_v48 += 1
+    # 默认快照须为全量池的子集（按 code+d+prim 唯一键）
+    key_ev = lambda x: (str(x.get("code")), x.get("d"), x.get("prim"))
+    evall_keys = {key_ev(e) for e in EVALL}
+    for e in EV:
+        if key_ev(e) not in evall_keys:
+            err("v50 默认事件 %s %s 不在全量池" % (e.get("d"), e.get("code"))); n_v48 += 1
+    print("v48/v49/v50 个股赚钱效应：默认快照 %d 笔 / 全量池 %d 笔，分类 %d（占比降序）、"
+          "规模组 %d，剔除平淡晋级 %d 例，独立复核异常 %d"
+          % (len(EV), len(EVALL), len(MW.get("cats") or []), len(MW.get("caps") or []),
+             len(DROPALL), n_v48))
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")

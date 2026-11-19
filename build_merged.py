@@ -775,11 +775,14 @@ kMarks = S["kMarks"]
 # 独立模块 money_winners.compute，口径与 verify_space 同源复用。
 import money_winners as MW
 MONEY_WINNERS = MW.compute(dates, pools, fd.yizi_map(pools), KBARS, theme_at,
-                           ladders=ladders,
+                           ladders=ladders, ALL_N=140,
                            NAME={s["code"]: s["name"] for d in dates for s in pools[d]})
-print("个股赚钱效应（最近 %d 交易日）：%d 个换手涨停接力样本，%d 类形态，结论 %d 条"
+print("个股赚钱效应（最近 %d 交易日）：%d 个换手涨停接力样本，%d 类形态，结论 %d 条；"
+      "全量事件池 %d 笔 / %s，剔除平淡晋级 %d 笔"
       % (MONEY_WINNERS["n"], MONEY_WINNERS["total"],
-         len(MONEY_WINNERS["cats"]), len(MONEY_WINNERS["read"])))
+         len(MONEY_WINNERS["cats"]), len(MONEY_WINNERS["read"]),
+         len(MONEY_WINNERS["eventsAll"]), MONEY_WINNERS["allRange"],
+         len(MONEY_WINNERS["droppedEvents"])))
 excludedConsecYizi = S.get("excludedConsecYizi", [])   # v18：连续一字开盘、不属于战法标的
 v23stat = S.get("v23stat", {})          # 战法 T日复盘→T+1 参与 的触发统计
 

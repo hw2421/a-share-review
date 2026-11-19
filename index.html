@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>山顶洞人情绪复盘 · 空间情绪 / 题材炒作 / 赚钱效应 / 连板梯队</title>
+<title>山顶洞人复盘</title>
 <style>
   :root{
     --bg:#0a0e16; --card:#121826; --card2:#0e1420; --line:#1f2937;
@@ -360,8 +360,14 @@
   .wn-cat{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
   .wn-cat .t{font-weight:800;font-size:13px;color:var(--gold);display:flex;justify-content:space-between;align-items:baseline}
   .wn-cat .t .n{color:var(--text);font-size:12px}
-  .wn-cat .stk{color:var(--dim2);font-size:11px;margin-top:6px;line-height:1.6}
+  .wn-cat .stk{color:var(--dim2);font-size:11px;margin-top:6px;line-height:1.7}
   .wn-cat .stk b{color:var(--text);font-weight:600}
+  .wn-cat .stk .sth{color:var(--blue);font-size:10px;margin-left:3px}
+  .wn-cat .stk .sbd{color:var(--gold);font-size:10px;font-weight:700}
+  .wn-winbar{display:inline-flex;gap:4px}
+  .wn-winbar button{background:var(--card2);border:1px solid var(--line);color:var(--dim);
+                    border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer}
+  .wn-winbar button.on{border-color:var(--gold);color:var(--gold);background:rgba(240,185,11,.1)}
   .wn-tab{width:100%;border-collapse:collapse;font-size:11px}
   .wn-tab th,.wn-tab td{padding:4px 7px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
   .wn-tab th{color:var(--dim2);font-weight:600;position:sticky;top:0;background:var(--card);z-index:1}
@@ -386,6 +392,12 @@
   .wn-tab .wn-mode.on.prim{background:rgba(240,185,11,.18);color:var(--gold)}
   .wn-tab .wn-mode.off{color:var(--line);font-size:9px}
   .wn-tab th.wn-mode{font-size:9px;line-height:1.2;white-space:normal;max-width:30px;color:var(--dim2)}
+  /* v50：个股名列固定 + 个股名后题材备注 */
+  .wn-tab td.wn-stk,.wn-tab th.wn-stk{position:sticky;left:var(--wn-stk-left,72px);z-index:2;
+    background:var(--card);box-shadow:6px 0 6px -6px rgba(0,0,0,.85)}
+  .wn-tab th.wn-stk{z-index:5}
+  .wn-tab tr:hover td.wn-stk{background:#182234}
+  .wn-tab .wn-stk .wth{color:var(--blue);font-size:10px;font-weight:400;margin-left:5px}
   /* v43：买入日 / 个股 两列左右滚动时固定（左侧吸附），第二列偏移取第一列实际宽度 */
   .rv-tbl .rv-fz{position:sticky;background:var(--card);z-index:3}
   .rv-tbl th.rv-fz{z-index:6}
@@ -612,7 +624,7 @@
 </head>
 <body>
 <header>
-  <div class="brand"><h1>山顶洞人情绪复盘</h1></div>
+  <div class="brand"><h1>山顶洞人复盘</h1></div>
   <div class="hrow htop">
     <nav id="nav">
       <button data-t="market" class="on">空间情绪</button>
@@ -693,10 +705,19 @@
 <!-- ============ 个股赚钱效应（v48：昨日换手涨停→今日换手涨停，最近两周） ============ -->
 <section class="page" id="page-winners">
   <div class="card">
-    <h3>赚钱效应 <span class="sub" id="wn-range">昨日换手涨停股今日再次换手涨停 · 最近两周</span></h3>
+    <h3>赚钱效应 <span class="sub" id="wn-range">昨日换手涨停股今日再次换手涨停</span></h3>
+    <div class="ch-bar" style="margin-top:6px">
+      <span class="lb" style="color:var(--dim2);font-size:11px">统计区间</span>
+      <span id="wn-win" class="wn-winbar"></span>
+      <span style="color:var(--line)">│</span>
+      <button id="wn-prev" class="ch-go">◀ 上一交易日</button>
+      <select id="wn-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
+      <button id="wn-next" class="ch-go">下一交易日 ▶</button>
+      <button id="wn-today" class="ch-go">今日</button>
+    </div>
     <div id="wn-sum"></div>
     <div id="wn-read"></div>
-    <h4 style="margin:12px 0 2px">赚钱效应的表现形式（分类汇总）</h4>
+    <h4 style="margin:12px 0 2px">赚钱效应的表现形式（分类汇总 · 按占比排列，同类按题材）</h4>
     <div id="wn-cats"></div>
     <h4 style="margin:12px 0 2px">赚钱效应个股明细</h4>
     <div class="wn-filter" id="wn-filter"></div>
@@ -1772,15 +1793,90 @@ function renderLadder(date){
 
 /* ================= 个股赚钱效应（v48）=================
    数据取 R.moneyWinners：昨日换手涨停股今日再次换手涨停，最近两周。 */
-let WN_FILTER = '';
+/* v50：动态窗口状态。WN_END=结束交易日(默认最新)，WN_WIN=窗口键，WN_FILTER=形态筛选。 */
+let WN_FILTER = '', WN_END = '', WN_WIN = 'twoweek';
+const WN_LABEL = {week:'一周',twoweek:'两周',month:'一个月'};
+const WN_MODES = [
+  ['极致高开全天红','极致高开'],['断板反包再连板','断板反包'],
+  ['地天板次日涨停','地天次日'],['连续一字后首换手涨停','一字首换'],
+  ['N字反包次日涨停','N字反包'],['趋势股创新高周涨50%','趋势新高'],
+  ['题材持续换手连板','题材持续'],['普通换手连板晋级','普通晋级'],
+];
+const WN_PRI = WN_MODES.map(x=>x[0]);
+
+/* 全量事件池中可作为统计结束日的交易日（升序，限定 allRange）。 */
+function wnDates(){
+  const R=window.REVIEW, MW=R.moneyWinners||{}, ar=MW.allRange||[];
+  const ds=(R.dates||[]).filter(d=>(!ar.length||d>=ar[0])&&d<=ar[ar.length-1]);
+  return ds;
+}
+/* 按 WN_END 往前取 WIN 个交易日，返回 {start,end,evs,dropN}。 */
+function wnSlice(){
+  const R=window.REVIEW, MW=R.moneyWinners||{};
+  const ds=wnDates(), win=(MW.windows||{})[WN_WIN]||10;
+  let ei=ds.indexOf(WN_END); if(ei<0) ei=ds.length-1;
+  const start=ds[Math.max(0,ei-win+1)], end=ds[ei];
+  const evs=(MW.eventsAll||[]).filter(e=>e.d>=start&&e.d<=end);
+  const dropN=(MW.droppedEvents||[]).filter(e=>e.d>=start&&e.d<=end).length;
+  return {start,end,win,evs,dropN};
+}
+/* 前端重算分类（按占比降序，同类个股按题材强度）与规模。 */
+function wnAgg(evs){
+  const R=window.REVIEW, total=evs.length;
+  const strength=e=>{const g=((R.ladders||{})[e.d]||{})[e.theme]||{};
+                     return [(g.maxB||0),(g.count||0)];};
+  const cats=WN_PRI.map(p=>{
+    const arr=evs.filter(e=>e.tags.indexOf(p)>=0);
+    if(!arr.length) return null;
+    const srt=arr.slice().sort((a,b)=>{
+      const sa=strength(a),sb=strength(b);
+      return sb[0]-sa[0]||sb[1]-sa[1]||b.b-a.b||b.d.localeCompare(a.d);
+    });
+    return {k:p,n:arr.length,pct:total?+(arr.length/total*100).toFixed(1):0,
+      avg:+(arr.reduce((s,x)=>s+x.chg,0)/arr.length).toFixed(2),
+      stocks:srt.slice(0,12).map(x=>[x.name,x.code,x.d,x.b,x.theme,x.s1])};
+  }).filter(Boolean);
+  cats.sort((a,b)=>b.pct-a.pct||b.n-a.n||a.k.localeCompare(b.k));
+  const caps=['大盘','中盘','小盘','未知'].map(c=>{
+    const arr=evs.filter(e=>e.cap===c);
+    return arr.length?{k:c,n:arr.length,avg:+(arr.reduce((s,x)=>s+x.chg,0)/arr.length).toFixed(2)}:null;
+  }).filter(Boolean);
+  return {total,cats,caps};
+}
+/* 初始化窗口按钮 / 日期选择器（只建一次，切页时调用）。 */
+function wnInitControls(){
+  const R=window.REVIEW, MW=R.moneyWinners||{};
+  if(!WN_END){ const ds=wnDates(); WN_END=ds[ds.length-1]||''; }
+  const wb=document.getElementById('wn-win');
+  if(wb && !wb.dataset.built){
+    wb.dataset.built='1';
+    wb.innerHTML=Object.keys(WN_LABEL).map(k=>'<button data-w="'+k+'"'+(k===WN_WIN?' class="on"':'')+'>'+WN_LABEL[k]+'</button>').join('');
+    wb.querySelectorAll('button').forEach(b=>b.onclick=()=>{ WN_WIN=b.dataset.w;
+      wb.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderWinners(); });
+  }
+  const sel=document.getElementById('wn-date');
+  if(sel){
+    const ds=wnDates();
+    sel.innerHTML=ds.slice().reverse().map(d=>'<option value="'+d+'"'+(d===WN_END?' selected':'')+'>'+fmtDate(d)+'</option>').join('');
+    sel.onchange=e=>{ WN_END=e.target.value; renderWinners(); };
+  }
+  const step=n=>{
+    const ds=wnDates(); let i=ds.indexOf(WN_END); if(i<0)i=ds.length-1;
+    i=Math.max(0,Math.min(ds.length-1,i+n)); WN_END=ds[i]; renderWinners();
+  };
+  const pv=document.getElementById('wn-prev'), nx=document.getElementById('wn-next'), td=document.getElementById('wn-today');
+  if(pv) pv.onclick=()=>step(-1);
+  if(nx) nx.onclick=()=>step(1);
+  if(td) td.onclick=()=>{ const ds=wnDates(); WN_END=ds[ds.length-1]||''; renderWinners(); };
+}
+
 function renderWinners(){
   const R = window.REVIEW, MW = R.moneyWinners || {};
-  const evs = MW.events || [], cats = MW.cats || [], caps = MW.caps || [];
-  const rng = MW.range || [];
+  wnInitControls();
+  const sl = wnSlice(), evs0 = sl.evs;
+  const ag = wnAgg(evs0), cats=ag.cats, caps=ag.caps, n=ag.total;
   document.getElementById('wn-range').textContent =
-    '昨日换手涨停股今日再次换手涨停 · 最近 '+(MW.n||10)+' 个交易日'+
-    (rng.length? '（'+fmtDate(rng[0])+' ~ '+fmtDate(rng[1])+'）':'');
-  const n = MW.total||evs.length;
+    '昨日换手涨停股今日再次换手涨停 · '+WN_LABEL[WN_WIN]+'（'+fmtDate(sl.start)+' ~ '+fmtDate(sl.end)+'）';
   let sum = '<div class="wn-sum">'+
     '<div class="wn-kpi"><span class="k">赚钱效应样本</span><span class="v" style="color:'+C.gold+'">'+n+'</span></div>'+
     '<div class="wn-kpi"><span class="k">形态分类</span><span class="v">'+cats.length+'</span></div>'+
@@ -1788,97 +1884,87 @@ function renderWinners(){
       ' <span style="font-size:11px;color:var(--dim2)">'+c.avg+'%</span></span></div>').join('')+
     '</div>';
   document.getElementById('wn-sum').innerHTML = sum;
-  document.getElementById('wn-read').innerHTML = (MW.read||[]).map(t=>
+  const read=[
+    fmtDate(sl.start)+' ~ '+fmtDate(sl.end)+'（'+WN_LABEL[WN_WIN]+'）共 '+n+
+      ' 个「昨日换手涨停→今日换手涨停」样本；已剔除 '+sl.dropN+' 例平淡首板连板晋级；一字当日排除。',
+    cats.length? '占比最高：'+cats[0].k+'（'+cats[0].n+' 例 / '+cats[0].pct+'%）；'+
+      '今日溢价最高：'+cats.slice().sort((a,b)=>b.avg-a.avg)[0].k+'（+'+
+      cats.slice().sort((a,b)=>b.avg-a.avg)[0].avg+'%）。':'',
+  ].filter(Boolean);
+  document.getElementById('wn-read').innerHTML = read.map(t=>
     '<div class="sub" style="padding:3px 0;font-size:12px">• '+t+'</div>').join('');
+  // 分类汇总卡：占比降序；同类个股按题材排列，展示题材 + 连板高度
   document.getElementById('wn-cats').innerHTML = cats.map(c=>
     '<div class="wn-cat"><div class="t"><span>'+c.k+'</span>'+
-    '<span class="n">'+c.n+' 例 · 均价 <b style="color:'+(c.avg>=0?C.up:C.down)+'">'+
+    '<span class="n">'+c.n+' 例 · 占比 <b style="color:'+C.gold+'">'+c.pct+'%</b> · 均价 <b style="color:'+(c.avg>=0?C.up:C.down)+'">'+
     (c.avg>0?'+':'')+c.avg+'%</b></span></div>'+
-    '<div class="stk">'+c.stocks.map(s=>'<b>'+s[0]+'</b>').join('、')+'</div></div>').join('');
-  const allTags = ['', '极致高开全天红','断板反包再连板','地天板次日涨停',
-    '连续一字后首换手涨停','N字反包次日涨停','趋势股创新高周涨50%',
-    '题材持续换手连板','普通换手连板晋级'];
+    '<div class="stk">'+c.stocks.map(s=>'<b>'+s[0]+'</b>'+
+      (s[4]?'<span class="sth">['+s[4]+']</span>':'')+
+      '<span class="sbd">'+s[3]+'板</span>').join('、')+'</div></div>').join('');
+  const allTags = ['', ...WN_PRI];
   const filt = document.getElementById('wn-filter');
   filt.innerHTML = allTags.map(t=>'<button data-f="'+t+'"'+(t===WN_FILTER?' class="on"':'')+'>'+
     (t||'全部')+'</button>').join('');
   filt.querySelectorAll('button').forEach(b=>b.onclick=()=>{ WN_FILTER=b.dataset.f; renderWinners(); });
-  const shown = WN_FILTER ? evs.filter(e=>e.tags.indexOf(WN_FILTER)>=0) : evs;
-  // v49①：首先按题材区分——题材强度（当日最高板、涨停家数）降序；同题材内日期降序、板数降序。
-  const thKey = e => e.theme || '';
-  const thStrength = e => { const g=((R.ladders||{})[e.d]||{})[thKey(e)]||{};
-                            return [(g.maxB||0),(g.count||0)]; };
-  const sorted = shown.slice().sort((a,b)=>{
-    const sa=thStrength(a), sb=thStrength(b);
-    // 无题材排最后
-    if(!thKey(a) && thKey(b)) return 1;
-    if(thKey(a) && !thKey(b)) return -1;
-    if(sb[0]-sa[0]) return sb[0]-sa[0];
-    if(sb[1]-sa[1]) return sb[1]-sa[1];
-    if(thKey(a)!==thKey(b)) return thKey(a).localeCompare(thKey(b));
-    return b.d.localeCompare(a.d) || b.b-a.b;
-  });
-  // v49②：8 个赚钱效应模式独立成列（简称做表头）
-  const MODES = [
-    ['极致高开全天红','极致高开'],['断板反包再连板','断板反包'],
-    ['地天板次日涨停','地天次日'],['连续一字后首换手涨停','一字首换'],
-    ['N字反包次日涨停','N字反包'],['趋势股创新高周涨50%','趋势新高'],
-    ['题材持续换手连板','题材持续'],['普通换手连板晋级','普通晋级'],
-  ];
-  let html = '<div class="sub" style="margin:8px 0 4px">符合「昨日换手涨停→今日换手涨停」的个股明细（'+
-    shown.length+' 只）· 先按题材强度分组 · 同日合并 · <b style="color:'+C.gold+'">●</b>命中该模式（金色=主模式）· '+
-    '点题材看当日梯队、点个股看日K</div>'+
+  const shown = WN_FILTER ? evs0.filter(e=>e.tags.indexOf(WN_FILTER)>=0) : evs0;
+  // 明细表：按日期降序，日内按板数降序
+  const sorted = shown.slice().sort((a,b)=> b.d.localeCompare(a.d) || b.b-a.b);
+  let html = '<div class="sub" style="margin:8px 0 4px">个股明细（'+shown.length+
+    ' 只）· 按日期降序 · 同日合并 · <b style="color:'+C.gold+'">●</b>命中该模式（金色=主模式）· '+
+    '点题材看当日梯队、点个股看日K（个股名列左右滚动固定）</div>'+
     '<div class="scroll" style="max-height:560px;overflow:auto"><table class="wn-tab"><thead><tr>'+
-    '<th class="l">题材</th><th class="l">今日</th><th class="l">个股</th><th>昨→今</th>'+
-    '<th class="l">昨日形态</th><th class="l">涨停形态</th><th>开盘%</th><th>最低%</th><th>今日%</th>'+
-    '<th class="l">规模</th>'+
-    MODES.map(m=>'<th class="wn-mode" title="'+m[0]+'">'+m[1]+'</th>').join('')+
+    '<th class="l">题材</th><th class="l">今日</th><th class="l wn-stk">个股</th><th>昨→今</th>'+
+    '<th class="l">昨日形态</th><th class="l">涨停形态</th>'+
+    WN_MODES.map(m=>'<th class="wn-mode" title="'+m[0]+'">'+m[1]+'</th>').join('')+
+    '<th>开盘%</th><th>最低%</th><th>今日%</th><th class="l">规模</th>'+
     '</tr></thead><tbody>';
-  // v49③：合并连续同题材（题材单元格）、连续同日（日期单元格，限定同题材内）
-  const themeSpan=[], dateSpan=[];
+  // 同日合并日期单元格
+  const dateSpan=[];
   for(let i=0;i<sorted.length;i++){
-    let ts=1; while(i+ts<sorted.length && thKey(sorted[i+ts])===thKey(sorted[i])) ts++;
-    themeSpan[i]=ts;
-    let ds=1; while(i+ds<sorted.length && sorted[i+ds].d===sorted[i].d &&
-                    thKey(sorted[i+ds])===thKey(sorted[i])) ds++;
+    let ds=1; while(i+ds<sorted.length && sorted[i+ds].d===sorted[i].d) ds++;
     dateSpan[i]=ds;
   }
   sorted.forEach((e,i)=>{
     const capT = e.capv!=null ? (e.cap+' '+e.capv+'亿') : e.cap;
-    const modeTds = MODES.map(m=>{
+    const modeTds = WN_MODES.map(m=>{
       const hit=e.tags.indexOf(m[0])>=0, prim=(e.prim===m[0]);
       return '<td class="wn-mode'+(hit?' on':'')+(prim?' prim':'')+'" title="'+m[0]+'">'+
              (hit?'●':'·')+'</td>';
     }).join('');
-    let row='<tr class="'+(thKey(e)?'':'')+'">';
-    // 题材列（同题材合并，可点当日梯队）
-    if(i===0 || thKey(sorted[i-1])!==thKey(e)){
-      row+='<td class="l wn-thcell" rowspan="'+themeSpan[i]+'" data-th="'+thKey(e)+'" data-d="'+e.d+'"'+
-        ' title="'+(thKey(e)?'点看 '+fmtDate(e.d)+' 当日梯队':'该股当日无复盘题材归类')+'">'+
-        (thKey(e)||'—')+'</td>';
-    }
-    // 日期列（同题材内同日合并）
-    if(i===0 || sorted[i-1].d!==e.d || thKey(sorted[i-1])!==thKey(e)){
+    let row='<tr>';
+    row+='<td class="l wn-thcell" data-th="'+(e.theme||'')+'" data-d="'+e.d+'"'+
+      ' title="'+(e.theme?'点看 '+fmtDate(e.d)+' 当日梯队':'该股当日无复盘题材归类')+'">'+
+      (e.theme||'—')+'</td>';
+    if(i===0 || sorted[i-1].d!==e.d){
       row+='<td class="l wn-date vtop" rowspan="'+dateSpan[i]+'">'+fmtDate(e.d)+'</td>';
     }
-    row+='<td class="l"><b data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+e.d+'" '+
-        'style="cursor:pointer;color:'+C.blue+'" title="点看日K（箭头指 '+fmtDate(e.d)+'）">'+e.name+'</b></td>'+
+    row+='<td class="l wn-stk"><b data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+e.d+'" '+
+        'style="cursor:pointer;color:'+C.blue+'" title="点看日K（箭头指 '+fmtDate(e.d)+'）">'+e.name+'</b>'+
+        (e.theme?'<span class="wth">['+e.theme+']</span>':'')+'</td>'+
       '<td>'+e.b0+'→'+e.b+'板</td>'+
-      '<td class="l">'+e.s0+'</td><td class="l">'+e.s1+'</td>'+
+      '<td class="l">'+e.s0+'</td><td class="l">'+e.s1+'</td>'+ modeTds +
       '<td style="color:'+(e.open>=0?C.up:C.down)+'">'+(e.open>0?'+':'')+e.open+'</td>'+
       '<td style="color:'+(e.low>=0?C.up:C.down)+'">'+(e.low>0?'+':'')+e.low+'</td>'+
       '<td style="color:'+C.up+';font-weight:700">+'+(e.chg>0?e.chg.toFixed(2):'')+'</td>'+
-      '<td class="l">'+capT+'</td>'+ modeTds +'</tr>';
+      '<td class="l">'+capT+'</td></tr>';
     html+=row;
   });
   html += '</tbody></table></div>';
   html += kjNote('口径：'+(MW.rule||'')+
-    '。流通市值 = 当日成交额（日K量×收盘价）÷ 换手率，仅作大盘/中盘/小盘分组参考，非精确市值。'+
-    '形态判定与题材梯队浮层同一口径（一字 / 赚钱 / 赚T / 普通 / 长腿 / 地天）。'+
-    '8 列模式可多标签叠加，「极致高开全天红」要求昨日换手连板+今日高开+全天最低价高于昨收；'+
-    '「一字首换」= 连续一字后首个换手涨停当日再涨停。题材按当日梯队强度（最高板/涨停家数）分组，'+
-    '同题材同日合并日期；点击题材显示当日板块梯队（不跳转题材炒作页）。',
+    '。统计区间以选定交易日为结束点，往前取一周(5)/两周(10)/一个月(20)个交易日，'+
+    '分类占比=该类笔数÷样本总数；流通市值=当日成交额(日K量×收盘价)÷换手率，仅作规模分组参考。'+
+    '形态判定与题材梯队浮层同口径（一字/赚钱/赚T/普通/长腿/地天）；8 列模式可多标签叠加。'+
+    '点题材显示当日板块梯队（不跳转题材炒作页）。',
     '口径 · 赚钱效应判定规则');
   document.getElementById('wn-list').innerHTML = html;
+  // 固定「个股」列的 left 偏移 = 题材列 + 今日列实际宽度
+  setTimeout(()=>{
+    const tbl=document.querySelector('#wn-list table.wn-tab');
+    if(!tbl) return;
+    const ths=tbl.querySelectorAll('thead th');
+    const off=(ths[0]?ths[0].offsetWidth:46)+(ths[1]?ths[1].offsetWidth:46);
+    tbl.style.setProperty('--wn-stk-left', off+'px');
+  },20);
   document.querySelectorAll('#wn-list b[data-c]').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
