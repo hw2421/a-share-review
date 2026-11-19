@@ -630,7 +630,7 @@
 
 <section class="page" id="page-decision">
   <div class="card">
-    <h3>复盘决策 <span class="sub">今日市场阶段 · 上一空间龙头断板表现（情绪判断） · 赚钱效应题材梯队（3板龙头）</span></h3>
+    <h3>复盘决策 <span class="sub">今日市场阶段 · 上一空间龙头断板表现 · 赚钱效应题材梯队 · 昨日涨停今日赚钱效应（人气板块） · 三大选股池</span></h3>
     <div class="ch-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button id="dc-prev" class="ch-go">◀ 上一交易日</button>
       <select id="dc-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
@@ -2765,12 +2765,15 @@ function initHistNav(){
   focusMarket(ds[ds.length-1]);        // 初始只刷新摘要/明细表，不重复渲染其它页
 }
 
-/* ================= 复盘决策页（v38 简化） =================
-   只看两件事：
+/* ================= 复盘决策页（v38 简化，v41 扩展） =================
    ① 今日市场阶段 + 交易机会判断：上一空间龙头断板后无大亏（跌停/连续杀跌）
       → 情绪较好；断板直接大亏 → 提示风险；
    ② 赚钱效应题材梯队（板块有 3 板龙头）：连板股给涨停时间 + 涨停形态
-      （一字/T字/换手），首板只报数量；昨日次高板断板股给今日涨跌幅。 */
+      （一字/T字/换手），首板只报数量；昨日次高板断板股给今日涨跌幅；
+   ③（v41）昨日涨停 → 今日赚钱效应：晋级 / 红盘率 / 均值，识别持续赚钱效应
+      与人气板块（最强板块）；昨日涨停今日闷杀的题材提示小心；
+   ④（v41）三大选股池：盘前关注池（板块指数+龙头/人气股）、当日涨停备选池
+      （每交易日更换）、活跃股池（近10日涨停≥2次滚动）；底部附方法论说明。 */
 let DC_DATE=null;
 const _pct=v=> v==null? '-' :
   '<span style="color:'+(v>=0?C.up:C.down)+'">'+(v>0?'+':'')+v.toFixed(2)+'%</span>';
@@ -2865,6 +2868,81 @@ function paintDecision(){
     }else inner='<div class="sub">当日无「有赚钱效应且有 3 板龙头」的题材</div>';
     html+=dcSec('赚钱效应题材梯队 · 资金方向', inner);
   }
+  /* ---------- ③ 昨日涨停 → 今日赚钱效应（v41：持续赚钱效应 / 人气板块） ---------- */
+  {
+    const nd=D.nextday||[];
+    let inner;
+    if(nd.length){
+      const hot=nd.find(r=>r.hot);
+      const hotBar=hot? '<div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        '<span style="background:rgba(240,185,11,.16);color:#f0b90b;border:1px solid #f0b90b66;border-radius:6px;padding:2px 10px;font-weight:800">★ 人气板块</span>'+
+        '<span class="sub">昨日涨停股今日表现最强：<b style="color:#f0b90b">'+hot.name+'</b>'+
+        '（昨日 '+hot.n+' 只 → 今日晋级 '+hot.lim+' 只 · 红盘 '+hot.up+'/'+hot.n+
+        (hot.avg!=null? ' · 均值 '+hot.avg+'%':'')+'）</span></div>' : '';
+      const cards=nd.map(r=>{
+        const avgC = r.avg==null? C.dim : (r.avg>=0? C.up : C.down);
+        const good=(r.avg||0)>=0;
+        return '<div style="border:1px solid '+(good?'#3d1b25':'#14332b')+';border-radius:8px;padding:7px 10px">'+
+          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:5px">'+
+          '<b style="font-size:13px">'+r.name+'</b>'+
+          (r.hot? '<span style="background:rgba(240,185,11,.16);color:#f0b90b;border-radius:3px;padding:0 5px;font-size:10.5px">人气板块</span>':'')+
+          '<span class="sub">昨日 '+r.n+' 只 → 晋级 <b style="color:'+(r.lim?C.up:C.down)+'">'+r.lim+'</b>'+
+          ' · 红盘 '+r.up+'/'+r.n+
+          (r.avg!=null? ' · 均值 <b style="color:'+avgC+'">'+(r.avg>0?'+':'')+r.avg+'%</b>':'')+
+          (r.min!=null? ' · 最差 '+(r.min>0?'+':'')+r.min+'%':'')+'</span></div>'+
+          (r.gain&&r.gain.length? '<div class="sub" style="font-size:11.5px">今日晋级：'+r.gain.join('、')+
+            (r.lim>6? ' 等'+r.lim+'只':'')+'</div>':'')+
+          '</div>';
+      }).join('');
+      inner=hotBar+'<div style="display:flex;flex-direction:column;gap:8px">'+cards+'</div>'+
+        '<div class="sub" style="margin-top:6px">口径：昨日涨停股按题材分组看今天的表现——晋级（今天买的人明天能出）'+
+        '与红盘率高、均值为正 = 持续赚钱效应，最强者即人气板块；反之晋级 0、均值深绿的题材（今日涨停明日闷杀型）小心参与。</div>';
+    }else inner='<div class="sub">当日无昨日涨停数据（开篇首日）</div>';
+    html+=dcSec('昨日涨停 → 今日赚钱效应 · 哪类涨停股次日有肉', inner);
+  }
+  /* ---------- ④ 三大选股池（v41） ---------- */
+  {
+    const P=D.pools;
+    let inner;
+    if(P){
+      const chipS=(code,name,txt)=>'<span data-c="'+code+'" data-n="'+name+'" data-d="'+d+
+        '" style="background:#152238;border:1px solid #2b3a56;border-radius:5px;padding:3px 8px;font-size:12px">'+txt+'</span>';
+      const wt=(P.watch.themes||[]).map(t=>
+        '<span style="background:#0f2a3d;border:1px dashed #3d8bff88;border-radius:5px;padding:3px 8px;font-size:12px;color:#9fc6ff">'+t+' 指数</span>').join('');
+      const ws=(P.watch.stocks||[]).map(s=>chipS(s.code,s.name,
+        s.name+' <b>'+s.boards+'板</b>'+(s.theme? '<span style="color:#78849a;font-size:10.5px;margin-left:4px">'+s.theme+'</span>':''))).join('');
+      const tp=(P.today||[]).map(a=>chipS(a[1],a[0],
+        a[0]+' <b>'+a[2]+'板</b>'+(a[3]? '<span style="color:#78849a;font-size:10.5px;margin-left:4px">'+a[3]+'</span>':''))).join('');
+      const ac=(P.active||[]).map(s=>chipS(s.code,s.name,
+        s.name+' <b>'+s.times+'次/10日</b>'+(s.theme? '<span style="color:#78849a;font-size:10.5px;margin-left:4px">'+s.theme+'</span>':''))).join('');
+      inner='<div style="display:flex;flex-direction:column;gap:10px">'+
+        '<div style="border:1px solid #1d3a52;border-radius:8px;padding:8px 10px">'+
+        '<div style="font-weight:800;color:#9fc6ff;font-size:13px;margin-bottom:6px">① 盘前关注池 <span class="sub" style="font-weight:400">板块指数 + 活跃板块龙头 / 人气股 · 不一定买，但必须关注动向</span></div>'+
+        (wt? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">'+wt+'</div>':'')+
+        (ws? '<div style="display:flex;flex-wrap:wrap;gap:6px">'+ws+'</div>':'')+
+        '</div>'+
+        '<div style="border:1px solid #4a2b56;border-radius:8px;padding:8px 10px">'+
+        '<div style="font-weight:800;color:#d5a6ff;font-size:13px;margin-bottom:6px">② 当日涨停备选池 <span class="sub" style="font-weight:400">全部涨停个股集中 · 次日观察赚钱效应 · 每交易日更换 · 买入首选最强</span></div>'+
+        (tp? '<div style="display:flex;flex-wrap:wrap;gap:6px">'+tp+'</div>':'<span class="sub">当日无涨停个股</span>')+
+        '</div>'+
+        '<div style="border:1px solid #3d3a1b;border-radius:8px;padding:8px 10px">'+
+        '<div style="font-weight:800;color:#ffd24a;font-size:13px;margin-bottom:6px">③ 活跃股池 <span class="sub" style="font-weight:400">近 10 个交易日涨停 ≥2 次的活跃板块个股 · 滚动窗口自动更换</span></div>'+
+        (ac? '<div style="display:flex;flex-wrap:wrap;gap:6px">'+ac+'</div>':'<span class="sub">近 10 日无符合条件的活跃个股</span>')+
+        '</div></div>';
+    }else inner='<div class="sub">选股池仅展示近 120 个交易日（历史日期不生成）</div>';
+    html+=dcSec('三大选股池 · 盘前关注 / 当日备选 / 活跃滚动', inner);
+  }
+  /* ---------- 复盘方法论（v41，用户口径） ---------- */
+  html+='<details class="card" style="margin-top:12px;color:var(--text)"><summary style="cursor:pointer;font-weight:800">复盘方法论（赚钱效应 · 人气板块 · 选股池）</summary>'+
+    '<div class="sub" style="margin-top:8px;line-height:1.9">'+
+    '<b style="color:#e3e9f2">核心：</b>复盘主要看昨天涨停板今天的赚钱效应——哪一类涨停股次日有肉、哪一类股持续有肉：'+
+    '今天买进的人明天能出，明天买进的人后天可以出，这就是持续的赚钱效应；这类股中最强的那个板块就是人气板块。'+
+    '反之，今天涨停的明日闷杀、或者跑路的时间不多、机会很少的题材，就得小心这类股。<br>'+
+    '<b style="color:#e3e9f2">选股池：</b>'+
+    '① 盘前关注池——把各大板块指数和近期活跃板块龙头股、人气股放在一起，这些是盘前选的，不一定买，但一定得关注它们的动向；'+
+    '② 当日涨停备选池——把当日涨停个股集中到一个板块，次日观察其赚钱效应，作主要备选，每个交易日更换一次；'+
+    '③ 活跃股池——把近期活跃板块中的活跃个股挑出来，不定期更换，以适应当前市场。<br>'+
+    '<b style="color:#e3e9f2">买点：</b>如果一定要买股，首选就是这些最强的。</div></details>';
   body.innerHTML=html;
   dcBindK(body);
   dcLiveChg(body, d);

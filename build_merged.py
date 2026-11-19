@@ -731,12 +731,16 @@ ladders_out = {d: {nm: {"count": e["count"], "boards": e["boards"],
                    for nm, e in v.items()}
                for d, v in ladders.items()}
 
-# ---- 5.8 复盘决策页数据（v38 简化版）----
+# ---- 5.8 复盘决策页数据（v38 简化版，v41 扩展）----
 # 只统计三件事：
 #   ① 今天市场阶段；
 #   ② 上一个空间龙头断板后今天的表现（断板大亏＝跌停 / 连续杀跌 → 提示风险）；
 #   ③ 有赚钱效应且有 3 板龙头的题材梯队：连板股给涨停时间 + 涨停形态
 #      （一字 / T字 / 换手），首板只报数量；昨日次高板断板股给今日涨跌幅。
+# v41 追加（用户复盘方法论）：
+#   ④ nextday：昨日涨停股今日分组表现（晋级 / 红盘 / 均值 / 最差），
+#      识别持续赚钱效应与人气板块；
+#   ⑤ pools：三大选股池（盘前关注池 / 当日涨停备选池 / 活跃股池）。
 def _shape(code, d, name=""):
     """涨停形态：一字 / T字 / 换手（梯队个股均为当日涨停股）。"""
     b = _dbar(code, d)
@@ -849,6 +853,111 @@ for _i, _d in enumerate(dates):
         _themes.append({"name": _nm, "count": _g.get("count"), "maxB": _g.get("maxB"),
                         "lead": _g.get("lead"), "big": _big, "n1": _n1, "nb": _nb})
     _dec["themes"] = _themes
+
+    # ③ 昨日涨停 → 今日赚钱效应（v41 用户方法论）：
+    #    复盘核心 = 昨天的涨停板今天的赚钱效应——哪类涨停股次日有肉、持续有肉
+    #    （今天买进的人明天能出，明天买进的人后天可以出 = 持续赚钱效应），
+    #    这类股中最强的板块就是人气板块；反之昨日涨停今日闷杀的题材要小心。
+    #    统计口径：昨日涨停池按题材分组 → 今日晋级数（今天又涨停 = 今天买的人
+    #    明天大概率能出）、红盘数、平均涨跌幅、最差涨跌幅；按持续赚钱效应排序，
+    #    首位若确实有肉（晋级且均值为正，或晋级 ≥2）标记为人气板块。
+    _nd = []
+    if _pd:
+        _lim_today = {str(_s["code"]) for _s in (pools.get(_d) or [])}
+        _m_pd = theme_at.get(_pd, {})
+        _grp = {}
+        for _s in (pools.get(_pd) or []):
+            _grp.setdefault(_m_pd.get(_s["code"]) or "其他", []).append(_s)
+        for _nm, _ss in _grp.items():
+            _vals, _gain = [], []
+            for _s in _ss:
+                _c = chg_on(_s["code"], _d)
+                if _c is not None:
+                    _vals.append(_c)
+                if str(_s["code"]) in _lim_today:
+                    _gain.append(_s["name"])
+            _nd.append({"name": _nm, "n": len(_ss), "lim": len(_gain),
+                        "gain": _gain[:6],
+                        "up": sum(1 for _v in _vals if _v > 0),
+                        "avg": round(sum(_vals) / len(_vals), 2) if _vals else None,
+                        "min": round(min(_vals), 2) if _vals else None})
+        _nd.sort(key=lambda _r: (-_r["lim"],
+                                 -(_r["up"] / _r["n"] if _r["n"] else 0),
+                                 -(_r["avg"] if _r["avg"] is not None else -99)))
+        if _nd and ((_nd[0]["lim"] >= 1 and (_nd[0]["avg"] or 0) > 0)
+                    or _nd[0]["lim"] >= 2):
+            _nd[0]["hot"] = 1
+    _dec["nextday"] = _nd
+
+    # ④ 三大选股池（v41 用户方法论，近 POOL_DAYS 个交易日生成，历史日期不生成）：
+    #    ① 盘前关注池：各大板块指数（活跃题材名，行情软件看指数）+ 近期活跃板块
+    #       龙头股 / 人气股——盘前选的，不一定买，但必须关注动向；
+    #    ② 当日涨停备选池：当日涨停个股全部集中，次日观察赚钱效应，作主要备选，
+    #       每个交易日更换一次；如果一定要买股，首选就是这些最强的；
+    #    ③ 活跃股池：近期活跃板块中的活跃个股（近 10 个交易日涨停 ≥2 次），
+    #       滚动 10 日窗口自动更换，以适应当前市场。
+    if _i >= len(dates) - 120:
+        _win = dates[max(0, _i - 9):_i + 1]
+        # 活跃题材：近 10 日出现在梯队中的题材（出现天数 / 窗口内最高板）
+        _act = {}
+        for _wd in _win:
+            for _nm, _arr in (ladder_full.get(_wd) or {}).items():
+                _e = _act.setdefault(_nm, {"days": 0, "maxB": 0, "best": {}})
+                _e["days"] += 1
+                for _x in _arr:
+                    if _x["boards"] > _e["maxB"]:
+                        _e["maxB"] = _x["boards"]
+                    _b = _e["best"].get(_x["code"])
+                    if not _b or _x["boards"] > _b["boards"]:
+                        _e["best"][_x["code"]] = _x
+        _act_rows = sorted(_act.items(),
+                           key=lambda _kv: (-_kv[1]["days"], -_kv[1]["maxB"]))[:8]
+        # 盘前关注池：板块指数（活跃题材名）+ 各题材窗口内最高板龙头（每题材 2 只）
+        _watch = {"themes": [_nm for _nm, _ in _act_rows], "stocks": []}
+        _seen = set()
+        for _nm, _e in _act_rows:
+            for _x in sorted(_e["best"].values(), key=lambda _x: -_x["boards"])[:2]:
+                if _x["code"] in _seen:
+                    continue
+                _seen.add(_x["code"])
+                _watch["stocks"].append({"code": _x["code"], "name": _x["name"],
+                                         "theme": _nm, "boards": _x["boards"]})
+        # 人气股：近 10 日连板股（lb）按板数取前 10，并入盘前关注池
+        _rq = {}
+        for _wd in _win:
+            for _r in (lb.get(_wd) or []):
+                if _r[3] not in _rq or _r[1] > _rq[_r[3]]["boards"]:
+                    _rq[_r[3]] = {"code": _r[3], "name": _r[0],
+                                  "theme": _r[2], "boards": _r[1]}
+        for _x in sorted(_rq.values(), key=lambda _x: -_x["boards"])[:10]:
+            if _x["code"] not in _seen:
+                _seen.add(_x["code"])
+                _watch["stocks"].append(_x)
+        # 当日涨停备选池：[名称, 代码, 板数, 题材] 紧凑数组（每交易日更换）
+        _m_d = theme_at.get(_d, {})
+        _today_pool = [[_s["name"], _s["code"], _s["boards"],
+                        _m_d.get(_s["code"], "")]
+                       for _s in (pools.get(_d) or [])]
+        # 活跃股池：近 10 日涨停 ≥2 次且题材在近 10 日梯队中出现过的个股
+        _cnt = {}
+        for _wd in _win:
+            for _s in (pools.get(_wd) or []):
+                _e = _cnt.setdefault(_s["code"], {"name": _s["name"], "t": 0, "b": 0})
+                _e["t"] += 1
+                _e["b"] = max(_e["b"], _s["boards"])
+        _active = []
+        for _c, _e in _cnt.items():
+            if _e["t"] < 2 or _c in _seen:
+                continue
+            _nm = _m_d.get(_c) or carry.get(_c, "")
+            if _nm not in _act:
+                continue
+            _active.append({"code": _c, "name": _e["name"], "theme": _nm,
+                            "times": _e["t"], "boards": _e["b"]})
+        _active.sort(key=lambda _x: (-_x["times"], -_x["boards"]))
+        _dec["pools"] = {"watch": _watch, "today": _today_pool,
+                         "active": _active[:24]}
+
     decision[_d] = _dec
 
 # ---- 6. 组装输出 ----
@@ -874,7 +983,8 @@ data = {
     "excludedConsecYizi": excludedConsecYizi,  # v18：连续一字开盘剔除清单（d, code）
     "v23stat": v23stat,            # 战法触发统计（供校验与口径说明）
     "stockBreak": stock_break,      # 个股连板周期 -> 断板后 5 个交易日（日K窗口锚点）
-    "decision": decision,           # v38：复盘决策页（市场阶段 / 空间龙头断板表现 / 赚钱效应题材梯队）
+    "decision": decision,           # v38：复盘决策页（市场阶段 / 空间龙头断板表现 / 赚钱效应题材梯队；
+                                    #      v41 追加：nextday 昨日涨停今日赚钱效应 + pools 三大选股池）
     "klines": kl_main,              # 兼容字段（空）：日K一律走 klines_N.json 分片
     "tgb": D.get("tgb", ""),
     "spaceSeries": space_series,
