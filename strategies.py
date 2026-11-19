@@ -43,9 +43,9 @@ META = {
         "name": "战法一 · 空间突破",
         "buy": "【买入】面对空间压制 N 板（上一个空间龙头整批断板时改写的高度，N ≥ 2）；"
                "上一空间龙头断板后无大亏（无跌停、无连续杀跌）——断板直接大亏则不买、提示风险；"
-               "昨日（T）板块已有助攻股（该题材昨日梯队中另有 2 板及以上的跟风连板股）；"
-               "当日出现 N+1 板龙头，盘中冲击涨停的那一刻即判定为突破买点，按涨停价买入此股；"
-               "随后回落炸板＝突破失败，该笔同样纳入模拟统计；只在突破当日参与，不等到次日。",
+               "当日出现任意 N+1 板个股，盘中冲击涨停的那一刻即判定为空间突破买点，按涨停价买入；"
+               "所有非一字板的空间突破一律纳入（含涨停炸板＝突破失败），不设昨日助攻等其它门槛；"
+               "只在突破当日参与，不等到次日。",
         "sell": SELL_TXT,
         "note": "空间压制＝上一个空间龙头整批断板时改写的压制高度（取自 stages.suppress）。"
                 "「无大亏」口径：断板日起至买入日，龙头无跌停、无断板日大长阴、"
@@ -56,23 +56,24 @@ META = {
     },
     "trialLead": {
         "name": "战法二 · 试错龙头",
-        "buy": "【买入】昨日市场为节点阶段（空间龙头整批断板日）；"
+        "buy": "【买入】昨日市场为节点阶段（空间龙头整批断板日），且昨日该板块已登赚钱效应榜、"
+               "经实证验证（昨买龙头者今日可获利、跟风低吸/半路/打板不亏超 5%）；"
                "标的必须是当日收盘封板的板块最高板龙头（≥3 板）——"
                "盘中触板、收盘未封的炸板股不算龙头连板，只进机会池、不买入；"
                "3b 带 2b：板块内除标的以外仍有 ≥2 板封板跟风股；"
                "板块有赚钱效应的延续：昨日首板今日连板，或昨日连板今日断板但处于红盘"
                "（证据不得是标的自身）；"
-               "龙头连续缩量或一字时不买——除非板块今天有多个连板，或昨日连板换手晋级；"
+               "买入日前一交易日（T）龙头成交量须放量或平量（相对 T−1），缩量不买；"
                "3-5 板阶段首次放出近期最大成交量的龙头为最佳标的；"
                "买入板块最高板龙头，博弈成为新的空间龙头；龙头高开但不是涨停开盘。",
         "sell": SELL_TXT,
         "note": "「节点」＝市场空间龙头整批断板日（stages.stage＝节点，取复盘日 T）；"
+                "「昨日板块有赚钱效应」＝BOARD_EARN[(T,题材)] 经验证 ok（money_effect.compute 独立复算）；"
                 "「3b 带 2b」＝板块最高板 ≥3 板，且除标的以外还有 ≥2 板封板跟风股，"
                 "证明板块是梯队而不是单只个股独走；"
                 "「赚钱效应延续」＝板块昨日首板今日晋级连板，或板块昨日连板股今日断板但收盘仍红盘，"
                 "且该证据不能是标的自己（否则等于「龙头断板自证延续」）；"
-                "「连续缩量」＝龙头今、昨、前日成交量逐日递减；"
-                "「换手晋级」＝昨日连板股今日晋级且非一字。"
+                "「前一日放量/平量」＝买入日前一日（T）成交量 ≥ 再前一日（T−1），不放量不买。"
                 "一字涨停买不进则只进机会池、不参与模拟。"
                 "口径说明：标的以「当日收盘封板」确认（日K无盘中封板时刻数据），"
                 "因此不包含「打板买入后尾盘炸板」的损失，胜率略偏乐观；"
@@ -302,8 +303,21 @@ def build(ctx):
                 or (theme_at.get(d) or {}).get(code, "")
                 or carry.get(code, ""))
 
-    # ---------------- 4. 板块赚钱效应榜说明（v38：战法二改用「赚钱效应延续」口径，
-    #    boardEarn 验证仍构建输出供复盘对照，但不再作为战法门禁） ----------------
+    # ---------------- 4. 板块赚钱效应（v39：战法二恢复为「昨日板块有赚钱效应」前置） ----------------
+    def board_money_ok(B, nm):
+        """板块 B 日是否有赚钱效应（由 money_effect.compute 独立复算的 BOARD_EARN）。"""
+        rec = BOARD_EARN.get((B, nm))
+        if rec is None:
+            return False, "板块「%s」未登当日赚钱效应榜" % nm
+        v = rec.get("ok") if isinstance(rec, dict) else bool(rec)
+        if not v:
+            stats["money_skip"] += 1
+            reason = rec.get("reason", "") if isinstance(rec, dict) else ""
+            return False, "板块「%s」赚钱效应验证未过：%s" % (nm, reason)
+        desc = ("昨日板块「%s」有赚钱效应（梯队 %s · 昨龙可获利 %s）"
+                % (nm, rec.get("ladder", ""), rec.get("lead", "")))
+        return True, desc
+
     def board_assist_prev(T, nm, exclude=None):
         """昨日（T）板块已有助攻股：该题材昨日梯队中，除今日目标股（昨日 N 板）之外，
         还存在 2 板及以上的跟风连板股 —— 证明板块在突破前一日已连板成梯队。
@@ -500,13 +514,11 @@ def build(ctx):
                     if (e.get("boards") or 0) != N + 1:
                         continue
                     th = theme_of(B, c)
-                    ok_prev, prev_desc = board_assist_prev(T, th, c) if th else (False, "")
-                    if not ok_prev:
-                        stats["prev_skip"] += 1
-                        continue
+                    # v39：所有非一字板空间突破一律纳入（含盘中触板后回落的炸板），
+                    # 不再要求「昨日板块有助攻股」。一字买不进仍只进机会池。
                     why = ("突破买点 · 空间压制 %d 板 → 今日 %d 板盘中冲击涨停 · "
-                           "上一空间龙头断板后无大亏 · 题材「%s」· %s"
-                           % (N, N + 1, th, prev_desc))
+                           "上一空间龙头断板后无大亏 · 题材「%s」"
+                           % (N, N + 1, th))
                     if buy_blocked(c, B, e):
                         stats["cand"] += 1
                         stats["yizi"] += 1
@@ -516,14 +528,14 @@ def build(ctx):
                         continue
                     try_buy("spaceDragon", B, c, th, why, N + 1, check_open=False)
 
-        # ---------- 战法二 试错龙头（v38.1：3b带2b 助攻 + 延续证据排除标的自身）----------
-        # ① 昨日市场阶段为节点；
+        # ---------- 战法二 试错龙头（v39）----------
+        # ① 昨日（T）市场阶段为节点，且昨日该板块登「赚钱效应榜」并经实证验证；
         # ② 标的必须是「当日收盘封板」的板块最高板龙头（≥3 板）——
         #    炸板股只是盘中触板、收盘未封，是断板不是龙头连板，只进机会池观察、不买入；
         # ③ 3b 带 2b：板块内除标的以外仍有 ≥2 板封板跟风股（资金方向真实确认）；
         # ④ 赚钱效应延续：昨日首板今日连板，或昨日连板今日断板仍红盘，
         #    证据不得是标的自身（否则等于「龙头自己断板」自证延续）；
-        # ⑤ 龙头连续缩量或一字时不买 —— 除非板块今天有多个连板，或昨日连板换手晋级；
+        # ⑤ 量能：买入日前一交易日（T）龙头成交量须放量或平量（相对 T−1），缩量不买；
         # ⑥ 3-5 板阶段首次放出近期最大成交量的龙头为最佳标的。
         if node_T:
             poolT, poolB = pool_map.get(T) or {}, pool_map.get(B) or {}
@@ -535,17 +547,12 @@ def build(ctx):
                 lf_mx = max((x.get("boards") or 1) for x in arr)
                 if lf_mx < 3:
                     continue
+                # 前置：昨日该板块必须有赚钱效应（BOARD_EARN[(T,nm)].ok）
+                ok_m, mdesc = board_money_ok(T, nm)
+                if not ok_m:
+                    continue
                 # 板块今日的封板连板股（3b 带 2b 里的「2b」必须真实封住）
                 lb_b = [x for x in arr if (x.get("boards") or 1) >= 2]
-                # 缩量 / 一字豁免：板块今天有多个连板股，或昨日连板换手晋级
-                n_lb = len(lb_b)
-                yz_adv = any(
-                    str(x.get("code")) in poolB
-                    and ((poolB[str(x.get("code"))].get("boards") or 1)
-                         == (x.get("boards") or 1) + 1)
-                    and not is_oneword_up(str(x.get("code")), B)
-                    for x in ((LF.get(T) or {}).get(nm) or [])
-                    if (x.get("boards") or 1) >= 2)
                 # 只遍历封板梯队：炸板股不进战法二标的
                 for x in arr:
                     c = str(x.get("code"))
@@ -585,17 +592,23 @@ def build(ctx):
                     if not cont:
                         stats["cont_skip"] += 1
                         continue
-                    # 龙头连续缩量（今<昨<前日）或一字 → 不买（豁免除外）
+                    # ⑤ 量能：买入日前一日（T）相对 T−1 必须放量或平量，缩量不买
                     vb, vt = vol_of(c, B), vol_of(c, T)
                     vt1 = vol_of(c, dates[i - 2]) if i >= 2 else 0
-                    shrink = bool(vb and vt and vt1 and vb < vt < vt1)
-                    if (shrink or is_oneword_up(c, B)) and not (n_lb >= 2 or yz_adv):
+                    if not (vt and vt1 and vt >= vt1):
                         stats["shrink_skip"] += 1
                         continue
+                    if is_oneword_up(c, B):
+                        stats["yizi"] += 1
+                        stats["cand"] += 1
+                        note_chance(B, "trialLead", e, c, nm,
+                                    "昨日「节点」· 板块「%s」最高 %d 板龙头 · 一字买不进（不参与模拟）"
+                                    % (nm, lf_mx), True, limit_px(c, B), False, "一字买不进")
+                        continue
                     why = ("昨日「节点」→ 今日板块「%s」最高 %d 板龙头（%d板带%d板）· "
-                           "赚钱效应延续：%s · 博弈成为新的空间龙头"
+                           "%s · 赚钱效应延续：%s · 前一日放量/平量 · 博弈成为新的空间龙头"
                            % (nm, lf_mx, lf_mx,
-                              max((y.get("boards") or 1) for y in assist), cont))
+                              max((y.get("boards") or 1) for y in assist), mdesc, cont))
                     # 最佳标的：3-5 板阶段今日放出近 20 日最大成交量
                     if 3 <= (e.get("boards") or 0) <= 5:
                         v20 = [vol_of(c, dates[j]) for j in range(max(0, i - 19), i + 1)]
@@ -627,12 +640,12 @@ def build(ctx):
     print("两战法逐笔：" + " / ".join(
         "%s %d笔" % (META[m]["name"].split("·")[-1].strip(), len(review[m]))
         for m in METHODS), flush=True)
-    print("触发统计：候选 %d；一字买不进 %d；未涨停/未晋级 %d；昨日无助攻 %d；"
-          "断板大亏禁买 %d；板块无 2b 助攻 %d；延续证据不足 %d；缩量/一字龙头禁买 %d；"
-          "高开条件不符 %d；无日K %d；连续一字剔除 %d；一字跌停顺延 %d 个股票日"
-          % (stats["cand"], stats["yizi"], stats["no_limit"], stats["prev_skip"],
-             stats["break_skip"], stats["board_skip"], stats["cont_skip"],
-             stats["shrink_skip"], stats["open_skip"],
+    print("触发统计：候选 %d；一字买不进 %d；未涨停/未晋级 %d；"
+          "断板大亏禁买 %d；昨日板块无赚钱效应 %d；板块无 2b 助攻 %d；延续证据不足 %d；"
+          "前一日缩量不买 %d；高开条件不符 %d；无日K %d；连续一字剔除 %d；一字跌停顺延 %d 个股票日"
+          % (stats["cand"], stats["yizi"], stats["no_limit"],
+             stats["break_skip"], stats["money_skip"], stats["board_skip"],
+             stats["cont_skip"], stats["shrink_skip"], stats["open_skip"],
              stats["no_kline"], stats["consec_yizi"], stats["defer"]), flush=True)
 
     # ---------------- 10. K线骷髅头标记 ----------------
@@ -668,22 +681,22 @@ def build(ctx):
           (len(chances_out), sum(len(v) for v in chances_out.values()),
            sum(1 for v in chances_out.values() for x in v if x["yizi"])), flush=True)
 
-    UNI = ("【统一口径 v38】① 时点：B 为买入日（当日），T=B−1 为复盘日（昨日）；"
-           "本页日期为买入日。② 买入价一律以涨停价打板；当日盘中冲击涨停后回落炸板，"
+    UNI = ("【统一口径 v39】① 时点：B 为买入日（当日），T=B−1 为复盘日（昨日）；"
+           "本页日期为买入日。② 买入价一律以涨停价打板；盘中冲击涨停后回落炸板，"
            "也按涨停价模拟买入、纳入统计（战法一「突破失败」同样计入）。"
-           "③ 一字涨停（集合竞价封死、全天未开板）实际买不进，只进机会池、不纳入模拟。"
-           "④ 战法一（空间突破）：面对空间压制 N 板（N ≥ 2）、上一空间龙头断板后无大亏"
-           "（无跌停、无连续杀跌）、昨日板块已有助攻股，当日 N+1 板盘中冲击涨停那一刻即买；"
-           "当日赚钱效应、当日梯队、高开非涨停开盘等其余条件全部删除，且只在突破当日参与。"
-           "⑤ 战法二（试错龙头）：昨日市场为节点阶段；标的必须是当日收盘封板的板块最高板"
-           "龙头（≥3 板），炸板股（盘中触板、收盘未封）只进机会池不买入；"
+           "③ 一字涨停买不进，只进机会池、不纳入模拟。"
+           "④ 战法一（空间突破）：面对空间压制 N 板（N ≥ 2）、上一空间龙头断板后无大亏；"
+           "当日任意 N+1 板非一字股盘中冲击涨停那一刻即买，所有空间突破（含炸板失败）一律纳入，"
+           "不设昨日助攻等其它门槛，只在突破当日参与。"
+           "⑤ 战法二（试错龙头）：昨日市场为节点阶段，且昨日该板块已登赚钱效应榜并经验证 ok；"
+           "标的必须是当日收盘封板的板块最高板龙头（≥3 板），炸板股只进机会池不买入；"
            "3b 带 2b（板块除标的以外仍有 ≥2 板封板跟风股）；板块有赚钱效应延续"
            "（昨日首板今日连板，或昨日连板今日断板但红盘，证据不得是标的自身）；"
-           "龙头连续缩量或一字不买，除非板块今天有多个连板或昨日连板换手晋级；"
+           "买入日前一交易日（T）成交量须放量或平量（相对 T−1），缩量不买；"
            "3-5 板首次放出近期最大量的龙头为最佳标的；仍要求高开但不是涨停开盘。"
            "⑥ 卖出（统一）：次日仍涨停持仓，首个收盘未涨停日尾盘按收盘价卖出，"
            "盘中 −7% 无条件止损；遇一字跌停无换手卖不出，顺延至首个可成交日。"
-           "⑦ v32 仅保留空间突破、试错龙头两战法与统一卖出规则，补涨战法已删除。")
+           "⑦ 仅保留空间突破、试错龙头两战法与统一卖出规则，补涨战法已删除。")
 
     meta_out = {}
     for m, v in META.items():

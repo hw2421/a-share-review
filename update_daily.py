@@ -254,16 +254,26 @@ def main():
             new_names = {t["name"] for t in ts}
             if old_names == new_names and ts_src.get(d) == "tgb":
                 continue
+            # v39：湖南人 OCR 题材必须同步写入 .theme_backfill.json（build_merged 的
+            # 最高优先级输入）。只写 data.json 的 themeDetail 会在重建时被固定文章
+            # 快照覆盖丢失 —— 于是「抓到湖南人后覆盖同花顺暂代」的链路断掉。
+            # 写 bf 后，无论原来源是什么（含 ztpool 同花顺暂代），重建一律以湖南人为准。
+            bf[d] = {"themes": ts, "src": a["url"], "via": "tgb"}
+            old_src = ts_src.get(d) or ""
             td[d] = ts
             ts_src[d] = "tgb"
             n_new += 1
-            LOG("  题材更新 %s：%s" % (d, [(t["name"], t["count"]) for t in ts][:6]))
+            LOG("  题材更新 %s（原来源 %s→tgb）：%s"
+                % (d, old_src or "无", [(t["name"], t["count"]) for t in ts][:6]))
             time.sleep(1.0)
+        if n_new:
+            with open(bf_path, "w", encoding="utf-8") as f:
+                json.dump(bf, f, ensure_ascii=False)
         data["themeDetail"] = td
         data["themeSource"] = ts_src
         with open(os.path.join(OUT, "data.json"), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False)
-        LOG("湖南人题材更新 %d 天" % n_new)
+        LOG("湖南人题材更新 %d 天（已写入补抓表供重建覆盖）" % n_new)
     except Exception as e:
         errors.append("湖南人题材：%s" % e)
         LOG("题材更新失败：%s" % e)

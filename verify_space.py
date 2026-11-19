@@ -580,6 +580,10 @@ def main():
     def _bar(c, d):
         return (KBV.get(str(c)) or {}).get(d)
 
+    def _vol(c, d):
+        b = _bar(c, d)
+        return b[5] if (b and len(b) >= 6) else 0
+
     def _pv(c, d):
         rec = KBV.get(str(c)); i = DIDXV.get(d)
         if not rec or i is None:
@@ -706,14 +710,12 @@ def main():
                 if (t.get("boards") or 0) != N + 1:
                     err("v32 战法一 %s %s 非 N+1 板（板位 %s / 压制 %s）"
                         % (B, name, t.get("boards"), N)); n_v29 += 1
-                ap = _assist_prev(T, th, code)
-                if ap is False:
-                    err("v32 战法一 %s %s 昨日板块「%s」无 2 板及以上助攻股"
-                        % (B, name, th)); n_v29 += 1
                 if "突破买点" not in str(t.get("why") or ""):
                     err("v32 战法一 %s %s why 缺「突破买点」留痕" % (B, name)); n_v29 += 1
-                if "昨日助攻" not in str(t.get("why") or ""):
-                    err("v32 战法一 %s %s why 缺「昨日助攻」留痕" % (B, name)); n_v29 += 1
+                # v39：战法一「统计所有非一字空间突破」，昨日助攻等门槛已删除，
+                #       why 里不得再残留「昨日助攻」
+                if "昨日助攻" in str(t.get("why") or ""):
+                    err("v39 战法一 %s %s why 残留已删除的「昨日助攻」" % (B, name)); n_v29 += 1
                 # 战法一已删除的条件不得再出现在 why 里
                 for bad_kw in ("断板温和", "赚钱效应", "高开"):
                     if bad_kw in str(t.get("why") or ""):
@@ -741,8 +743,20 @@ def main():
                     if not assist:
                         err("v38.1 战法二 %s %s 板块「%s」无 2b 跟风股（3b 未带 2b）"
                             % (B, name, th)); n_v29 += 1
+                # v39：昨日该板块必须有赚钱效应（BOARD_EARN[(T,题材)] ok）
+                okm, mdesc = _money_ok(T, th)
+                if not okm:
+                    err("v39 战法二 %s %s 板块「%s」昨日无赚钱效应：%s"
+                        % (B, name, th, mdesc)); n_v29 += 1
+                # v39：买入日前一交易日（T）成交量须放量或平量（≥ T−1）
+                vT, vT1 = _vol(code, T), _vol(code, dates[i - 2]) if i >= 2 else 0
+                if not (vT and vT1 and vT >= vT1):
+                    err("v39 战法二 %s %s 前一日缩量（T=%s vs T-1=%s）"
+                        % (B, name, vT, vT1)); n_v29 += 1
                 if "节点" not in str(t.get("why") or ""):
                     err("v32 战法二 %s %s why 缺「节点」留痕" % (B, name)); n_v29 += 1
+                if "放量/平量" not in str(t.get("why") or ""):
+                    err("v39 战法二 %s %s why 缺「放量/平量」留痕" % (B, name)); n_v29 += 1
             else:
                 err("v32 已删除战法「%s」出现在逐笔（%s %s）" % (m, B, name)); n_v29 += 1
 
@@ -758,9 +772,9 @@ def main():
     if set(meta.keys()) != set(RV_METHODS):
         err("v32 reviewMeta 战法集合不符：%s" % sorted(meta.keys())); n_v29 += 1
     uni29 = (meta.get("spaceDragon") or {}).get("uni") or ""
-    for kw in ("v32", "面对空间压制 N 板", "昨日板块已有助攻股", "其余条件全部删除",
-               "只在突破当日参与", "战法二（试错龙头）", "N+1 板",
-               "盘中 −7% 无条件止损", "补涨战法已删除"):
+    for kw in ("v39", "面对空间压制 N 板", "所有空间突破", "只在突破当日参与",
+               "战法二（试错龙头）", "N+1 板", "昨日该板块已登赚钱效应榜",
+               "成交量须放量或平量", "盘中 −7% 无条件止损", "补涨战法已删除"):
         if kw not in uni29:
             err("v32 统一口径 uni 缺关键字「%s」" % kw); n_v29 += 1
     buy_all = " ".join((meta.get(m) or {}).get("buy") or "" for m in RV_METHODS)
