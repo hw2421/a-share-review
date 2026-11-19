@@ -2854,7 +2854,8 @@ function paintDecision(){
         ? '<span id="dc-chip" style="background:rgba(245,69,92,.15);color:#f5455c;border:1px solid #f5455c55;'+
           'border-radius:6px;padding:2px 10px;font-weight:800">⚠ 风险提示</span>'
         : '<span id="dc-chip" style="background:rgba(46,189,133,.15);color:#2ebd85;border:1px solid #2ebd8555;'+
-          'border-radius:6px;padding:2px 10px;font-weight:800">✓ 情绪较好</span>';
+          'border-radius:6px;padding:2px 10px;font-weight:800">'+
+          (dg.fresh? '✓ 情绪尚可' : '✓ 情绪较好')+'</span>';
       const _brk=fmtDate(dg.brk||dg.stocks.map(x=>x.brk).sort()[0]||dg.ev);
       const _lead=dg.fresh ? ('昨日空间龙头 '+_brk+' 今日断板')
                            : ('上一个空间龙头 '+_brk+' 断板');
