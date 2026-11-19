@@ -374,6 +374,18 @@
   .wn-filter button{background:var(--card2);border:1px solid var(--line);color:var(--dim);
                     border-radius:5px;padding:3px 9px;font-size:11px;cursor:pointer}
   .wn-filter button.on{border-color:var(--gold);color:var(--gold);background:rgba(240,185,11,.1)}
+  /* v49：题材分组 / 同日合并 / 模式多列 */
+  .wn-tab td.vtop{vertical-align:top}
+  .wn-tab .wn-grp td{background:rgba(240,185,11,.07);font-weight:700}
+  .wn-tab .wn-date{font-weight:700;color:var(--text);border-right:1px solid var(--line)}
+  .wn-tab .wn-thcell{color:var(--blue);cursor:pointer;font-weight:600;
+                     border-right:1px solid var(--line)}
+  .wn-tab .wn-thcell:hover{text-decoration:underline;background:rgba(61,139,255,.09)}
+  .wn-tab .wn-mode{text-align:center;font-size:12px;color:var(--dim2);width:26px;padding:4px 2px}
+  .wn-tab .wn-mode.on{color:var(--gold);font-weight:800}
+  .wn-tab .wn-mode.on.prim{background:rgba(240,185,11,.18);color:var(--gold)}
+  .wn-tab .wn-mode.off{color:var(--line);font-size:9px}
+  .wn-tab th.wn-mode{font-size:9px;line-height:1.2;white-space:normal;max-width:30px;color:var(--dim2)}
   /* v43：买入日 / 个股 两列左右滚动时固定（左侧吸附），第二列偏移取第一列实际宽度 */
   .rv-tbl .rv-fz{position:sticky;background:var(--card);z-index:3}
   .rv-tbl th.rv-fz{z-index:6}
@@ -653,7 +665,7 @@
 <!-- ============ 连板梯队（当日连板个股 + 题材穿透） ============ -->
 <section class="page" id="page-ladder">
   <div class="card">
-    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 点题材标签跳转题材炒作页并闪动定位 · 点个股看日K</span></h3>
+    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
     <div class="ch-bar">
       <button id="ld-prev" class="ch-go">◀ 上一交易日</button>
       <select id="ld-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
@@ -1079,11 +1091,11 @@ function renderMarket(){
       jumpTableTo(td.dataset.dt);
     };
   });
-  // 题材点击 → 题材炒作页对应日期 + 题材闪动
+  // v49：题材点击 → 就地显示该股当日题材梯队（不再跳转题材炒作模块）
   document.querySelectorAll('#mkt-table .th-cell').forEach(td=>{
     td.onclick = (ev)=>{
       ev.stopPropagation();
-      if(td.dataset.th) gotoTheme(td.dataset.dt, td.dataset.th);
+      if(td.dataset.th) openLadPop(td.dataset.th, td.dataset.dt, ev);
     };
   });
   // 点击主图任意位置 → 明细表跳转到对应日期（对应悬停内容那日），高亮 1.6 秒
@@ -1511,7 +1523,23 @@ function openLadPop(nm, d, ev){
   const full = LF[nm] || [];
   const blk = (R.themeDetail[d]||[]).find(x=>tName(x.name)===tName(nm)) || null;
   let stocks = full.length ? full : ((blk&&blk.stocks)||[]);
-  if(!stocks.length && !e) return;
+  // v49：当日确实无该题材收盘涨停梯队时不再「无反应」，给出说明浮层（就地展示，不跳转）
+  if(!stocks.length && !e){
+    const p0=document.getElementById('ladpop');
+    if(p0){
+      p0.innerHTML='<span class="popx">✕</span><h4>'+fmtDate(d)+' · '+nm+' · 当日梯队</h4>'+
+        '<div style="color:'+C.dim+';font-size:12px;padding:10px 2px;line-height:1.7">'+
+        '当日复盘清单中该题材无收盘涨停梯队记录'+
+        '<br><span style="color:'+C.dim2+';font-size:11px">'+
+        '可能仅为涨停原因归类、或当日该题材无 2 板及以上个股；此处就地展示当日梯队，不跳转题材炒作模块。</span></div>';
+      p0.style.display='block';
+      const W0=window.innerWidth,H0=window.innerHeight;
+      p0.style.left=Math.max(8,Math.min((ev&&ev.clientX||W0/2)+14,W0-p0.offsetWidth-8))+'px';
+      p0.style.top =Math.max(8,Math.min((ev&&ev.clientY||H0/2)-40,H0-p0.offsetHeight-8))+'px';
+      p0.querySelector('.popx').onclick=()=>{ p0.style.display='none'; };
+    }
+    return;
+  }
   const by = {};
   stocks.forEach(s=>{ const b=s.boards||1; (by[b]||(by[b]=[])).push(s); });
   const boards = Object.keys(by).map(Number).sort((a,b)=>b-a);
@@ -1726,15 +1754,15 @@ function renderLadder(date){
   list.scrollTop = 0;
   list.querySelectorAll('.lbstk').forEach(el=>{
     el.onclick = ev=>{
-      if(el.dataset.th){                       // 题材分布标签
+      if(el.dataset.th){                       // 题材分布标签（v49：就地弹当日梯队，不跳转）
         ev.stopPropagation();
-        gotoTheme(el.dataset.d, el.dataset.th);
+        openLadPop(el.dataset.th, el.dataset.d, ev);
         return;
       }
       const tg = ev.target.closest ? ev.target.closest('.th') : null;
-      if(tg && tg.dataset.th){                 // 个股上的题材标签
+      if(tg && tg.dataset.th){                 // 个股上的题材标签（v49：就地弹当日梯队）
         ev.stopPropagation();
-        gotoTheme(tg.dataset.d, tg.dataset.th);
+        openLadPop(tg.dataset.th, tg.dataset.d, ev);
         return;
       }
       if(el.dataset.c) showK(el.dataset.c, el.dataset.n, ev, el.dataset.d);
@@ -1775,37 +1803,90 @@ function renderWinners(){
     (t||'全部')+'</button>').join('');
   filt.querySelectorAll('button').forEach(b=>b.onclick=()=>{ WN_FILTER=b.dataset.f; renderWinners(); });
   const shown = WN_FILTER ? evs.filter(e=>e.tags.indexOf(WN_FILTER)>=0) : evs;
-  const sorted = shown.slice().sort((a,b)=> b.d.localeCompare(a.d) || b.b-a.b);
+  // v49①：首先按题材区分——题材强度（当日最高板、涨停家数）降序；同题材内日期降序、板数降序。
+  const thKey = e => e.theme || '';
+  const thStrength = e => { const g=((R.ladders||{})[e.d]||{})[thKey(e)]||{};
+                            return [(g.maxB||0),(g.count||0)]; };
+  const sorted = shown.slice().sort((a,b)=>{
+    const sa=thStrength(a), sb=thStrength(b);
+    // 无题材排最后
+    if(!thKey(a) && thKey(b)) return 1;
+    if(thKey(a) && !thKey(b)) return -1;
+    if(sb[0]-sa[0]) return sb[0]-sa[0];
+    if(sb[1]-sa[1]) return sb[1]-sa[1];
+    if(thKey(a)!==thKey(b)) return thKey(a).localeCompare(thKey(b));
+    return b.d.localeCompare(a.d) || b.b-a.b;
+  });
+  // v49②：8 个赚钱效应模式独立成列（简称做表头）
+  const MODES = [
+    ['极致高开全天红','极致高开'],['断板反包再连板','断板反包'],
+    ['地天板次日涨停','地天次日'],['连续一字后首换手涨停','一字首换'],
+    ['N字反包次日涨停','N字反包'],['趋势股创新高周涨50%','趋势新高'],
+    ['题材持续换手连板','题材持续'],['普通换手连板晋级','普通晋级'],
+  ];
   let html = '<div class="sub" style="margin:8px 0 4px">符合「昨日换手涨停→今日换手涨停」的个股明细（'+
-    shown.length+' 只）· 点个股看日K</div>'+
-    '<div class="scroll" style="max-height:520px;overflow:auto"><table class="wn-tab"><thead><tr>'+
-    '<th class="l">今日</th><th class="l">个股</th><th>昨→今</th><th class="l">昨日形态</th>'+
-    '<th class="l">涨停形态</th><th>开盘%</th><th>最低%</th><th>今日%</th>'+
-    '<th class="l">规模</th><th class="l">赚钱效应形式</th><th class="l">题材</th>'+
+    shown.length+' 只）· 先按题材强度分组 · 同日合并 · <b style="color:'+C.gold+'">●</b>命中该模式（金色=主模式）· '+
+    '点题材看当日梯队、点个股看日K</div>'+
+    '<div class="scroll" style="max-height:560px;overflow:auto"><table class="wn-tab"><thead><tr>'+
+    '<th class="l">题材</th><th class="l">今日</th><th class="l">个股</th><th>昨→今</th>'+
+    '<th class="l">昨日形态</th><th class="l">涨停形态</th><th>开盘%</th><th>最低%</th><th>今日%</th>'+
+    '<th class="l">规模</th>'+
+    MODES.map(m=>'<th class="wn-mode" title="'+m[0]+'">'+m[1]+'</th>').join('')+
     '</tr></thead><tbody>';
-  sorted.forEach(e=>{
-    const tagHtml = e.tags.map(t=>'<span class="wn-tag'+(t===e.prim?' prim':'')+'">'+t+'</span>').join('');
+  // v49③：合并连续同题材（题材单元格）、连续同日（日期单元格，限定同题材内）
+  const themeSpan=[], dateSpan=[];
+  for(let i=0;i<sorted.length;i++){
+    let ts=1; while(i+ts<sorted.length && thKey(sorted[i+ts])===thKey(sorted[i])) ts++;
+    themeSpan[i]=ts;
+    let ds=1; while(i+ds<sorted.length && sorted[i+ds].d===sorted[i].d &&
+                    thKey(sorted[i+ds])===thKey(sorted[i])) ds++;
+    dateSpan[i]=ds;
+  }
+  sorted.forEach((e,i)=>{
     const capT = e.capv!=null ? (e.cap+' '+e.capv+'亿') : e.cap;
-    html += '<tr>'+
-      '<td class="l">'+fmtDate(e.d)+'</td>'+
-      '<td class="l"><b data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+e.d+'" style="cursor:pointer;color:'+C.blue+'">'+e.name+'</b></td>'+
+    const modeTds = MODES.map(m=>{
+      const hit=e.tags.indexOf(m[0])>=0, prim=(e.prim===m[0]);
+      return '<td class="wn-mode'+(hit?' on':'')+(prim?' prim':'')+'" title="'+m[0]+'">'+
+             (hit?'●':'·')+'</td>';
+    }).join('');
+    let row='<tr class="'+(thKey(e)?'':'')+'">';
+    // 题材列（同题材合并，可点当日梯队）
+    if(i===0 || thKey(sorted[i-1])!==thKey(e)){
+      row+='<td class="l wn-thcell" rowspan="'+themeSpan[i]+'" data-th="'+thKey(e)+'" data-d="'+e.d+'"'+
+        ' title="'+(thKey(e)?'点看 '+fmtDate(e.d)+' 当日梯队':'该股当日无复盘题材归类')+'">'+
+        (thKey(e)||'—')+'</td>';
+    }
+    // 日期列（同题材内同日合并）
+    if(i===0 || sorted[i-1].d!==e.d || thKey(sorted[i-1])!==thKey(e)){
+      row+='<td class="l wn-date vtop" rowspan="'+dateSpan[i]+'">'+fmtDate(e.d)+'</td>';
+    }
+    row+='<td class="l"><b data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+e.d+'" '+
+        'style="cursor:pointer;color:'+C.blue+'" title="点看日K（箭头指 '+fmtDate(e.d)+'）">'+e.name+'</b></td>'+
       '<td>'+e.b0+'→'+e.b+'板</td>'+
       '<td class="l">'+e.s0+'</td><td class="l">'+e.s1+'</td>'+
       '<td style="color:'+(e.open>=0?C.up:C.down)+'">'+(e.open>0?'+':'')+e.open+'</td>'+
       '<td style="color:'+(e.low>=0?C.up:C.down)+'">'+(e.low>0?'+':'')+e.low+'</td>'+
       '<td style="color:'+C.up+';font-weight:700">+'+(e.chg>0?e.chg.toFixed(2):'')+'</td>'+
-      '<td class="l">'+capT+'</td><td class="l">'+tagHtml+'</td>'+
-      '<td class="l" style="color:var(--dim2);font-size:10px">'+(e.theme||'—')+'</td></tr>';
+      '<td class="l">'+capT+'</td>'+ modeTds +'</tr>';
+    html+=row;
   });
   html += '</tbody></table></div>';
   html += kjNote('口径：'+(MW.rule||'')+
     '。流通市值 = 当日成交额（日K量×收盘价）÷ 换手率，仅作大盘/中盘/小盘分组参考，非精确市值。'+
     '形态判定与题材梯队浮层同一口径（一字 / 赚钱 / 赚T / 普通 / 长腿 / 地天）。'+
-    '分类可多标签叠加，「极致高开全天红」要求昨日换手连板+今日高开+全天最低价高于昨收。',
+    '8 列模式可多标签叠加，「极致高开全天红」要求昨日换手连板+今日高开+全天最低价高于昨收；'+
+    '「一字首换」= 连续一字后首个换手涨停当日再涨停。题材按当日梯队强度（最高板/涨停家数）分组，'+
+    '同题材同日合并日期；点击题材显示当日板块梯队（不跳转题材炒作页）。',
     '口径 · 赚钱效应判定规则');
   document.getElementById('wn-list').innerHTML = html;
   document.querySelectorAll('#wn-list b[data-c]').forEach(el=>{
-    el.onclick = ev=>showK(el.dataset.c, el.dataset.n, ev, el.dataset.d);
+    el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
+  });
+  document.querySelectorAll('#wn-list .wn-thcell[data-th]').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation();
+      if(!el.dataset.th){ toast('该股当日无复盘题材归类'); return; }
+      openLadPop(el.dataset.th, el.dataset.d, ev);
+    };
   });
 }
 

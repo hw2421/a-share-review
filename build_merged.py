@@ -775,6 +775,7 @@ kMarks = S["kMarks"]
 # 独立模块 money_winners.compute，口径与 verify_space 同源复用。
 import money_winners as MW
 MONEY_WINNERS = MW.compute(dates, pools, fd.yizi_map(pools), KBARS, theme_at,
+                           ladders=ladders,
                            NAME={s["code"]: s["name"] for d in dates for s in pools[d]})
 print("个股赚钱效应（最近 %d 交易日）：%d 个换手涨停接力样本，%d 类形态，结论 %d 条"
       % (MONEY_WINNERS["n"], MONEY_WINNERS["total"],

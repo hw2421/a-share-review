@@ -1010,6 +1010,24 @@ def main():
     poolmap48 = {d: {s["code"]: s for s in pools[d]} for d in dates}
     yz48 = fd.yizi_map(pools)
     rng48 = MW.get("range") or []
+    didx48 = {d: i for i, d in enumerate(dates)}
+    LAD48 = D.get("ladders") or {}
+    LF48 = D.get("ladderFull") or {}
+
+    def _theme_of48(day, code):
+        """该股在 day 复盘清单（ladderFull）里的题材；无则空。用于题材回退口径校验。"""
+        for nm, arr in (LF48.get(day) or {}).items():
+            for s in arr:
+                if str(s.get("code")) == str(code):
+                    return nm
+        return ""
+
+    def zt10_48(code, d):
+        i = didx48.get(d)
+        return 0 if i is None else sum(
+            1 for k in range(max(0, i - 9), i + 1)
+            if code in poolmap48.get(dates[k], ()))
+
     for e in EV:
         code, d0, d = str(e["code"]), e["d0"], e["d"]
         # 两日都在涨停池
@@ -1043,6 +1061,24 @@ def main():
         # 事件须落在统计区间内
         if rng48 and not (rng48[0] <= d <= rng48[1]):
             err("v48 %s %s(%s) 超出统计区间 %s" % (d, e["name"], code, rng48)); n_v48 += 1
+        # v49①：zt10 字段须与独立复算一致
+        if e.get("zt10") != zt10_48(code, d):
+            err("v49 %s %s(%s) zt10=%s ≠ 复算 %d"
+                % (d, e["name"], code, e.get("zt10"), zt10_48(code, d))); n_v48 += 1
+        # v49②：单纯「普通换手连板晋级」必须满足例外（近10日涨停≥5 或 N字形态），否则不应保留
+        if e.get("prim") == "普通换手连板晋级":
+            if not (e.get("zt10", 0) >= 5 or "N字反包次日涨停" in (e.get("tags") or [])):
+                err("v49 %s %s(%s) 平淡首板连板晋级不应计入赚钱效应(zt10=%s)"
+                    % (d, e["name"], code, e.get("zt10"))); n_v48 += 1
+        # v49③：题材须为当日复盘归类，或当日缺失时沿用昨日（v47 同源）
+        # 仅当当日/昨日 ladderFull 有该股归类时才强制（theme_at 另含涨停原因兜底，
+        # 清单外的归类属合法兜底，不强求出现在 ladderFull）。
+        th_e = e.get("theme") or ""
+        th_today = _theme_of48(d, code)
+        th_yest = _theme_of48(d0, code)
+        if (th_today or th_yest) and th_e and th_e not in (th_today, th_yest):
+            err("v49 %s %s(%s) 题材「%s」非当日/昨日复盘归类(当日=%s/昨日=%s)"
+                % (d, e["name"], code, th_e, th_today, th_yest)); n_v48 += 1
     # 汇总笔数一致
     if MW.get("total") != len(EV):
         err("v48 total=%s ≠ 事件数 %d" % (MW.get("total"), len(EV))); n_v48 += 1
@@ -1051,8 +1087,22 @@ def main():
     for c in (MW.get("cats") or []):
         if len(c.get("stocks") or []) > c.get("n", 0):
             err("v48 分类「%s」代表股数 > 笔数" % c.get("k")); n_v48 += 1
-    print("v48 个股赚钱效应：事件 %d 笔、分类 %d、规模组 %d，独立复核异常 %d"
-          % (len(EV), len(MW.get("cats") or []), len(MW.get("caps") or []), n_v48))
+    # v49④：分类须按「此类个股数 n」降序排列
+    CN = [c.get("n", 0) for c in (MW.get("cats") or [])]
+    if CN != sorted(CN, reverse=True):
+        err("v49 形态分类未按个股数降序：%s" % CN); n_v48 += 1
+    # v49⑤：同一类形态内代表个股按题材强度（当日 maxB/count）非递增
+    def _thstrength(day, th):
+        g = (LAD48.get(day) or {}).get(th) or {}
+        return (g.get("maxB") or 0, g.get("count") or 0)
+    for c in (MW.get("cats") or []):
+        sk = c.get("stocks") or []
+        st = [_thstrength(x[2], x[4]) for x in sk]
+        if st != sorted(st, reverse=True):
+            err("v49 分类「%s」代表股未按题材强度降序：%s" % (c.get("k"), st)); n_v48 += 1
+    print("v48/v49 个股赚钱效应：事件 %d 笔、分类 %d、规模组 %d，剔除平淡晋级 %d 例，独立复核异常 %d"
+          % (len(EV), len(MW.get("cats") or []), len(MW.get("caps") or []),
+             MW.get("droppedPlain", 0), n_v48))
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")

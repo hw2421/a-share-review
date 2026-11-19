@@ -33,9 +33,17 @@ def lim_of(code, name=""):
     return .10
 
 
-def compute(dates, pools, yz, KBARS, theme_at, NAME=None, N=10):
-    """返回赚钱效应模块数据 dict。N=统计最近 N 个交易日（默认 10≈两周）。"""
+def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None, N=10):
+    """返回赚钱效应模块数据 dict。N=统计最近 N 个交易日（默认 10≈两周）。
+
+    v49 口径收紧：单纯「首板→连板」的普通晋级不算赚钱效应（太普遍）；
+    以下两类例外仍保留：
+      ① 该股近 10 个交易日内有 ≥5 次涨停（活跃连板妖股）；
+      ② 该股带 N 字涨停形态（N字反包次日涨停 标签）。
+    题材强度（ladders[d][题材] = {count,maxB}）用于同类形态内个股排序。
+    """
     NAME = NAME or {}
+    ladders = ladders or {}
     CD = {c: sorted(r) for c, r in KBARS.items()}
 
     def dbar(c, d):
@@ -85,6 +93,15 @@ def compute(dates, pools, yz, KBARS, theme_at, NAME=None, N=10):
 
     pmap = {d: {s["code"]: s for s in pools[d]} for d in dates}
     didx = {d: i for i, d in enumerate(dates)}
+
+    def zt_count_10(code, d):
+        """截止今日 d 的近 10 个交易日（含当日）内，该股出现在涨停池的天数。
+        用于 v49 例外①：10 天内 ≥5 次涨停的活跃妖股仍算赚钱效应。"""
+        i = didx.get(d)
+        if i is None:
+            return 0
+        return sum(1 for k in range(max(0, i - 9), i + 1)
+                   if code in pmap.get(dates[k], ()))
 
     start = dates[-N]
     end = dates[-1]
@@ -171,8 +188,9 @@ def compute(dates, pools, yz, KBARS, theme_at, NAME=None, N=10):
                 b5 = dbar(code, dates[i - 5])
                 if b5 and b5[2] and (tb[2] / b5[2] - 1) >= .5:
                     tags.append("趋势股创新高周涨50%")
-            # 6 题材持续换手连板：近 5 交易日中 ≥3 日该股题材都在「换手连板活跃」集合
-            th = theme_at.get(d, {}).get(code) or ""
+            # 题材（v47 口径）：当日抓到优先，否则沿用昨日复盘归类（与连板梯队 lb 同源）
+            th = (theme_at.get(d, {}).get(code)
+                  or theme_at.get(pd_, {}).get(code) or "")
             if th:
                 act = sum(1 for k in range(max(0, i - 4), i + 1)
                           if th in theme_active_set(dates[k]))
@@ -188,6 +206,7 @@ def compute(dates, pools, yz, KBARS, theme_at, NAME=None, N=10):
                 "tags": tags, "open": open_pct, "low": low_pct, "chg": chg,
                 "turnover": to, "cap": cap, "capv": capv,
                 "why": (s.get("reason") or ""),
+                "zt10": zt_count_10(code, d),
             })
 
     # 主标签：优先级排序，取最高优先级一个（用于明细表单一分类展示）
@@ -197,18 +216,43 @@ def compute(dates, pools, yz, KBARS, theme_at, NAME=None, N=10):
     for e in events:
         e["prim"] = next((p for p in PRI if p in e["tags"]), e["tags"][0])
 
+    # ---- v49 口径收紧：单纯「首板连板」不算赚钱效应 ----
+    # 「普通换手连板晋级」= 无任何特殊形态的平淡连续晋级（1→2/2→3/3→4）；
+    # 默认剔除，例外保留：① 近 10 交易日涨停 ≥5 次（活跃妖股）；② 带 N 字涨停形态。
+    n0 = len(events)
+    kept = []
+    for e in events:
+        if e["prim"] == "普通换手连板晋级":
+            if e["zt10"] >= 5 or "N字反包次日涨停" in e["tags"]:
+                kept.append(e)
+        else:
+            kept.append(e)
+    dropped = n0 - len(kept)
+    events = kept
+
+    # 题材强度（ladders[d][题材] = {count,maxB}）：同类形态内个股按题材强度降序
+    def th_strength(d, th):
+        g = (ladders.get(d) or {}).get(th) or {}
+        return (g.get("maxB") or 0, g.get("count") or 0)
+
     # 分类汇总（每类：笔数、占比、平均今日涨幅、代表个股）
+    # v49：分类按「此类个股数」降序排列（不再固定 PRI 顺序）
     cats = []
     for p in PRI:
         arr = [e for e in events if p in e["tags"]]
         if not arr:
             continue
         avg = round(sum(x["chg"] for x in arr) / len(arr), 2)
+        # 同一类形态内：题材强度高的个股优先（maxB、count 降序），其次板数、日期
+        srt = sorted(arr, key=lambda z: (-th_strength(z["d"], z["theme"])[0],
+                                         -th_strength(z["d"], z["theme"])[1],
+                                         -z["b"], z["d"]))
         cats.append({
             "k": p, "n": len(arr), "avg": avg,
             "stocks": [[x["name"], x["code"], x["d"], x["b"], x["theme"]]
-                       for x in sorted(arr, key=lambda z: (-z["b"], z["d"]))[:12]],
+                       for x in srt[:12]],
         })
+    cats.sort(key=lambda c: (-c["n"], c["k"]))
 
     # 规模维度汇总
     caps = []
@@ -225,8 +269,9 @@ def compute(dates, pools, yz, KBARS, theme_at, NAME=None, N=10):
     read = []
     if events:
         n = len(events)
-        read.append("最近 %d 个交易日共 %d 个「昨日换手涨停→今日换手涨停」的赚钱效应样本；"
-                    "一字板当日买不进，昨日与今日均排除一字。" % (N, n))
+        read.append("最近 %d 个交易日共 %d 个「昨日换手涨停→今日换手涨停」的赚钱效应样本"
+                    "（已剔除 %d 例平淡的单纯首板连板晋级）；一字板当日买不进，昨日与今日均排除一字。"
+                    % (N, n, dropped))
         if cats:
             top = max(cats, key=lambda x: x["n"])
             best = max(cats, key=lambda x: x["avg"])
@@ -244,6 +289,10 @@ def compute(dates, pools, yz, KBARS, theme_at, NAME=None, N=10):
     return {
         "range": [start, end], "n": N, "total": len(events),
         "events": events, "cats": cats, "caps": caps, "read": read,
-        "rule": ("赚钱效应=昨日换手涨停股今日再次换手涨停；一字板当日买不进，"
-                 "昨日/今日均排除一字。流通市值=成交额÷换手率估算，仅用于大小盘分组。"),
+        "droppedPlain": dropped,
+        "rule": ("赚钱效应=昨日换手涨停股今日再次换手涨停；单纯首板连板晋级（平淡晋级、"
+                 "无特殊形态）不算，除非该股近 10 交易日涨停≥5 次或带 N 字涨停形态；"
+                 "一字板当日买不进，昨日/今日均排除一字。题材当日抓不到则沿用昨日复盘归类；"
+                 "流通市值=成交额÷换手率估算，仅用于大小盘分组。分类按此类个股数排序，"
+                 "同类形态个股按题材强度（最高板、涨停家数）排序。"),
     }
