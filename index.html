@@ -582,8 +582,7 @@
     <h3>交易复盘 · 战法回测</h3>
     <div class="rv-bar">
       <label>战法 <select id="rv-method">
-        <option value="spaceDragon">战法一 空间突破</option>
-        <option value="trialLead">战法二 试错龙头</option>
+        <option value="summit">山顶洞人</option>
       </select></label>
       <label>起始 <span class="rv-ymd" id="rv-f-ymd"></span><input type="date" id="rv-from" class="rv-date"></label>
       <label>结束 <span class="rv-ymd" id="rv-t-ymd"></span><input type="date" id="rv-to" class="rv-date"></label>
@@ -602,7 +601,7 @@
     <div class="scroll" id="rv-table"></div>
     <!-- v18：同一时期各战法对比（区间 / 参与模拟 / 仓位与明细表同源） -->
     <div class="rv-cmp">
-      <h4>同区间 · 两战法对比 <span class="sub" id="rv-cmp-scope"></span></h4>
+      <h4>同区间 · 战法汇总 <span class="sub" id="rv-cmp-scope"></span></h4>
       <div id="rv-cmp-box" class="scroll"></div>
     </div>
     <!-- v15：导入实盘数据 → 匹配各战法，分析平均实盘交易的合理性 -->
@@ -630,7 +629,7 @@
 
 <section class="page" id="page-decision">
   <div class="card">
-    <h3>复盘决策 <span class="sub">今日市场阶段 · 上一空间龙头断板表现 · 赚钱效应题材梯队 · 昨日涨停今日赚钱效应（人气板块） · 三大选股池</span></h3>
+    <h3>复盘决策 <span class="sub">今日市场阶段 · 上一空间龙头断板表现与断板后日K · 赚钱效应题材梯队 · 昨日涨停今日赚钱效应（人气板块） · 活跃股池</span></h3>
     <div class="ch-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button id="dc-prev" class="ch-go">◀ 上一交易日</button>
       <select id="dc-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
@@ -1525,7 +1524,7 @@ function stageChipHtml(st){
     ';color:'+(STAGE_TXT[st]||'#fff')+'">'+st+'</span>';
 }
 
-/* ================= 交易复盘：两战法回测（v32：空间突破精简 / 试错龙头） =================
+/* ================= 交易复盘：单一战法「山顶洞人」回测（v42） =================
    全期逐笔由 strategies.py 预计算（R.review[method]），前端按手动输入的起止日期筛选、
    统计，并支持「参与模拟」：同日只取第一个符合条件个股 + 固定仓位 + 累积盈利。 */
 let RV_FROM = '', RV_TO = '', RV_ROWS = [], RV_NOTE_OPEN = false;
@@ -1586,7 +1585,7 @@ function rvMeta(m){
 function rvAll(m){
   const r = window.REVIEW.review;
   if(!r) return [];
-  return Array.isArray(r) ? (m==='spaceDragon' ? r : []) : (r[m]||[]);
+  return Array.isArray(r) ? (m==='summit' ? r : []) : (r[m]||[]);
 }
 function rvInit(){
   const ds = window.REVIEW.dates || [];
@@ -1652,7 +1651,7 @@ function themeLadderOf(d, th, code){
 }
 function renderReview(){
   const mEl = document.getElementById('rv-method');
-  const m = (mEl && mEl.value) || 'spaceDragon';
+  const m = (mEl && mEl.value) || 'summit';
   const meta = rvMeta(m), all = rvAll(m);
   const a = RV_FROM || '00000000', b = RV_TO || '99999999';
   const simEl = document.getElementById('rv-sim');
@@ -1828,7 +1827,7 @@ function renderCompare(){
   const sc=document.getElementById('rv-cmp-scope');
   if(sc) sc.textContent=rvDateStr(a)+' ~ '+rvDateStr(b)+
       (sim?' · 参与模拟（同日首笔 · 同股不加仓 · 仓位 '+pos+'%）':' · 全部逐笔');
-  const MS=['spaceDragon','trialLead'];
+  const MS=['summit'];
   const stat=m=>{
     let rows=(rv[m]||[]).filter(t=>t.d>=a&&t.d<=b);
     if(sim){ const seenDay=new Set(), held={}, dayIdx={}; let di=0;
@@ -1883,7 +1882,7 @@ function renderCompare(){
 }
 
 /* ================= v15：实盘导入 / 日K题材梯队 ================= */
-const RV_MSHORT = {'spaceDragon':'空间突破','trialLead':'试错龙头'};
+const RV_MSHORT = {'summit':'山顶洞人'};
 /* ---- 导入实盘数据 → 匹配各战法，分析平均实盘交易合理性 ---- */
 function rrParse(text){
   const out=[];
@@ -2765,15 +2764,14 @@ function initHistNav(){
   focusMarket(ds[ds.length-1]);        // 初始只刷新摘要/明细表，不重复渲染其它页
 }
 
-/* ================= 复盘决策页（v38 简化，v41 扩展） =================
+/* ================= 复盘决策页（v38 简化，v42 扩展） =================
    ① 今日市场阶段 + 交易机会判断：上一空间龙头断板后无大亏（跌停/连续杀跌）
-      → 情绪较好；断板直接大亏 → 提示风险；
+      → 情绪较好；断板直接大亏 → 提示风险；默认内嵌展示该龙头断板后日K；
    ② 赚钱效应题材梯队（板块有 3 板龙头）：连板股给涨停时间 + 涨停形态
       （一字/T字/换手），首板只报数量；昨日次高板断板股给今日涨跌幅；
-   ③（v41）昨日涨停 → 今日赚钱效应：晋级 / 红盘率 / 均值，识别持续赚钱效应
-      与人气板块（最强板块）；昨日涨停今日闷杀的题材提示小心；
-   ④（v41）三大选股池：盘前关注池（板块指数+龙头/人气股）、当日涨停备选池
-      （每交易日更换）、活跃股池（近10日涨停≥2次滚动）；底部附方法论说明。 */
+   ③（v41/v42）昨日涨停 → 今日赚钱效应：只列有具体题材的板块，每组给个股明细
+      （今日连板高度 / 涨停时间 / 涨跌幅，可点日K），识别人气板块；
+   ④（v42）活跃股池：近 10 日涨停 ≥5 次、近两日无跌停，按题材分组排列。 */
 let DC_DATE=null;
 const _pct=v=> v==null? '-' :
   '<span style="color:'+(v>=0?C.up:C.down)+'">'+(v>0?'+':'')+v.toFixed(2)+'%</span>';
@@ -2826,7 +2824,10 @@ function paintDecision(){
         (risk&&dg.loss&&dg.loss.length?
           '断板后大亏：'+dg.loss.join('；')+' → 上一个龙头断板直接大亏，谨慎参与、提示风险。'
         : '判断口径：上一空间龙头断板后无大亏（无跌停、无连续杀跌）→ 情绪较好，愿意继续试错买龙头。')+
-        '</div>';
+        '</div>'+
+        '<div class="sub" style="margin-top:10px;font-weight:700;color:#9fc6ff">上一个空间龙头 · 断板后日K'+
+        '<span style="font-weight:400;color:#78849a;margin-left:6px">（默认展示 · 点击图可放大）</span></div>'+
+        '<div id="dc-k" style="height:250px;margin-top:4px"></div>';
     }else{
       inner='<div class="sub">暂无上一空间龙头断板记录（开篇数据不足以判定试错链条）</div>';
     }
@@ -2868,7 +2869,7 @@ function paintDecision(){
     }else inner='<div class="sub">当日无「有赚钱效应且有 3 板龙头」的题材</div>';
     html+=dcSec('赚钱效应题材梯队 · 资金方向', inner);
   }
-  /* ---------- ③ 昨日涨停 → 今日赚钱效应（v41：持续赚钱效应 / 人气板块） ---------- */
+  /* ---------- ③ 昨日涨停 → 今日赚钱效应（v42：只展示有具体题材的板块 + 个股明细） ---------- */
   {
     const nd=D.nextday||[];
     let inner;
@@ -2882,70 +2883,111 @@ function paintDecision(){
       const cards=nd.map(r=>{
         const avgC = r.avg==null? C.dim : (r.avg>=0? C.up : C.down);
         const good=(r.avg||0)>=0;
+        const chips=(r.stocks||[]).map(s=>{
+          const up = s[2]>0;
+          return '<span data-c="'+s[1]+'" data-n="'+s[0]+'" data-d="'+d+
+            '" style="background:#152238;border:1px solid '+(up?'#3d1b25':'#2b3a56')+
+            ';border-radius:5px;padding:2px 7px;font-size:11.5px">'+
+            '<b>'+s[0]+'</b> <span style="color:#ffd24a">'+s[2]+'板</span>'+
+            (s[3]? '<span style="color:#78849a;margin-left:4px">'+s[3]+'</span>':'')+
+            (s[4]!=null? '<span style="margin-left:4px;color:'+(s[4]>=0?C.up:C.down)+'">'+
+              (s[4]>0?'+':'')+s[4]+'%</span>':'')+'</span>';
+        }).join('');
         return '<div style="border:1px solid '+(good?'#3d1b25':'#14332b')+';border-radius:8px;padding:7px 10px">'+
-          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:5px">'+
+          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'+
           '<b style="font-size:13px">'+r.name+'</b>'+
           (r.hot? '<span style="background:rgba(240,185,11,.16);color:#f0b90b;border-radius:3px;padding:0 5px;font-size:10.5px">人气板块</span>':'')+
           '<span class="sub">昨日 '+r.n+' 只 → 晋级 <b style="color:'+(r.lim?C.up:C.down)+'">'+r.lim+'</b>'+
           ' · 红盘 '+r.up+'/'+r.n+
           (r.avg!=null? ' · 均值 <b style="color:'+avgC+'">'+(r.avg>0?'+':'')+r.avg+'%</b>':'')+
           (r.min!=null? ' · 最差 '+(r.min>0?'+':'')+r.min+'%':'')+'</span></div>'+
-          (r.gain&&r.gain.length? '<div class="sub" style="font-size:11.5px">今日晋级：'+r.gain.join('、')+
-            (r.lim>6? ' 等'+r.lim+'只':'')+'</div>':'')+
+          (chips? '<div style="display:flex;flex-wrap:wrap;gap:5px">'+chips+'</div>':'')+
           '</div>';
       }).join('');
       inner=hotBar+'<div style="display:flex;flex-direction:column;gap:8px">'+cards+'</div>'+
-        '<div class="sub" style="margin-top:6px">口径：昨日涨停股按题材分组看今天的表现——晋级（今天买的人明天能出）'+
-        '与红盘率高、均值为正 = 持续赚钱效应，最强者即人气板块；反之晋级 0、均值深绿的题材（今日涨停明日闷杀型）小心参与。</div>';
-    }else inner='<div class="sub">当日无昨日涨停数据（开篇首日）</div>';
+        '<div class="sub" style="margin-top:6px">口径：昨日涨停股按题材分组看今天的表现（只列有具体题材的板块）；'+
+        '个股标注今日连板高度 + 涨停时间 + 今日涨跌幅，点击个股名看日K。晋级（今天买的人明天能出）与'+
+        '红盘率高、均值为正 = 持续赚钱效应，最强者即人气板块；晋级 0、均值深绿的题材（今日涨停明日闷杀型）小心参与。</div>';
+    }else inner='<div class="sub">当日无昨日涨停数据（开篇首日 / 昨日涨停股无题材映射）</div>';
     html+=dcSec('昨日涨停 → 今日赚钱效应 · 哪类涨停股次日有肉', inner);
   }
-  /* ---------- ④ 三大选股池（v41） ---------- */
+  /* ---------- ④ 活跃股池（v42：近10日≥5次涨停 · 近两日跌停剔除 · 按题材分组） ---------- */
   {
     const P=D.pools;
     let inner;
     if(P){
-      const chipS=(code,name,txt)=>'<span data-c="'+code+'" data-n="'+name+'" data-d="'+d+
-        '" style="background:#152238;border:1px solid #2b3a56;border-radius:5px;padding:3px 8px;font-size:12px">'+txt+'</span>';
-      const wt=(P.watch.themes||[]).map(t=>
-        '<span style="background:#0f2a3d;border:1px dashed #3d8bff88;border-radius:5px;padding:3px 8px;font-size:12px;color:#9fc6ff">'+t+' 指数</span>').join('');
-      const ws=(P.watch.stocks||[]).map(s=>chipS(s.code,s.name,
-        s.name+' <b>'+s.boards+'板</b>'+(s.theme? '<span style="color:#78849a;font-size:10.5px;margin-left:4px">'+s.theme+'</span>':''))).join('');
-      const tp=(P.today||[]).map(a=>chipS(a[1],a[0],
-        a[0]+' <b>'+a[2]+'板</b>'+(a[3]? '<span style="color:#78849a;font-size:10.5px;margin-left:4px">'+a[3]+'</span>':''))).join('');
-      const ac=(P.active||[]).map(s=>chipS(s.code,s.name,
-        s.name+' <b>'+s.times+'次/10日</b>'+(s.theme? '<span style="color:#78849a;font-size:10.5px;margin-left:4px">'+s.theme+'</span>':''))).join('');
-      inner='<div style="display:flex;flex-direction:column;gap:10px">'+
-        '<div style="border:1px solid #1d3a52;border-radius:8px;padding:8px 10px">'+
-        '<div style="font-weight:800;color:#9fc6ff;font-size:13px;margin-bottom:6px">① 盘前关注池 <span class="sub" style="font-weight:400">板块指数 + 活跃板块龙头 / 人气股 · 不一定买，但必须关注动向</span></div>'+
-        (wt? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">'+wt+'</div>':'')+
-        (ws? '<div style="display:flex;flex-wrap:wrap;gap:6px">'+ws+'</div>':'')+
-        '</div>'+
-        '<div style="border:1px solid #4a2b56;border-radius:8px;padding:8px 10px">'+
-        '<div style="font-weight:800;color:#d5a6ff;font-size:13px;margin-bottom:6px">② 当日涨停备选池 <span class="sub" style="font-weight:400">全部涨停个股集中 · 次日观察赚钱效应 · 每交易日更换 · 买入首选最强</span></div>'+
-        (tp? '<div style="display:flex;flex-wrap:wrap;gap:6px">'+tp+'</div>':'<span class="sub">当日无涨停个股</span>')+
-        '</div>'+
-        '<div style="border:1px solid #3d3a1b;border-radius:8px;padding:8px 10px">'+
-        '<div style="font-weight:800;color:#ffd24a;font-size:13px;margin-bottom:6px">③ 活跃股池 <span class="sub" style="font-weight:400">近 10 个交易日涨停 ≥2 次的活跃板块个股 · 滚动窗口自动更换</span></div>'+
-        (ac? '<div style="display:flex;flex-wrap:wrap;gap:6px">'+ac+'</div>':'<span class="sub">近 10 日无符合条件的活跃个股</span>')+
-        '</div></div>';
-    }else inner='<div class="sub">选股池仅展示近 120 个交易日（历史日期不生成）</div>';
-    html+=dcSec('三大选股池 · 盘前关注 / 当日备选 / 活跃滚动', inner);
+      const grp=(P.active||[]).map(g=>{
+        const chips=(g.stocks||[]).map(s=>'<span data-c="'+s[1]+'" data-n="'+s[0]+'" data-d="'+d+
+          '" style="background:#152238;border:1px solid #2b3a56;border-radius:5px;padding:2px 7px;font-size:11.5px">'+
+          '<b>'+s[0]+'</b> <span style="color:#ffd24a">'+s[2]+'次/10日</span>'+
+          '<span style="color:#78849a;margin-left:4px">最高'+s[3]+'板</span></span>').join('');
+        return '<div style="border:1px solid #3d3a1b;border-radius:8px;padding:7px 10px">'+
+          '<div style="font-weight:800;color:#ffd24a;font-size:12.5px;margin-bottom:5px">'+g.theme+
+          ' <span class="sub" style="font-weight:400">'+g.stocks.length+' 只</span></div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:5px">'+chips+'</div></div>';
+      }).join('');
+      inner=(grp? '<div style="display:flex;flex-direction:column;gap:8px">'+grp+'</div>'
+                : '<div class="sub">近 10 个交易日无「涨停 ≥5 次且近两日无跌停」的活跃个股</div>')+
+        '<div class="sub" style="margin-top:6px">条件：'+((P.rule)||'近10个交易日涨停≥5次 · 近两日跌停剔除 · 按题材分组')+
+        '；点击个股名看日K。</div>';
+    }else inner='<div class="sub">活跃股池仅展示近 120 个交易日（历史日期不生成）</div>';
+    html+=dcSec('活跃股池 · 按题材排列', inner);
   }
-  /* ---------- 复盘方法论（v41，用户口径） ---------- */
-  html+='<details class="card" style="margin-top:12px;color:var(--text)"><summary style="cursor:pointer;font-weight:800">复盘方法论（赚钱效应 · 人气板块 · 选股池）</summary>'+
+  /* ---------- 复盘方法论（v42，用户口径） ---------- */
+  html+='<details class="card" style="margin-top:12px;color:var(--text)"><summary style="cursor:pointer;font-weight:800">复盘方法论（赚钱效应 · 人气板块 · 活跃股池）</summary>'+
     '<div class="sub" style="margin-top:8px;line-height:1.9">'+
     '<b style="color:#e3e9f2">核心：</b>复盘主要看昨天涨停板今天的赚钱效应——哪一类涨停股次日有肉、哪一类股持续有肉：'+
     '今天买进的人明天能出，明天买进的人后天可以出，这就是持续的赚钱效应；这类股中最强的那个板块就是人气板块。'+
     '反之，今天涨停的明日闷杀、或者跑路的时间不多、机会很少的题材，就得小心这类股。<br>'+
-    '<b style="color:#e3e9f2">选股池：</b>'+
-    '① 盘前关注池——把各大板块指数和近期活跃板块龙头股、人气股放在一起，这些是盘前选的，不一定买，但一定得关注它们的动向；'+
-    '② 当日涨停备选池——把当日涨停个股集中到一个板块，次日观察其赚钱效应，作主要备选，每个交易日更换一次；'+
-    '③ 活跃股池——把近期活跃板块中的活跃个股挑出来，不定期更换，以适应当前市场。<br>'+
-    '<b style="color:#e3e9f2">买点：</b>如果一定要买股，首选就是这些最强的。</div></details>';
+    '<b style="color:#e3e9f2">活跃股池：</b>把近期活跃板块中的活跃个股挑出来——近 10 个交易日涨停 ≥5 次、'+
+    '近两个交易日没有跌停，按题材分组排列；滚动窗口自动更换，以适应当前市场。<br>'+
+    '<b style="color:#e3e9f2">买点：</b>如果一定要买股，首选就是这些最强的（详见交易复盘 · 山顶洞人）。</div></details>';
   body.innerHTML=html;
   dcBindK(body);
   dcLiveChg(body, d);
+  // v42：默认展示上一个空间龙头（板数最高 / 断板最早那只）断板后的日K
+  const _dg=(D.dragon||{}).stocks||[];
+  if(_dg.length){
+    const _ld=_dg.slice().sort((x,y)=>((y.boards||0)-(x.boards||0))||
+      String(x.brk).localeCompare(String(y.brk)))[0];
+    dcDragonK(_ld.code, _ld.name, _ld.brk);
+  }
+}
+let dcKInst=null;
+async function dcDragonK(code, name, brk){
+  const host=document.getElementById('dc-k'); if(!host) return;
+  let K=[];
+  try{ K=await stockKBars(code, brk); }catch(e){}
+  if(!K||!K.length){
+    host.innerHTML='<div class="sub" style="padding:24px 0">该股暂无日K数据</div>'; return;
+  }
+  const ds=K.map(r=>r[0]);
+  let i0=0;
+  for(let i=0;i<ds.length;i++){ if(ds[i]<=brk) i0=i; else break; }
+  const a=Math.max(0,i0-10), b=Math.min(K.length-1,i0+8);
+  const seg=K.slice(a,b+1);
+  if(dcKInst){ try{ dcKInst.dispose(); }catch(e){} dcKInst=null; }
+  dcKInst=echarts.init(host, null, {renderer:'canvas'});
+  dcKInst.setOption({
+    animation:false,
+    grid:{left:48,right:12,top:16,bottom:20},
+    tooltip:{trigger:'axis',axisPointer:{type:'cross'},confine:true,
+      formatter:ps=>{ const r=seg[ps[0].dataIndex]||[];
+        return r[0]+'<br>开 '+r[1]+' · 收 '+r[2]+'<br>低 '+r[3]+' · 高 '+r[4]; }},
+    xAxis:{type:'category',data:seg.map(r=>fmtDate(r[0])),
+      axisLabel:{fontSize:9,color:C.dim},axisTick:{show:false},
+      axisLine:{lineStyle:{color:'#2b3a56'}}},
+    yAxis:{scale:true,axisLabel:{fontSize:9,color:C.dim},
+      splitLine:{lineStyle:{color:'#1f2937'}}},
+    series:[{type:'candlestick',data:seg.map(r=>[r[1],r[2],r[3],r[4]]),
+      itemStyle:{color:C.up,color0:C.down,borderColor:C.up,borderColor0:C.down},
+      markLine:{symbol:'none',silent:true,
+        label:{formatter:'断板',fontSize:9,color:'#f0b90b'},
+        data:[{xAxis:Math.max(0, ds.indexOf(brk)-a)}],
+        lineStyle:{color:'#f0b90b',type:'dashed',width:1}}}]
+  });
+  host.style.cursor='pointer';
+  host.onclick=()=>showK(code, name, null, brk);
 }
 /* 今日视图：所有「今日涨跌幅」一律用同花顺 today.js 即时快照覆盖（盘中实时） */
 let _dcLiveSeq=0;

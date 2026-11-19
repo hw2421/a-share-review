@@ -854,30 +854,38 @@ for _i, _d in enumerate(dates):
                         "lead": _g.get("lead"), "big": _big, "n1": _n1, "nb": _nb})
     _dec["themes"] = _themes
 
-    # ③ 昨日涨停 → 今日赚钱效应（v41 用户方法论）：
+    # ③ 昨日涨停 → 今日赚钱效应（v41 用户方法论，v42 只展示有具体题材的板块）：
     #    复盘核心 = 昨天的涨停板今天的赚钱效应——哪类涨停股次日有肉、持续有肉
     #    （今天买进的人明天能出，明天买进的人后天可以出 = 持续赚钱效应），
     #    这类股中最强的板块就是人气板块；反之昨日涨停今日闷杀的题材要小心。
-    #    统计口径：昨日涨停池按题材分组 → 今日晋级数（今天又涨停 = 今天买的人
-    #    明天大概率能出）、红盘数、平均涨跌幅、最差涨跌幅；按持续赚钱效应排序，
-    #    首位若确实有肉（晋级且均值为正，或晋级 ≥2）标记为人气板块。
+    #    口径：昨日涨停池按题材分组（无题材映射的「其他」不展示）→ 每组给个股明细
+    #    （今日连板高度 / 今日涨停时间 / 今日涨跌幅）+ 晋级 / 红盘 / 均值 / 最差；
+    #    按持续赚钱效应排序，首位若确实有肉（晋级且均值为正，或晋级 ≥2）标人气板块。
     _nd = []
     if _pd:
-        _lim_today = {str(_s["code"]) for _s in (pools.get(_d) or [])}
+        _today = {str(_s["code"]): _s for _s in (pools.get(_d) or [])}
         _m_pd = theme_at.get(_pd, {})
         _grp = {}
         for _s in (pools.get(_pd) or []):
-            _grp.setdefault(_m_pd.get(_s["code"]) or "其他", []).append(_s)
+            _nm = _m_pd.get(_s["code"])
+            if not _nm:
+                continue                      # 无具体题材 → 不展示（v42）
+            _grp.setdefault(_nm, []).append(_s)
         for _nm, _ss in _grp.items():
-            _vals, _gain = [], []
+            _vals, _rows = [], []
             for _s in _ss:
-                _c = chg_on(_s["code"], _d)
-                if _c is not None:
-                    _vals.append(_c)
-                if str(_s["code"]) in _lim_today:
-                    _gain.append(_s["name"])
-            _nd.append({"name": _nm, "n": len(_ss), "lim": len(_gain),
-                        "gain": _gain[:6],
+                _c = str(_s["code"])
+                _now = _today.get(_c)
+                _chg = chg_on(_c, _d)
+                if _chg is not None:
+                    _vals.append(_chg)
+                _bd = (_now.get("boards") if _now else _s.get("boards")) or 1
+                _t = seal_time(_now) if _now else seal_time(_s)
+                _rows.append([_s["name"], _c, _bd, _t, _chg])
+            _rows.sort(key=lambda _r: (-_r[2], _r[3] or "99:99", _r[1]))
+            _gain = [_r[0] for _r in _rows if _r[1] in _today]
+            _nd.append({"name": _nm, "n": len(_rows), "lim": len(_gain),
+                        "gain": _gain[:6], "stocks": _rows,
                         "up": sum(1 for _v in _vals if _v > 0),
                         "avg": round(sum(_vals) / len(_vals), 2) if _vals else None,
                         "min": round(min(_vals), 2) if _vals else None})
@@ -889,74 +897,46 @@ for _i, _d in enumerate(dates):
             _nd[0]["hot"] = 1
     _dec["nextday"] = _nd
 
-    # ④ 三大选股池（v41 用户方法论，近 POOL_DAYS 个交易日生成，历史日期不生成）：
-    #    ① 盘前关注池：各大板块指数（活跃题材名，行情软件看指数）+ 近期活跃板块
-    #       龙头股 / 人气股——盘前选的，不一定买，但必须关注动向；
-    #    ② 当日涨停备选池：当日涨停个股全部集中，次日观察赚钱效应，作主要备选，
-    #       每个交易日更换一次；如果一定要买股，首选就是这些最强的；
-    #    ③ 活跃股池：近期活跃板块中的活跃个股（近 10 个交易日涨停 ≥2 次），
-    #       滚动 10 日窗口自动更换，以适应当前市场。
+    # ④ 活跃股池（v42 用户口径，近 120 个交易日生成，历史日期不生成）：
+    #    条件：近 10 个交易日涨停 ≥5 次；近两个交易日有过跌停的剔除；
+    #    按题材分组排列显示（组内按涨停次数、最高板排序）。
+    #    v42 已删除：盘前关注池、当日涨停备选池。
     if _i >= len(dates) - 120:
         _win = dates[max(0, _i - 9):_i + 1]
-        # 活跃题材：近 10 日出现在梯队中的题材（出现天数 / 窗口内最高板）
-        _act = {}
-        for _wd in _win:
-            for _nm, _arr in (ladder_full.get(_wd) or {}).items():
-                _e = _act.setdefault(_nm, {"days": 0, "maxB": 0, "best": {}})
-                _e["days"] += 1
-                for _x in _arr:
-                    if _x["boards"] > _e["maxB"]:
-                        _e["maxB"] = _x["boards"]
-                    _b = _e["best"].get(_x["code"])
-                    if not _b or _x["boards"] > _b["boards"]:
-                        _e["best"][_x["code"]] = _x
-        _act_rows = sorted(_act.items(),
-                           key=lambda _kv: (-_kv[1]["days"], -_kv[1]["maxB"]))[:8]
-        # 盘前关注池：板块指数（活跃题材名）+ 各题材窗口内最高板龙头（每题材 2 只）
-        _watch = {"themes": [_nm for _nm, _ in _act_rows], "stocks": []}
-        _seen = set()
-        for _nm, _e in _act_rows:
-            for _x in sorted(_e["best"].values(), key=lambda _x: -_x["boards"])[:2]:
-                if _x["code"] in _seen:
-                    continue
-                _seen.add(_x["code"])
-                _watch["stocks"].append({"code": _x["code"], "name": _x["name"],
-                                         "theme": _nm, "boards": _x["boards"]})
-        # 人气股：近 10 日连板股（lb）按板数取前 10，并入盘前关注池
-        _rq = {}
-        for _wd in _win:
-            for _r in (lb.get(_wd) or []):
-                if _r[3] not in _rq or _r[1] > _rq[_r[3]]["boards"]:
-                    _rq[_r[3]] = {"code": _r[3], "name": _r[0],
-                                  "theme": _r[2], "boards": _r[1]}
-        for _x in sorted(_rq.values(), key=lambda _x: -_x["boards"])[:10]:
-            if _x["code"] not in _seen:
-                _seen.add(_x["code"])
-                _watch["stocks"].append(_x)
-        # 当日涨停备选池：[名称, 代码, 板数, 题材] 紧凑数组（每交易日更换）
-        _m_d = theme_at.get(_d, {})
-        _today_pool = [[_s["name"], _s["code"], _s["boards"],
-                        _m_d.get(_s["code"], "")]
-                       for _s in (pools.get(_d) or [])]
-        # 活跃股池：近 10 日涨停 ≥2 次且题材在近 10 日梯队中出现过的个股
         _cnt = {}
         for _wd in _win:
             for _s in (pools.get(_wd) or []):
-                _e = _cnt.setdefault(_s["code"], {"name": _s["name"], "t": 0, "b": 0})
+                _e = _cnt.setdefault(str(_s["code"]),
+                                     {"name": _s["name"], "t": 0, "b": 0})
                 _e["t"] += 1
-                _e["b"] = max(_e["b"], _s["boards"])
-        _active = []
+                _e["b"] = max(_e["b"], _s.get("boards") or 1)
+        # 近两日跌停 → 剔除
+        _down2 = set()
+        for _xd in dates[max(0, _i - 1):_i + 1]:
+            for _c in _cnt:
+                _b, _pv = _dbar(_c, _xd), _prev_close(_c, _xd)
+                if not _b or not _pv:
+                    continue
+                if _b[2] / _pv - 1 <= -(_lim_of(_c, _cnt[_c]["name"]) - .006):
+                    _down2.add(_c)
+        _grp = {}
+        _m_d = theme_at.get(_d, {})
         for _c, _e in _cnt.items():
-            if _e["t"] < 2 or _c in _seen:
+            if _e["t"] < 5 or _c in _down2:
                 continue
             _nm = _m_d.get(_c) or carry.get(_c, "")
-            if _nm not in _act:
+            if not _nm:
                 continue
-            _active.append({"code": _c, "name": _e["name"], "theme": _nm,
-                            "times": _e["t"], "boards": _e["b"]})
-        _active.sort(key=lambda _x: (-_x["times"], -_x["boards"]))
-        _dec["pools"] = {"watch": _watch, "today": _today_pool,
-                         "active": _active[:24]}
+            _grp.setdefault(_nm, []).append([_e["name"], _c, _e["t"], _e["b"]])
+        _active = []
+        for _nm, _arr in _grp.items():
+            _arr.sort(key=lambda _r: (-_r[2], -_r[3], _r[1]))
+            _active.append({"theme": _nm, "stocks": _arr})
+        _active.sort(key=lambda _g: (-len(_g["stocks"]),
+                                     -max(_x[2] for _x in _g["stocks"]),
+                                     _g["theme"]))
+        _dec["pools"] = {"active": _active, "down2": sorted(_down2),
+                         "rule": "近10个交易日涨停≥5次 · 近两日跌停剔除 · 按题材分组"}
 
     decision[_d] = _dec
 
