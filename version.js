@@ -1,1 +1,1 @@
-window.DATA_VER="af2377dabcc3";
+window.DATA_VER="838fab906f9b";
