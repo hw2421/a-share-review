@@ -631,6 +631,7 @@
       <div class="rv-note" id="rv-note" style="display:none"></div>
     </div>
     <div class="rv-sum" id="rv-sum"></div>
+    <div id="rv-logic"></div>
     <div class="scroll" id="rv-table"></div>
     <!-- v18：同一时期各战法对比（区间 / 参与模拟 / 仓位与明细表同源） -->
     <div class="rv-cmp">
@@ -1760,8 +1761,8 @@ function renderReview(){
   let html = '<table class="rv-tbl"><thead><tr>'+
     '<th class="l rv-fz rv-fz1">买入日</th><th class="l rv-fz rv-fz2">个股</th><th>连板</th>'+
     '<th>盈亏比例</th><th>市场情绪阶段</th><th class="l">当日题材</th>'+
-    '<th>累积盈利比例</th><th class="l">卖出原因</th><th>买入日炸板</th>'+
-    '<th>买入价</th><th>卖出日</th><th>持仓</th><th>卖出价</th>'+
+    '<th>累积盈利比例</th><th class="l">买入逻辑</th><th class="l">卖出原因</th>'+
+    '<th>买入日炸板</th><th>买入价</th><th>卖出日</th><th>持仓</th><th>卖出价</th>'+
     '</tr></thead><tbody>';
   RV_ROWS = rows;
   const STGC = {'节点':'#9fe3e0','补涨':'#ffd24a','突破':'#f5455c','主升':'#a55eea'};
@@ -1784,6 +1785,7 @@ function renderReview(){
       '<td class="rv-thm" data-th="'+(t.theme||'')+'" data-d="'+t.d+'" data-row="'+i+'"'+
         ' title="点击查看 '+rvDateStr(t.d)+' 该题材当日梯队">'+(t.theme||'—')+'</td>'+
       '<td class="rv-cum'+(c<100?' rv-down':'')+'">'+f2(c)+'%</td>'+
+      '<td class="l rv-lg" title="'+(t.why||'')+'">'+(t.logic||'赚钱效应龙头')+'</td>'+
       '<td class="l rsn">'+t.reason+'</td>'+
       '<td>'+(burst ? '<span class="rv-brs">是</span>' : '<span class="rv-no">否</span>')+'</td>'+
       '<td>'+f2(t.buy)+'</td>'+
