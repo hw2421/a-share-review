@@ -23,3 +23,6 @@ __pycache__/
 .refresh_status.json
 .build.lock
 .update_heartbeat
+
+# ---- GitHub 令牌（本地专用，严禁入库）----
+.gh_token
