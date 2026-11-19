@@ -2343,8 +2343,11 @@ function stockKBars(code, atDate){
     return local;
   };
   if(SK_BUCKET[b]) return Promise.resolve(take(SK_BUCKET[b]));
+  /* GitHub Pages 对大 JSON 分片可能不发布，回落 raw.githubusercontent（CORS 允许跨域） */
+  var RAW_KL = 'https://raw.githubusercontent.com/hw2421/a-share-review/main/klines/klines_'+b+'.json?v='+KVER;
   return fetch('klines/klines_'+b+'.json?v='+KVER)
-    .then(r=> r.ok ? r.json() : {})
+    .then(r=> r.ok ? r.json() : Promise.reject(0))
+    .catch(()=> fetch(RAW_KL).then(r=> r.ok ? r.json() : {}))
     .then(o=>{ SK_BUCKET[b] = o; return take(o); })
     .catch(()=>{ SK_BARS[code] = local; return local; });
 }
