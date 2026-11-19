@@ -26,3 +26,4 @@ __pycache__/
 
 # ---- GitHub 令牌（本地专用，严禁入库）----
 .gh_token
+.playwright-cli/
