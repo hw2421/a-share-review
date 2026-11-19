@@ -2142,6 +2142,33 @@ function thsJsonp(code, timeout){
     document.head.appendChild(s);
   });
 }
+/* ---- 同花顺实时快照 today.js（JSONP）：当日涨跌幅一律以此为准 ----
+   回调名 quotebridge_v6_line_hs_<code>_01_today；字段 7=昨收 8=今开 9=最低
+   11=现价 13=累计量 1=日期。返回 {prevc,open,low,last,vol,date,chg}。 */
+function thsTodayJsonp(code, timeout){
+  return new Promise(res=>{
+    const sym = /^[4892]/.test(code) ? null : 'hs_'+code;
+    if(!sym){ res(null); return; }
+    const CB = 'quotebridge_v6_line_'+sym+'_01_today';
+    const done = v=>{ try{ delete window[CB]; }catch(e){ window[CB]=undefined; }
+                      s.remove(); clearTimeout(t); res(v); };
+    const s = document.createElement('script');
+    const t = setTimeout(()=>done(null), timeout||7000);
+    window[CB] = obj=>{
+      try{
+        const o = (obj||{})[sym];
+        if(!o) return done(null);
+        const prevc=+o['7'], op=+o['8'], low=+o['9'], last=+o['11'], vol=+o['13'];
+        if(!(prevc>0 && last>0)) return done(null);
+        done({date:o['1'], prevc, open:op, low, last, vol,
+              chg: +(((last/prevc-1)*100).toFixed(2))});
+      }catch(e){ done(null); }
+    };
+    s.onerror = ()=>done(null);
+    s.src = 'https://d.10jqka.com.cn/v6/line/'+sym+'/01/today.js?r='+Date.now();
+    document.head.appendChild(s);
+  });
+}
 async function liveK(code){
   /* 优先同花顺 JSONP 直连（快且稳）；失败回落新浪经代理（北交所只有这条路） */
   const ths = await thsJsonp(code, 7000);
@@ -2778,9 +2805,9 @@ function paintDecision(){
     if(dg && dg.stocks && dg.stocks.length){
       const risk = dg.verdict==='risk';
       const chip = risk
-        ? '<span style="background:rgba(245,69,92,.15);color:#f5455c;border:1px solid #f5455c55;'+
+        ? '<span id="dc-chip" style="background:rgba(245,69,92,.15);color:#f5455c;border:1px solid #f5455c55;'+
           'border-radius:6px;padding:2px 10px;font-weight:800">⚠ 风险提示</span>'
-        : '<span style="background:rgba(46,189,133,.15);color:#2ebd85;border:1px solid #2ebd8555;'+
+        : '<span id="dc-chip" style="background:rgba(46,189,133,.15);color:#2ebd85;border:1px solid #2ebd8555;'+
           'border-radius:6px;padding:2px 10px;font-weight:800">✓ 情绪较好</span>';
       inner='<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+chip+
         '<span class="sub">上一空间龙头 '+fmtDate(dg.stocks.map(x=>x.brk).sort()[0]||dg.ev)+
@@ -2789,13 +2816,14 @@ function paintDecision(){
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+
         dg.stocks.map(x=>'<span data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+d+
           '" style="background:#152238;border:1px solid #2b3a56;border-radius:5px;padding:3px 8px;font-size:12px">'+
-          x.name+' <b>'+x.boards+'板</b> · '+fmtDate(x.brk)+'断板 · 今日 '+chgTxt(x.today, isToday)+
+          x.name+' <b>'+x.boards+'板</b> · '+fmtDate(x.brk)+'断板 · 今日 '+
+          '<b data-live="'+x.code+'" class="dc-live">'+chgTxt(x.today, isToday)+'</b>'+
           ' · 断板后累计 '+chgTxt(x.cum, isToday)+'</span>').join('')+'</div>'+
+        '<div id="dc-dragon-note" class="sub" style="margin-top:8px;'+(risk?'color:#f5455c':'')+'">'+
         (risk&&dg.loss&&dg.loss.length?
-          '<div class="sub" style="color:#f5455c;margin-top:8px">断板后大亏：'+dg.loss.join('；')+
-          ' → 上一个龙头断板直接大亏，谨慎参与、提示风险。</div>'
-        : '<div class="sub" style="margin-top:8px">判断口径：上一空间龙头断板后无大亏'+
-          '（无跌停、无连续杀跌）→ 情绪较好，愿意继续试错买龙头。</div>');
+          '断板后大亏：'+dg.loss.join('；')+' → 上一个龙头断板直接大亏，谨慎参与、提示风险。'
+        : '判断口径：上一空间龙头断板后无大亏（无跌停、无连续杀跌）→ 情绪较好，愿意继续试错买龙头。')+
+        '</div>';
     }else{
       inner='<div class="sub">暂无上一空间龙头断板记录（开篇数据不足以判定试错链条）</div>';
     }
@@ -2819,7 +2847,8 @@ function paintDecision(){
           const nbs=(t.nb||[]).map(x=>
             '<span data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+d+
             '" style="background:#1c1626;border:1px solid #4a2b56;border-radius:5px;padding:3px 8px;font-size:12px">'+
-            '昨日次高断板：'+x.name+'（'+x.b+'板）今日 '+_pct(x.chg)+'</span>').join('');
+            '昨日次高断板：'+x.name+'（'+x.b+'板）今日 <b data-live="'+x.code+'" class="dc-live">'+
+            _pct(x.chg)+'</b></span>').join('');
           return '<div style="border:1px solid #1d2a42;border-radius:8px;padding:8px 10px">'+
             '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'+
             '<b style="color:#ffd24a;font-size:13.5px">'+t.name+'</b>'+
@@ -2838,6 +2867,37 @@ function paintDecision(){
   }
   body.innerHTML=html;
   dcBindK(body);
+  dcLiveChg(body, d);
+}
+/* 今日视图：所有「今日涨跌幅」一律用同花顺 today.js 即时快照覆盖（盘中实时） */
+let _dcLiveSeq=0;
+async function dcLiveChg(root, d){
+  if(d!==window.REVIEW.today) return;
+  const seq=++_dcLiveSeq;
+  const els=[...root.querySelectorAll('.dc-live')];
+  const codes=[...new Set(els.map(e=>e.dataset.live).filter(Boolean))];
+  const snap={};
+  await Promise.all(codes.map(async c=>{ snap[c]=await thsTodayJsonp(c, 8000); }));
+  if(seq!==_dcLiveSeq) return;                 // 已切走日期/重绘，丢弃旧结果
+  let worst=0;                         // 断板龙头中今日最差涨跌幅
+  els.forEach(e=>{
+    const s=snap[e.dataset.live];
+    if(!s || (!s.chg && s.chg!==0)) return;
+    e.innerHTML='<span style="color:'+(s.chg>=0?C.up:C.down)+'">'+
+      (s.chg>0?'+':'')+s.chg.toFixed(2)+'%</span>';
+    e.title='同花顺实时 '+s.date+' '+s.last+'（昨收 '+s.prevc+'）';
+    if(s.chg<worst) worst=s.chg;
+  });
+  // 同花顺实时若已现断板大亏（≤−7%）→ 徽章与文案即时转风险，与实时口径一致
+  if(worst<=-7){
+    const chip=document.getElementById('dc-chip');
+    if(chip){ chip.textContent='⚠ 风险提示（实时）';
+      chip.style.background='rgba(245,69,92,.15)'; chip.style.color='#f5455c';
+      chip.style.border='1px solid #f5455c55'; }
+    const note=root.querySelector('#dc-dragon-note');
+    if(note) note.innerHTML='<span style="color:#f5455c">同花顺实时：上一龙头断板当日 '+worst.toFixed(2)+
+      '%（接近跌停）→ 断板直接大亏，谨慎参与、提示风险。</span>';
+  }
 }
 function dcStep(n){
   const ds=window.REVIEW.dates, i=ds.indexOf(DC_DATE);
