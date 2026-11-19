@@ -85,11 +85,9 @@ try:
             for c, b in json.load(open(_p, encoding="utf-8")).items():
                 _kc.setdefault(c, b)
     NEW_D = 60
-    _ipo = {}
-    for c, b in _kc.items():
-        # 仅用 520 根全历史缓存判断；K线不足 500 根且首日落在数据区间内 = 数据区间内上市
-        if b and len(b) >= 100 and len(b) < 500 and b[0][0] > dates[0]:
-            _ipo[c] = bisect.bisect_left(dates, b[0][0])
+    # v52：共用 new_stock_start —— 历史早期(<2021)日K缺失时，用复盘图「新股/次新」
+    # 涨停原因兜底判次新（否则 2017 年新股连板会被误当市场空间龙头）。
+    _ipo = fd.new_stock_start(pools, dates, _kc)
     n_new = 0
     for i, d in enumerate(dates):
         for s in pools[d]:

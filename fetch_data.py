@@ -179,6 +179,39 @@ def all_yizi_run(code, boards, i, dates, yz):
     return True
 
 
+def new_stock_start(pools, dates, kline_cache=None, reason_cut="20210101"):
+    """返回 {code: 首个「次新」起点的交易日索引}，供 build_merged / verify_space 共用同口径。
+
+    次新股（上市不足 60 交易日）连板不算市场空间。两条判定取最早：
+    1) 历史早期（<reason_cut，2017-2020）日K缓存自 2019-06 才起始，无法用K线判次新：
+       若该股当日无日K支撑（K线首日晚于该日）且涨停原因标注「新股/次新」，
+       以首次这样的日期为次新起点。湖南人复盘图的新股标注是这段历史唯一可靠依据。
+       2021+ 日K完整，不走此分支，口径与 v51 及以前完全一致。
+    2) 日K缓存不足 500 根且首日落在数据区间内 = 数据区间内上市，以K线首日为起点。
+    """
+    idx = {d: i for i, d in enumerate(dates)}
+    starts = {}
+    kc = kline_cache or {}
+    for d in dates:
+        if d >= reason_cut:
+            break                       # dates 升序，后面都 >= 阈值
+        for s in pools.get(d, []):
+            r = str(s.get("reason") or "")
+            if "新股" not in r and "次新" not in r:
+                continue
+            b = kc.get(s["code"])
+            if b and b[0][0] <= d:      # 当日已有日K支撑 → 走K线口径，不用reason兜底
+                continue
+            if s["code"] not in starts:
+                starts[s["code"]] = idx[d]
+    for c, b in kc.items():
+        if b and len(b) >= 100 and len(b) < 500 and b[0][0] in idx:
+            i = idx[b[0][0]]
+            if c not in starts or i < starts[c]:
+                starts[c] = i
+    return starts
+
+
 def compute_streaks(pools, anchors=None):
     """连板数口径：由涨停池逐日连续性递推计算连续涨停天数。
     同花顺 high_days 是"N天M板"波段口径（允许中间断板），不能当连板数用。

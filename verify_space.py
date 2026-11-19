@@ -94,10 +94,8 @@ def main():
     # 次新股（上市不足 60 个交易日）：build_merged 用 .stock_kline_cache 判定，
     # 校验脚本必须同口径豁免，否则 2021 年新上市的连板股会被误报「更高换手连板」。
     _kcv = json.load(open(os.path.join(OUT, ".stock_kline_cache.json"), encoding="utf-8"))
-    _ipo = {}
-    for _c, _b in _kcv.items():
-        if _b and len(_b) >= 100 and len(_b) < 500 and _b[0][0] > dates[0]:
-            _ipo[_c] = bisect.bisect_left(dates, _b[0][0])
+    # v52：与 build_merged 共用同一判定（历史早期新股reason兜底），杜绝口径漂移
+    _ipo = fd.new_stock_start(pools, dates, _kcv)
 
     def _is_new(code, i):
         ii = _ipo.get(str(code))
@@ -297,14 +295,29 @@ def main():
         clickable.add(s["code"])
     invalid = {c for c in clickable if not valid_code(c)}
     clickable -= invalid
-    miss = clickable - allk
+    # v52：历史老股可能在完整日K缓存里有数据、但未进按需分片（需求日全在 2019-06 前
+    # 被裁掉）→ 数据实际可用，不算缺失。仅缓存与分片都没有才算真缺。
+    miss = {c for c in (clickable - allk)
+            if not (_kcv.get(str(c)) and len(_kcv[str(c)]) >= 5)}
     if miss:
         err("个股日K缺失 %d 只：%s" % (len(miss), ",".join(sorted(miss)[:10])))
     sk = D.get("supKlines") or {}
+    # v52：新浪日K源最早约 2019-06（DATALEN=1800 根回溯上限），此前交易日
+    # 无论哪只股票都无日K数据 → 属数据源硬限制而非构建缺陷，一律豁免；
+    # 2019-06 起仍逐股严格校验。
+    KLINE_START = "20190601"
+    def _no_kline_at(code, d):
+        if d < KLINE_START:
+            return True
+        b = _kcv.get(str(code))
+        return not (b and b[0][0] <= d)
     for day in days:
         for s in day.get("suppressStocks") or []:
-            if not sk.get(s["code"] + "_" + s["breakDate"]):
-                err("%s 压制股 %s 断板日K缺失" % (day["date"], s["name"]))
+            if sk.get(s["code"] + "_" + s["breakDate"]):
+                continue
+            if _no_kline_at(s["code"], s.get("breakDate") or day["date"]):
+                continue
+            err("%s 压制股 %s 断板日K缺失" % (day["date"], s["name"]))
     print("个股日K：可点 %d 只 / 覆盖 %d 只（OCR无效码豁免 %d）；题材块 %d 个，梯队完整清单 %d 日"
           % (len(clickable), len(clickable & allk), len(invalid),
              sum(len(v) for v in TD.values()), len(LF)))
@@ -350,6 +363,9 @@ def main():
         for d in ds:
             i = idx.get(d)
             if i is None:
+                continue
+            # v52：历史早期该股在日K源起点(约2019-06)之前无可点日K → 数据源限制，豁免
+            if _no_kline_at(c, d):
                 continue
             end5 = dates[min(i + 6, len(dates) - 1)]
             if end5 >= dates[-1]:          # 断板后 5 天尚未到来（最新交易日附近）
@@ -795,10 +811,11 @@ def main():
                     err("v44 %s %s %s 板位 %s 非该题材最高板 %s"
                         % (m, B, name, t.get("boards"), _mx)); n_v29 += 1
 
-    # ⑥ v23stat 自洽
-    if V23.get("cand") != (V23.get("fire") or 0) + (V23.get("yizi") or 0) + (V23.get("noKline") or 0):
-        err("v32 v23stat 自洽失败：候选 %s ≠ 参与 %s + 一字 %s + 无日K %s"
-            % (V23.get("cand"), V23.get("fire"), V23.get("yizi"), V23.get("noKline"))); n_v29 += 1
+    # ⑥ v23stat 自洽（v52：候选 = 参与 + 一字 + 买入后无卖出K线；
+    #    noKline 总数还含「买入前无K线」的那部分，不计入 cand，故改用 noKlineExit）
+    if V23.get("cand") != (V23.get("fire") or 0) + (V23.get("yizi") or 0) + (V23.get("noKlineExit") or 0):
+        err("v32 v23stat 自洽失败：候选 %s ≠ 参与 %s + 一字 %s + 无卖出K %s"
+            % (V23.get("cand"), V23.get("fire"), V23.get("yizi"), V23.get("noKlineExit"))); n_v29 += 1
     for m in RV_METHODS:
         if (V23.get("byM") or {}).get(m) != len(RVALL.get(m, [])):
             err("v32 v23stat %s 笔数与逐笔不符（%s vs %s）"

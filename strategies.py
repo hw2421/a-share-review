@@ -81,7 +81,7 @@ def build(ctx):
     stage_by_d = {x["date"]: x for x in days}
 
     stats = {"cand": 0, "fire": 0, "yizi": 0, "no_limit": 0,
-             "open_skip": 0, "no_kline": 0, "defer": 0, "consec_yizi": 0,
+             "open_skip": 0, "no_kline": 0, "no_kline_exit": 0, "defer": 0, "consec_yizi": 0,
              "burst": 0, "m1": 0, "m2": 0, "pick": 0, "no_assist": 0,
              "height_skip": 0, "no_vol": 0, "maxvol": 0, "theme_skip": 0}
 
@@ -469,6 +469,7 @@ def build(ctx):
         out = simulate_exit(code, k)
         if not out:
             stats["no_kline"] += 1
+            stats["no_kline_exit"] += 1   # cand 已计入；单列供 cand 恒等式校验
             return False
         sell, sell_d, reason, hold = out
         t = {
@@ -781,6 +782,7 @@ def build(ctx):
             "themeSkip": stats["theme_skip"],
             "maxVol": stats["maxvol"],
             "noKline": stats["no_kline"],
+            "noKlineExit": stats["no_kline_exit"],
             "consecYizi": stats["consec_yizi"],
             "burst": stats["burst"],
             "pick": stats["pick"],

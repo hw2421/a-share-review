@@ -392,7 +392,11 @@
   /* v49：题材分组 / 同日合并 / 模式多列 */
   .wn-tab td.vtop{vertical-align:top}
   .wn-tab .wn-grp td{background:rgba(240,185,11,.07);font-weight:700}
-  .wn-tab .wn-date{font-weight:700;color:var(--text);border-right:1px solid var(--line)}
+  /* v52：日期列固定在最左（left:0），个股列固定其右；两列左右拖动均不动 */
+  .wn-tab .wn-date{font-weight:700;color:var(--text);border-right:1px solid var(--line);
+    position:sticky;left:0;z-index:3;background:var(--card);
+    box-shadow:6px 0 6px -6px rgba(0,0,0,.85)}
+  .wn-tab th.wn-date{z-index:6}
   .wn-tab .wn-thcell{color:var(--blue);cursor:pointer;font-weight:600;
                      border-right:1px solid var(--line)}
   .wn-tab .wn-thcell:hover{text-decoration:underline;background:rgba(61,139,255,.09)}
@@ -401,12 +405,15 @@
   .wn-tab .wn-mode.on.prim{background:rgba(240,185,11,.18);color:var(--gold)}
   .wn-tab .wn-mode.off{color:var(--line);font-size:9px}
   .wn-tab th.wn-mode{font-size:9px;line-height:1.2;white-space:normal;max-width:30px;color:var(--dim2)}
-  /* v50：个股名列固定 + 个股名后题材备注 */
+  /* v52：个股名列固定第二列；题材列移到个股之后；个股名后不再显示题材 */
   .wn-tab td.wn-stk,.wn-tab th.wn-stk{position:sticky;left:var(--wn-stk-left,72px);z-index:2;
     background:var(--card);box-shadow:6px 0 6px -6px rgba(0,0,0,.85)}
   .wn-tab th.wn-stk{z-index:5}
-  .wn-tab tr:hover td.wn-stk{background:#182234}
-  .wn-tab .wn-stk .wth{color:var(--blue);font-size:10px;font-weight:400;margin-left:5px}
+  .wn-tab tr:hover td.wn-stk,.wn-tab tr:hover td.wn-date{background:#182234}
+  /* v52：分类汇总卡按题材分组，每个题材一行 */
+  .wn-cat .stkg{margin-top:5px;line-height:1.6}
+  .wn-cat .stkg .gt{color:var(--blue);font-size:10px;font-weight:700;margin-right:4px}
+  .wn-cat .stkg .gb{color:var(--gold);font-size:10px;font-weight:700;margin-left:3px}
   /* v43：买入日 / 个股 两列左右滚动时固定（左侧吸附），第二列偏移取第一列实际宽度 */
   .rv-tbl .rv-fz{position:sticky;background:var(--card);z-index:3}
   .rv-tbl th.rv-fz{z-index:6}
@@ -1869,9 +1876,16 @@ function wnAgg(evs){
       const sa=strength(a),sb=strength(b);
       return sb[0]-sa[0]||sb[1]-sa[1]||b.b-a.b||b.d.localeCompare(a.d);
     });
+    // v52：同类按题材分组，同一题材一行（题材按梯队强度降序，题材内个股按板数/日期降序）
+    const gm={};
+    srt.forEach(x=>{ const t=x.theme||'其他'; (gm[t]||(gm[t]=[])).push(x); });
+    const groups=Object.keys(gm).map(t=>{
+      const ga=gm[t], g=strength(ga[0]);
+      return {theme:t, maxB:g[0]||0, cnt:g[1]||0,
+        stocks:ga.map(x=>[x.name,x.code,x.d,x.b,x.s1])};
+    }).sort((a,b)=>b.maxB-a.maxB||b.cnt-a.cnt||a.theme.localeCompare(b.theme));
     return {k:p,n:arr.length,pct:total?+(arr.length/total*100).toFixed(1):0,
-      avg:+(arr.reduce((s,x)=>s+x.chg,0)/arr.length).toFixed(2),
-      stocks:srt.slice(0,12).map(x=>[x.name,x.code,x.d,x.b,x.theme,x.s1])};
+      avg:+(arr.reduce((s,x)=>s+x.chg,0)/arr.length).toFixed(2), groups};
   }).filter(Boolean);
   cats.sort((a,b)=>b.pct-a.pct||b.n-a.n||a.k.localeCompare(b.k));
   const caps=['大盘','中盘','小盘','未知'].map(c=>{
@@ -1930,14 +1944,15 @@ function renderWinners(){
   ].filter(Boolean);
   document.getElementById('wn-read').innerHTML = read.map(t=>
     '<div class="sub" style="padding:3px 0;font-size:12px">• '+t+'</div>').join('');
-  // 分类汇总卡：占比降序；同类个股按题材排列，展示题材 + 连板高度
+  // 分类汇总卡：占比降序；同类按题材分组，同一题材一行（题材+连板高度+个股列表）
   document.getElementById('wn-cats').innerHTML = cats.map(c=>
     '<div class="wn-cat"><div class="t"><span>'+c.k+'</span>'+
     '<span class="n">'+c.n+' 例 · 占比 <b style="color:'+C.gold+'">'+c.pct+'%</b> · 均价 <b style="color:'+(c.avg>=0?C.up:C.down)+'">'+
     (c.avg>0?'+':'')+c.avg+'%</b></span></div>'+
-    '<div class="stk">'+c.stocks.map(s=>'<b>'+s[0]+'</b>'+
-      (s[4]?'<span class="sth">['+s[4]+']</span>':'')+
-      '<span class="sbd">'+s[3]+'板</span>').join('、')+'</div></div>').join('');
+    c.groups.map(g=>'<div class="stkg"><span class="gt">['+g.theme+']'+
+      (g.maxB?'<span class="gb">'+g.maxB+'板</span>':'')+'</span>'+
+      g.stocks.map(s=>'<b>'+s[0]+'</b><span class="sbd">'+s[3]+'板</span>').join('、')+
+      '</div>').join('')+'</div>').join('');
   const allTags = ['', ...WN_PRI];
   const filt = document.getElementById('wn-filter');
   filt.innerHTML = allTags.map(t=>'<button data-f="'+t+'"'+(t===WN_FILTER?' class="on"':'')+'>'+
@@ -1948,9 +1963,9 @@ function renderWinners(){
   const sorted = shown.slice().sort((a,b)=> b.d.localeCompare(a.d) || b.b-a.b);
   let html = '<div class="sub" style="margin:8px 0 4px">个股明细（'+shown.length+
     ' 只）· 按日期降序 · 同日合并 · <b style="color:'+C.gold+'">●</b>命中该模式（金色=主模式）· '+
-    '点题材看当日梯队、点个股看日K（个股名列左右滚动固定）</div>'+
+    '点题材看当日梯队、点个股看日K（日期与个股列左右滚动固定）</div>'+
     '<div class="scroll" style="max-height:560px;overflow:auto"><table class="wn-tab"><thead><tr>'+
-    '<th class="l">题材</th><th class="l">今日</th><th class="l wn-stk">个股</th><th>昨→今</th>'+
+    '<th class="l wn-date">今日</th><th class="l wn-stk">个股</th><th class="l">题材</th><th>昨→今</th>'+
     '<th class="l">昨日形态</th><th class="l">涨停形态</th>'+
     WN_MODES.map(m=>'<th class="wn-mode" title="'+m[0]+'">'+m[1]+'</th>').join('')+
     '<th>开盘%</th><th>最低%</th><th>今日%</th><th class="l">规模</th>'+
@@ -1969,15 +1984,14 @@ function renderWinners(){
              (hit?'●':'·')+'</td>';
     }).join('');
     let row='<tr>';
-    row+='<td class="l wn-thcell" data-th="'+(e.theme||'')+'" data-d="'+e.d+'"'+
-      ' title="'+(e.theme?'点看 '+fmtDate(e.d)+' 当日梯队':'该股当日无复盘题材归类')+'">'+
-      (e.theme||'—')+'</td>';
     if(i===0 || sorted[i-1].d!==e.d){
       row+='<td class="l wn-date vtop" rowspan="'+dateSpan[i]+'">'+fmtDate(e.d)+'</td>';
     }
     row+='<td class="l wn-stk"><b data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+e.d+'" '+
-        'style="cursor:pointer;color:'+C.blue+'" title="点看日K（箭头指 '+fmtDate(e.d)+'）">'+e.name+'</b>'+
-        (e.theme?'<span class="wth">['+e.theme+']</span>':'')+'</td>'+
+        'style="cursor:pointer;color:'+C.blue+'" title="点看日K（箭头指 '+fmtDate(e.d)+'）">'+e.name+'</b></td>'+
+      '<td class="l wn-thcell" data-th="'+(e.theme||'')+'" data-d="'+e.d+'"'+
+      ' title="'+(e.theme?'点看 '+fmtDate(e.d)+' 当日梯队':'该股当日无复盘题材归类')+'">'+
+      (e.theme||'—')+'</td>'+
       '<td>'+e.b0+'→'+e.b+'板</td>'+
       '<td class="l">'+e.s0+'</td><td class="l">'+e.s1+'</td>'+ modeTds +
       '<td style="color:'+(e.open>=0?C.up:C.down)+'">'+(e.open>0?'+':'')+e.open+'</td>'+
@@ -1994,12 +2008,12 @@ function renderWinners(){
     '点题材显示当日板块梯队（不跳转题材炒作页）。',
     '口径 · 赚钱效应判定规则');
   document.getElementById('wn-list').innerHTML = html;
-  // 固定「个股」列的 left 偏移 = 题材列 + 今日列实际宽度
+  // v52：日期列 fixed left:0；「个股」列的 left 偏移 = 日期列实际宽度
   setTimeout(()=>{
     const tbl=document.querySelector('#wn-list table.wn-tab');
     if(!tbl) return;
     const ths=tbl.querySelectorAll('thead th');
-    const off=(ths[0]?ths[0].offsetWidth:46)+(ths[1]?ths[1].offsetWidth:46);
+    const off=ths[0]?ths[0].offsetWidth:46;
     tbl.style.setProperty('--wn-stk-left', off+'px');
   },20);
   document.querySelectorAll('#wn-list b[data-c]').forEach(el=>{
