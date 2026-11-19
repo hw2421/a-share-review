@@ -695,11 +695,10 @@ def main():
             # ③ 一字买不进不得进逐笔
             if _yizi(code, B, name):
                 err("v32 %s %s %s 一字涨停却进入逐笔" % (m, B, name)); n_v29 += 1
-            # ④ 战法二前置（v38）：昨日节点 + 买入日板块赚钱效应延续（why 留痕）
+            # ④ 战法二 why 留痕（v40 回退第一版口径）
             if m == "trialLead":
-                if "延续" not in str(t.get("why") or ""):
-                    err("v32 %s %s %s why 缺「赚钱效应延续」留痕"
-                        % (m, B, name)); n_v29 += 1
+                if "节点" not in str(t.get("why") or ""):
+                    err("v32 %s %s %s why 缺「节点」留痕" % (m, B, name)); n_v29 += 1
             # ⑤ 分战法条件
             cmx = _cand_max(B, th)
             if m == "spaceDragon":
@@ -712,51 +711,31 @@ def main():
                         % (B, name, t.get("boards"), N)); n_v29 += 1
                 if "突破买点" not in str(t.get("why") or ""):
                     err("v32 战法一 %s %s why 缺「突破买点」留痕" % (B, name)); n_v29 += 1
-                # v39：战法一「统计所有非一字空间突破」，昨日助攻等门槛已删除，
-                #       why 里不得再残留「昨日助攻」
-                if "昨日助攻" in str(t.get("why") or ""):
-                    err("v39 战法一 %s %s why 残留已删除的「昨日助攻」" % (B, name)); n_v29 += 1
-                # 战法一已删除的条件不得再出现在 why 里
-                for bad_kw in ("断板温和", "赚钱效应", "高开"):
-                    if bad_kw in str(t.get("why") or ""):
-                        err("v32 战法一 %s %s why 残留已删除条件「%s」"
-                            % (B, name, bad_kw)); n_v29 += 1
+                # v40 回退第一版：昨日板块必须有助攻股
+                ap = _assist_prev(T, th, code)
+                if ap is False:
+                    err("v32 战法一 %s %s 昨日板块「%s」无 2 板及以上助攻股"
+                        % (B, name, th)); n_v29 += 1
+                if "昨日助攻" not in str(t.get("why") or ""):
+                    err("v32 战法一 %s %s why 缺「昨日助攻」留痕" % (B, name)); n_v29 += 1
             elif m == "trialLead":
                 if (stage_full.get(T, {}).get("stage") or "") != "节点":
                     err("v32 战法二 %s %s 复盘日阶段非节点（%s）"
                         % (B, name, stage_full.get(T, {}).get("stage"))); n_v29 += 1
                 if (t.get("boards") or 0) < 3:
                     err("v32 战法二 %s %s 买入板位不足 3 板" % (B, name)); n_v29 += 1
-                # v38.1：战法二标的一律为收盘封板股，炸板股只进机会池
-                if not t.get("sealed"):
-                    err("v38.1 战法二 %s %s 为炸板股（盘中触板未封）却进入逐笔"
-                        % (B, name)); n_v29 += 1
-                arrB = _barr(B, th) or []
-                lf_mx = max((x.get("boards") or 1) for x in arrB) if arrB else 0
-                if lf_mx and (t.get("boards") or 0) < lf_mx:
-                    err("v38.1 战法二 %s %s 非当日板块最高板龙头（封板口径 %s vs %s）"
-                        % (B, name, t.get("boards"), lf_mx)); n_v29 += 1
-                # v38.1：3b 带 2b —— 除标的以外仍有 ≥2 板封板跟风股
-                if arrB:
-                    assist = [x for x in arrB
-                              if str(x.get("code")) != str(code) and (x.get("boards") or 1) >= 2]
-                    if not assist:
-                        err("v38.1 战法二 %s %s 板块「%s」无 2b 跟风股（3b 未带 2b）"
-                            % (B, name, th)); n_v29 += 1
-                # v39：昨日该板块必须有赚钱效应（BOARD_EARN[(T,题材)] ok）
+                # v40 回退第一版：昨日板块赚钱效应 + 板块有 ≥2 板助攻 + 板位最高
+                cmx2 = _cand_max(B, th)
+                if cmx2 and (t.get("boards") or 0) < cmx2:
+                    err("v32 战法二 %s %s 非当日板块最高板龙头（%s vs %s）"
+                        % (B, name, t.get("boards"), cmx2)); n_v29 += 1
                 okm, mdesc = _money_ok(T, th)
                 if not okm:
-                    err("v39 战法二 %s %s 板块「%s」昨日无赚钱效应：%s"
+                    err("v32 战法二 %s %s 板块「%s」昨日无赚钱效应：%s"
                         % (B, name, th, mdesc)); n_v29 += 1
-                # v39：买入日前一交易日（T）成交量须放量或平量（≥ T−1）
-                vT, vT1 = _vol(code, T), _vol(code, dates[i - 2]) if i >= 2 else 0
-                if not (vT and vT1 and vT >= vT1):
-                    err("v39 战法二 %s %s 前一日缩量（T=%s vs T-1=%s）"
-                        % (B, name, vT, vT1)); n_v29 += 1
-                if "节点" not in str(t.get("why") or ""):
-                    err("v32 战法二 %s %s why 缺「节点」留痕" % (B, name)); n_v29 += 1
-                if "放量/平量" not in str(t.get("why") or ""):
-                    err("v39 战法二 %s %s why 缺「放量/平量」留痕" % (B, name)); n_v29 += 1
+                if not _assist(B, th, max((t.get("boards") or 1), cmx2 or 1)):
+                    err("v32 战法二 %s %s 板块「%s」无 ≥2 板跟风助攻"
+                        % (B, name, th)); n_v29 += 1
             else:
                 err("v32 已删除战法「%s」出现在逐笔（%s %s）" % (m, B, name)); n_v29 += 1
 
@@ -772,9 +751,10 @@ def main():
     if set(meta.keys()) != set(RV_METHODS):
         err("v32 reviewMeta 战法集合不符：%s" % sorted(meta.keys())); n_v29 += 1
     uni29 = (meta.get("spaceDragon") or {}).get("uni") or ""
-    for kw in ("v39", "面对空间压制 N 板", "所有空间突破", "只在突破当日参与",
-               "战法二（试错龙头）", "N+1 板", "昨日该板块已登赚钱效应榜",
-               "成交量须放量或平量", "盘中 −7% 无条件止损", "补涨战法已删除"):
+    for kw in ("v40", "面对空间压制 N 板", "昨日板块已有助攻股", "只在突破当日参与",
+               "战法二（试错龙头）", "N+1 板", "昨日（T）该板块登赚钱效应榜",
+               "龙头一字板不算赚钱效应", "高开但不是涨停开盘",
+               "盘中 −7% 无条件止损", "补涨战法已删除"):
         if kw not in uni29:
             err("v32 统一口径 uni 缺关键字「%s」" % kw); n_v29 += 1
     buy_all = " ".join((meta.get(m) or {}).get("buy") or "" for m in RV_METHODS)
@@ -797,7 +777,7 @@ def main():
         if not got or bool(got.get("ok")) != bool(v["ok"]):
             err("v32 boardEarn %s「%s」与独立复算不一致" % (bd, nm)); n_be_bad += 1
     n_v29 += n_be_bad
-    print("v32 两战法口径：%d 笔逐笔全部复核（战法一 N+1 板/昨日助攻；战法二赚钱效应/梯队/高开；一字）；"
+    print("v40 两战法口径（第一版）：%d 笔逐笔全部复核（战法一 N板压制+昨日助攻+触板即买；战法二昨日赚钱效应+板块助攻+最高板+高开）；"
           "boardEarn %d 题材日独立复算一致（异常 %d）；候选 %s / 参与 %s / 一字 %s / 无日K %s；口径异常 %d"
           % (sum(len(RVALL.get(m, [])) for m in RV_METHODS), len(EFFV), n_be_bad,
              V23.get("cand"), V23.get("fire"), V23.get("yizi"), V23.get("noKline"), n_v29))

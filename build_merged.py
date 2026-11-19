@@ -541,6 +541,32 @@ for _nm, _ds in _occ.items():
 #   当日涨停池里该题材最高板 >= 3（这些股今日确实涨停、且是连板晋级），
 #   且池内该题材真实涨停个股 >= 3 只。
 # 板块日均涨幅：只统计板块内「昨日 2 连板及以上」的个股今日涨跌幅，剔除首板。
+def _dbar(c, d):
+    b = (KBARS.get(str(c)) or {}).get(d)
+    return b if (b and len(b) >= 6) else None
+
+def _prev_close(code, d):
+    rec = KBARS.get(str(code))
+    if not rec or d not in rec or not rec[d]:
+        return None
+    i = DIDX.get(d)
+    if i is None:
+        return None
+    for j in range(i - 1, -1, -1):
+        b = rec.get(dates[j])
+        if b and len(b) >= 3 and b[2]:
+            return b[2]
+    return None
+
+def _lim_of(code, name=""):
+    if "ST" in (name or "").upper():
+        return .05
+    if code.startswith(("30", "688")):
+        return .20
+    if code.startswith(("8", "4", "92")):
+        return .30
+    return .10
+
 MIN_MONEY_STOCKS = 3
 money = {}
 for i in range(1, len(dates)):
@@ -567,6 +593,14 @@ for i in range(1, len(dates)):
         prev2 = prev_grp.get(nm, [])
         chgs = [c for c in (chg_on(s["code"], d) for s in prev2) if c is not None]
         lead = max(ss, key=lambda s: (s["boards"] or 1))
+        # v40：龙头一字板不统计为赚钱效应 —— 板块须有「换手」连板龙头
+        _lb = (KBARS.get(str(lead["code"])) or {}).get(d)
+        _lpv = _prev_close(str(lead["code"]), d)
+        if _lb and len(_lb) >= 5 and _lpv:
+            _lm = _lim_of(str(lead["code"]),
+                          ((pool_map.get(d) or {}).get(lead["code"]) or {}).get("name"))
+            if _lb[2] / _lpv - 1 >= _lm - .006 and _lb[1] == _lb[3] == _lb[2]:
+                continue
         rows.append({
             "theme": nm,
             "ladder": "-".join(str(b) for b in bl),
@@ -703,32 +737,6 @@ ladders_out = {d: {nm: {"count": e["count"], "boards": e["boards"],
 #   ② 上一个空间龙头断板后今天的表现（断板大亏＝跌停 / 连续杀跌 → 提示风险）；
 #   ③ 有赚钱效应且有 3 板龙头的题材梯队：连板股给涨停时间 + 涨停形态
 #      （一字 / T字 / 换手），首板只报数量；昨日次高板断板股给今日涨跌幅。
-def _dbar(c, d):
-    b = (KBARS.get(str(c)) or {}).get(d)
-    return b if (b and len(b) >= 6) else None
-
-def _prev_close(code, d):
-    rec = KBARS.get(str(code))
-    if not rec or d not in rec or not rec[d]:
-        return None
-    i = DIDX.get(d)
-    if i is None:
-        return None
-    for j in range(i - 1, -1, -1):
-        b = rec.get(dates[j])
-        if b and len(b) >= 3 and b[2]:
-            return b[2]
-    return None
-
-def _lim_of(code, name=""):
-    if "ST" in (name or "").upper():
-        return .05
-    if code.startswith(("30", "688")):
-        return .20
-    if code.startswith(("8", "4", "92")):
-        return .30
-    return .10
-
 def _shape(code, d, name=""):
     """涨停形态：一字 / T字 / 换手（梯队个股均为当日涨停股）。"""
     b = _dbar(code, d)
@@ -786,8 +794,9 @@ for _i, _d in enumerate(dates):
     _pool_d = {s["code"] for s in (pools.get(_d) or [])}
     _dec = {"stage": next((x.get("stage") for x in days if x["date"] == _d), None)}
 
-    # ① 上一个空间龙头：最近一次整批断板批次（suppressStocks），断板后到今天的表现
-    _ev = next((days[_k] for _k in range(_i, -1, -1)
+    # ① 上一个空间龙头：最近一次「今日之前」的整批断板批次（v40：今日断板的
+    #    龙头不纳入——当日只统计之前断板龙头的情况），断板后到今天的表现
+    _ev = next((days[_k] for _k in range(_i - 1, -1, -1)
                 if days[_k].get("suppressStocks")), None)
     if _ev:
         _stocks = []
