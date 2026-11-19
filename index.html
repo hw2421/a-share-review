@@ -533,7 +533,7 @@
                text-align:center;background:var(--card2);border-right:1px solid #2c3a54;
                padding:2px 1px}
   .lblevel .lv small{display:block;color:var(--dim2);font-size:8px;font-weight:400}
-  .lblevel .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));
+  .lblevel .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
                   gap:0;background:var(--card);flex:1 1 auto;min-width:0}
   .lbstk{display:flex;align-items:center;justify-content:space-between;gap:3px;min-width:0;
          background:var(--card);border-right:1px solid #2c3a54;
@@ -567,7 +567,7 @@
     .mtable td{padding:1px 2px}
     .tdate{flex-basis:46px}
     .lblevel{grid-template-columns:34px minmax(0,1fr)}
-    .lblevel .items{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+    .lblevel .items{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
     .lbstk{padding:2px 4px;font-size:10px}
     .scroll{max-height:none!important;overflow:visible}
     #kpop{width:96vw;height:min(680px,90vh)}
@@ -581,6 +581,7 @@
     <nav id="nav">
       <button data-t="market" class="on">空间情绪</button>
       <button data-t="theme">题材炒作</button>
+      <button data-t="ladder">连板梯队</button>
       <button data-t="decision">复盘决策</button>
       <button data-t="review">交易复盘</button>
     </nav>
@@ -621,6 +622,16 @@
     <div class="trange" id="theme-range"></div>
     <div class="tlegend" id="theme-legend"></div>
     <div class="scroll" id="theme-list"></div>
+  </div>
+</section>
+
+<!-- ============ 连板梯队（当日连板个股 + 题材穿透） ============ -->
+<section class="page" id="page-ladder">
+  <div class="card">
+    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 点题材标签跳转题材炒作页并闪动定位 · 点个股看日K</span></h3>
+    <div class="dpick" id="dp-ladder"></div>
+    <div class="trange" id="ladder-range"></div>
+    <div class="scroll" id="ladder-list"></div>
   </div>
 </section>
 
@@ -1586,6 +1597,112 @@ function stageChipHtml(st){
   if(!st) return '<span style="color:'+C.dim2+'">—</span>';
   return '<span class="stgchip" style="background:'+(STAGE_SOLID[st]||C.blue)+
     ';color:'+(STAGE_TXT[st]||'#fff')+'">'+st+'</span>';
+}
+
+/* ================= 连板梯队（当日 2 板及以上，题材穿透） =================
+   v46 恢复：数据仍取 R.lb[日期]（build_merged 生成、刷新 applyDayPool 同源）。 */
+let LADDER_DATE = null;
+function renderLadder(date){
+  const R = window.REVIEW, LB = R.lb||{};
+  const all = (R.dates||[]).slice().sort();
+  const withLB = all.filter(d=>LB[d]);
+  let dts = withLB.slice(-20).reverse();                // 近 20 个有连板的交易日
+  // 独立日期选择可定位到任意历史交易日：即使当日无连板股，也加入按钮并显示该日数据
+  if(date && all.includes(date) && !dts.includes(date)) dts = [date].concat(dts).slice(0,21);
+  if(!date || !all.includes(date)) date = dts[0] || null;
+  LADDER_DATE = date;
+  const range = document.getElementById('ladder-range');
+  range.innerHTML = dts.map(d=>'<button data-d="'+d+'"'+
+      (d===date?' class="on"':'')+'>'+fmtDate(d)+'</button>').join('')+
+    '<span class="co">近 '+dts.length+' 日 · 共 '+withLB.length+' 个交易日有连板股</span>';
+  range.querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>renderLadder(b.dataset.d);
+  });
+  const list = document.getElementById('ladder-list');
+  if(!date){
+    list.innerHTML = '<div style="color:'+C.dim+'">暂无连板数据</div>';
+    return;
+  }
+  const rows = LB[date]||[];
+  const st = (R.stages||[]).find(x=>x.date===date) || {};
+  const sf = (st.spaceFull||[]).map(s=>s.name+'·'+s.boards+'板').join('、');
+  let html = '<div class="lbday"><b>'+fmtDate(date)+'</b>'+
+    '<span class="st">涨停 '+(st.ztCount||0)+' 家 · 连板 '+rows.length+' 只'+
+    (st.ztCount? '（首板 '+(st.ztCount-rows.length)+' 只）':'')+
+    ' · 空间高度 '+(st.spaceTop||0)+' 板'+
+    (sf? '（'+sf+'）':'')+'</span>'+
+    stageChipHtml(st.stage)+'</div>';
+  if(!rows.length){
+    html += '<div style="color:'+C.dim2+';font-size:12px;padding:6px 0">当日无 2 板及以上连板股</div>';
+  }
+  const by = {};
+  rows.forEach(r=>{ (by[r[1]] = by[r[1]]||[]).push(r); });
+  Object.keys(by).map(Number).sort((a,b)=>b-a).forEach(lv=>{
+    // 同身位个股按「当日题材强度」排列：板块涨停家数 > 板块最高板 > 首封时间早 > 代码
+    const strength = th=>{
+      const n = th ? tName(th) : '';
+      const e = ((R.ladders||{})[date]||{})[n] || {};
+      return (e.count||0)*100 + (e.maxB||0)*10;
+    };
+    const arr = by[lv].slice().sort((x,y)=>
+      (strength(y[2]) - strength(x[2])) ||
+      String(x[4]||'99:99').localeCompare(String(y[4]||'99:99')) ||
+      String(x[3]||'').localeCompare(String(y[3]||'')));
+    const tone = lv>=4 ? C.gold : (lv===3 ? C.up : C.text);
+    html += '<div class="lblevel"><div class="lv" style="color:'+tone+'">'+lv+'板'+
+      '<small>'+arr.length+'只</small></div><div class="items">'+
+      arr.map(r=>{
+        const nm = r[0], th = r[2]||'', code = r[3]||'', tm = r[4]||'';
+        const col = th ? (T_COLOR[tName(th)]||C.blue) : C.dim2;
+        return '<span class="lbstk'+(th?'':' noth')+'" data-c="'+code+'" data-n="'+nm+
+          '" data-d="'+date+'" title="'+nm+' · 涨停时间 '+(tm||'—')+
+          ' ｜ 点击看日K（箭头指 '+fmtDate(date)+'）">'+
+          '<span class="nm">'+nm+'</span>'+
+          (tm? '<span class="stime'+(tm>='14:00'?' late':'')+'" title="首次封板 '+tm+'">'+tm+'</span>':'')+
+          '<span class="th" data-th="'+th+'" data-d="'+date+'" title="'+
+          (th? '点击 → 题材炒作页「'+th+'」'+fmtDate(date)+'（闪动提示）' : '当日无题材归属')+
+          '" style="color:'+(th? col : C.dim2)+';'+(th?'border-color:'+col+'55':'')+'">'+
+          (th||'—')+'</span></span>';
+      }).join('')+'</div></div>';
+  });
+  // 当日题材分布（含首板，点标签 → 题材炒作页闪动定位）
+  const lad = (R.ladders||{})[date] || {};
+  const tnames = Object.keys(lad).filter(nm=>lad[nm].count>=2 || lad[nm].maxB>=2)
+    .sort((a,b)=>
+    (lad[b].count-lad[a].count) || (lad[b].maxB-lad[a].maxB));
+  if(tnames.length){
+    html += '<div class="lblevel lbdist">'+
+      '<div class="lv">题材<br>分布</div>'+
+      '<div class="items">'+
+      tnames.map(nm=>{
+        const col = T_COLOR[tName(nm)]||C.blue;
+        const lab = lad[nm].maxB>=2 ? lad[nm].ladder+' · '+lad[nm].count+'只'
+                                    : '首板×'+lad[nm].count;
+        return '<span class="lbstk" data-th="'+nm+'" data-d="'+date+'" '+
+          'title="'+nm+'：当日涨停 '+lad[nm].count+' 只，梯队 '+lad[nm].ladder+
+          ' ｜ 点击 → 题材炒作页闪动定位" style="border-color:'+col+'66">'+
+          '<span class="nm" style="color:'+col+'">'+nm+'</span>'+
+          '<span class="th" style="color:'+col+';border-color:'+col+'66">'+lab+'</span></span>';
+      }).join('')+'</div></div>';
+  }
+  list.innerHTML = html;
+  list.scrollTop = 0;
+  list.querySelectorAll('.lbstk').forEach(el=>{
+    el.onclick = ev=>{
+      if(el.dataset.th){                       // 题材分布标签
+        ev.stopPropagation();
+        gotoTheme(el.dataset.d, el.dataset.th);
+        return;
+      }
+      const tg = ev.target.closest ? ev.target.closest('.th') : null;
+      if(tg && tg.dataset.th){                 // 个股上的题材标签
+        ev.stopPropagation();
+        gotoTheme(tg.dataset.d, tg.dataset.th);
+        return;
+      }
+      if(el.dataset.c) showK(el.dataset.c, el.dataset.n, ev, el.dataset.d);
+    };
+  });
 }
 
 /* ================= 交易复盘：单一战法「山顶洞人」回测（v42） =================
@@ -2737,7 +2854,7 @@ document.addEventListener('click', e=>{
 
 /* ================= 历史定位：全局「确定」+ 每个模块独立日期选择 ================= */
 let histDate = null;
-const MODS = ['market','theme'];        // v38：赚钱效应/连板梯队/当日机会页已取消
+const MODS = ['market','theme','ladder'];  // v46：恢复连板梯队页（赚钱效应/当日机会仍取消）
 const MOD_DATE = {};               // 每个模块各自选定的日期，互不影响
 
 /* 空间情绪模块：主图窗口对准该日 + 摘要 + 明细表跳转 */
@@ -2796,6 +2913,7 @@ function focusModule(mod, date){
   if(host && host.__setDate) host.__setDate(date);
   if(mod==='market')       focusMarket(date);
   else if(mod==='theme'){  ensureRange('theme', date); renderTheme(); scrollFlash('#theme-list .trow[data-d="'+date+'"]'); }
+  else if(mod==='ladder'){ renderLadder(date); }
   highlightDate(date);          // 必须在重绘之后，否则新 DOM 上没有高亮
 }
 /* 顶部「确定」：所有独立模块一起跳到对应日期的数据 */
@@ -3199,6 +3317,7 @@ function switchTab(t){
   document.body.scrollTop = 0;
   const tlist = document.getElementById('theme-list');
   if(tlist) tlist.scrollTop = 0;              // 题材按时间降序，最新在最上
+  if(t==='ladder') renderLadder(LADDER_DATE);
   if(t==='decision') renderDecision();
   if(t==='review') setTimeout(rvFreezeCols, 20);   // 页面可见后再量「买入日」列宽（隐藏时宽度为 0）
   if(t==='market' && mktChart) setTimeout(()=>mktChart.resize(), 30);
@@ -3212,6 +3331,7 @@ if(!window.REVIEW){
   renderHeader();
   try{ renderMarket(); }catch(e){ document.title='MKTERR:'+e.message; }
   try{ renderTheme(); }catch(e){ document.title='THMERR:'+e.message; }
+  try{ renderLadder(); }catch(e){ document.title='LADERR:'+e.message; }
   try{ rvInit(); }catch(e){ document.title='RVERR:'+e.message; }
   let p = new URLSearchParams(location.search).get('tab');
   if(!p){ try{ p = sessionStorage.getItem('sd_tab'); }catch(e){} }
@@ -3567,6 +3687,7 @@ window.checkNewData = checkNewData;      // 暴露给自动化回归 / 控制台
       renderHeader();
       renderMarket();
       try{ renderTheme(); }catch(e){}
+      try{ renderLadder(); }catch(e){}
       if(lastK && document.getElementById('kpop').style.display==='block')
         showK(lastK.code, lastK.name, null, lastK.atDate);
       btn.textContent = '⟳ 已更新';
