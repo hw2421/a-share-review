@@ -360,15 +360,15 @@ for d in dates:
         e["stocks"] = slim_stocks(e["stocks"])
     ladders[d] = lad
 
-# ---- 3.4 题材炒作入链门槛（v38 用户口径）----
-# 「板块有 5 个涨停且有连板的题材都抓取显示」：
-#   板块 maxB >= 2（有连板）且池内该题材真实涨停股 >= 5 只。
+# ---- 3.4 题材炒作入链门槛（v43 用户口径）----
+# 「有连板且涨停个股 > 3 只的题材就纳入展示」：
+#   板块 maxB >= 2（有连板）且池内该题材真实涨停股 >= 4 只（>3）。
 # 家数 / 梯队 / 个股一律取当日真实涨停池，不再使用文章标注家数，
 # 也不再有「池推估算(≈)」块 —— 必须涨停才统计。
 # 注：本段只重建 themeDetail / themeDates（题材炒作图与线路图的数据源）。
 # theme_at / ladders / ladderFull / money 均在本段之前生成，strategies.build
 # 也不读 theme_detail，因此战法、机会池、交易复盘、boardEarn 口径完全不受影响。
-MIN_BOARD, MIN_STOCKS = 2, 5
+MIN_BOARD, MIN_STOCKS = 2, 4
 n_syn = 0
 for d in dates:
     lad = ladders.get(d, {})
@@ -404,7 +404,7 @@ for d in dates:
     else:
         theme_detail.pop(d, None)
         theme_source.pop(d, None)
-print("按真实涨停池重建题材块，新建 %d 个（门槛：有连板≥2板且板块≥5只涨停）" % n_syn)
+print("按真实涨停池重建题材块，新建 %d 个（门槛：有连板≥2板且板块涨停 >3 只）" % n_syn)
 # 非交易日（周末/节假日）的题材块无法挂到任何一行，直接丢弃（如 2026-09-13 周日）
 _drop = [d for d in theme_detail if d not in pool_map]
 if _drop:
@@ -741,20 +741,51 @@ ladders_out = {d: {nm: {"count": e["count"], "boards": e["boards"],
 #   ④ nextday：昨日涨停股今日分组表现（晋级 / 红盘 / 均值 / 最差），
 #      识别持续赚钱效应与人气板块；
 #   ⑤ pools：三大选股池（盘前关注池 / 当日涨停备选池 / 活跃股池）。
-def _shape(code, d, name=""):
-    """涨停形态：一字 / T字 / 换手（梯队个股均为当日涨停股）。"""
+def _up_shape(code, d, name=""):
+    """涨停形态（v43 用户口径，六分类；非涨停返回空串）：
+
+      一字  —— 涨停开盘且全天未开板（最低价 = 涨停价）；
+      赚T   —— 涨停开盘、振幅 < 8%（T 字板，盘中开板又封回）；
+      地天  —— 跌停开盘、涨停收盘（地天板），优先级最高；
+      普通  —— 振幅 8%~12%；
+      长腿  —— 振幅大于 12%（大长腿）；
+      赚钱  —— 高开涨停（开盘高于昨收、振幅 < 8%）；
+      低开  —— 低开涨停且振幅 < 8%（用户口径未单列，保留中性标注避免误判）。
+
+    振幅 = (最高价 − 最低价) / 昨收；价格全部用不复权日K，涨停/跌停价按
+    主板 10% / 创业板科创板 20% / 北交所 30% / ST 5% 四舍五入到分。"""
     b = _dbar(code, d)
     pv = _prev_close(code, d)
     if not b or len(b) < 5 or not pv:
         return ""
     lim = _lim_of(code, name)
-    if b[2] / pv - 1 < lim - .006:
+    up_lim = round(pv * (1 + lim), 2)
+    dn_lim = round(pv * (1 - lim), 2)
+    if b[2] < up_lim - .011:                     # 收盘不在涨停价 → 不是涨停股
         return ""
-    if b[1] == b[3] and b[3] == b[2]:                      # 开=低=收：全天一字
+    amp = (b[4] - b[3]) / pv * 100               # 振幅（相对昨收）
+    if b[1] <= dn_lim + .011:
+        return "地天"
+    if b[3] >= up_lim - .011:                    # 最低价即涨停价：全天一字未开板
         return "一字"
-    if b[1] == b[2] and b[1] / pv - 1 >= lim - .006:       # 涨停开盘收盘未开：T字
-        return "T字"
-    return "换手"
+    if b[1] >= up_lim - .011:                    # 涨停开盘、盘中开板
+        return "赚T" if amp < 8 else ("普通" if amp <= 12 else "长腿")
+    if amp > 12:
+        return "长腿"
+    if amp >= 8:
+        return "普通"
+    return "赚钱" if b[1] > pv else "低开"
+
+
+# 梯队浮层的个股涨停形态：ladderFull 生成于本段之前，这里统一回填（减少前端重复计算）
+_n_shape = 0
+for _sd, _sthm in ladder_full.items():
+    for _sarr in _sthm.values():
+        for _sx in _sarr:
+            _sx["s"] = _up_shape(_sx["code"], _sd, _sx.get("name") or "")
+            if _sx["s"]:
+                _n_shape += 1
+print("梯队个股涨停形态回填：%d 个股票日（一字/赚T/地天/普通/长腿/赚钱/低开）" % _n_shape)
 
 def _big_loss(entries, end_d):
     """断板后大亏判定（上一空间龙头批次）：断板日大长阴 / 跌停 / 连续两日跌≥6%。"""
@@ -835,10 +866,11 @@ for _i, _d in enumerate(dates):
             continue
         _nm = _g["theme"]
         _full = _LF_d.get(_nm) or []
+        # v43：决策页不展示首板股 → 只保留 2 板及以上（涨停形态由 _up_shape 统一给出）
         _big = [{"code": x["code"], "name": x["name"], "boards": x["boards"],
-                 "t": x.get("t") or "", "shape": _shape(x["code"], _d, x.get("name") or "")}
+                 "t": x.get("t") or "",
+                 "shape": x.get("s") or _up_shape(x["code"], _d, x.get("name") or "")}
                 for x in _full if (x.get("boards") or 1) >= 2]
-        _n1 = sum(1 for x in _full if (x.get("boards") or 1) == 1)
         # 昨日次高板断板 → 今日涨跌幅
         _nb = []
         if _pd:
@@ -851,7 +883,7 @@ for _i, _d in enumerate(dates):
                     _nb.append({"name": _x.get("name"), "code": _x["code"],
                                 "b": _ylb[1], "chg": chg_on(_x["code"], _d)})
         _themes.append({"name": _nm, "count": _g.get("count"), "maxB": _g.get("maxB"),
-                        "lead": _g.get("lead"), "big": _big, "n1": _n1, "nb": _nb})
+                        "lead": _g.get("lead"), "big": _big, "nb": _nb})
     _dec["themes"] = _themes
 
     # ③ 昨日涨停 → 今日赚钱效应（v41 用户方法论，v42 只展示有具体题材的板块）：
@@ -884,8 +916,10 @@ for _i, _d in enumerate(dates):
                 _rows.append([_s["name"], _c, _bd, _t, _chg])
             _rows.sort(key=lambda _r: (-_r[2], _r[3] or "99:99", _r[1]))
             _gain = [_r[0] for _r in _rows if _r[1] in _today]
+            # v43：决策页不展示首板股 → 个股明细只留 2 板及以上（组内统计仍按全部昨日涨停股）
+            _rows2 = [_r for _r in _rows if _r[2] >= 2]
             _nd.append({"name": _nm, "n": len(_rows), "lim": len(_gain),
-                        "gain": _gain[:6], "stocks": _rows,
+                        "gain": _gain[:6], "stocks": _rows2, "n2": len(_rows2),
                         "up": sum(1 for _v in _vals if _v > 0),
                         "avg": round(sum(_vals) / len(_vals), 2) if _vals else None,
                         "min": round(min(_vals), 2) if _vals else None})
@@ -922,8 +956,8 @@ for _i, _d in enumerate(dates):
         _grp = {}
         _m_d = theme_at.get(_d, {})
         for _c, _e in _cnt.items():
-            if _e["t"] < 5 or _c in _down2:
-                continue
+            if _e["t"] < 5 or _c in _down2 or _e["b"] < 2:
+                continue                      # v43：不展示只有首板的个股
             _nm = _m_d.get(_c) or carry.get(_c, "")
             if not _nm:
                 continue

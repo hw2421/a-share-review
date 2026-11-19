@@ -738,11 +738,19 @@ def main():
             # ③ 战法留痕
             if "山顶洞人" not in why:
                 err("v42 %s %s %s why 缺「山顶洞人」留痕" % (m, B, name)); n_v29 += 1
-            # ④ T 日选股条件独立复算（换手 3 板+龙头 + 换手 2 板跟风）
+            # ④ T 日选股条件独立复算（换手 3 板+龙头 + 换手 2 板跟风 + 选股日放量）
             okp, pdesc = _handover_pick(T, th, code, name)
             if okp is False:
-                err("v42 %s %s %s T 日选股条件不成立：%s"
+                err("v43 %s %s %s T 日选股条件不成立：%s"
                     % (m, B, name, pdesc)); n_v29 += 1
+            # ④b 选股日放量（v43）：T 日成交量 > 上一交易日成交量（近100日最大量只作最佳标注）
+            vT = _vol(code, T)
+            vT1 = _vol(code, dates[i - 2]) if i >= 2 else 0
+            if not vT or not vT1 or vT <= vT1:
+                err("v43 %s %s %s 选股日（%s）未放量：量 %s ≤ 前一日 %s"
+                    % (m, B, name, T, vT or 0, vT1 or 0)); n_v29 += 1
+            if "放量" not in why:
+                err("v43 %s %s %s why 缺「放量」留痕" % (m, B, name)); n_v29 += 1
             N = (stage_full.get(T, {}) or {}).get("suppress") or 0
             # ⑤ 两笔买点分别复算
             if "次日接力" in why:
@@ -777,11 +785,12 @@ def main():
     if set(meta.keys()) != set(RV_METHODS):
         err("v42 reviewMeta 战法集合不符：%s" % sorted(meta.keys())); n_v29 += 1
     uni29 = (meta.get("summit") or {}).get("uni") or ""
-    for kw in ("v42", "山顶洞人", "换手（非一字）3 板", "板块梯队＝板块有持续性",
+    for kw in ("v43", "山顶洞人", "换手（非一字）3 板", "板块梯队＝板块有持续性",
+               "选股日放量", "近100日最大量",
                "空间压制高度 − 2 板", "空间压制高度 + 1",
                "盘中 −7% 无条件止损", "一字涨停买不进"):
         if kw not in uni29:
-            err("v42 统一口径 uni 缺关键字「%s」" % kw); n_v29 += 1
+            err("v43 统一口径 uni 缺关键字「%s」" % kw); n_v29 += 1
     buy_all = " ".join((meta.get(m) or {}).get("buy") or "" for m in RV_METHODS)
     for bad_kw in ("凹凸曼", "黑盒", "示范龙头", "v27 门槛", "首次符合条件", "连续 ≥3 日登"):
         if bad_kw in buy_all:

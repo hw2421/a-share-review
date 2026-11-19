@@ -9,7 +9,9 @@
 
 「山顶洞人」口径（用户原话）：
   · 选股条件：板块龙头＝板块最高连板，且是换手 3 连板或以上（一字板不算换手龙头）；
-    板块内有换手 2 连板（跟风股），组成板块梯队，视为板块有持续性。
+    板块内有换手 2 连板（跟风股），组成板块梯队，视为板块有持续性；
+    且龙头股**选股日（T 日）放量**——成交量较上一交易日放大（为近 100 个交易日
+    最大成交量最佳，作「最佳」标注，不额外过滤）。
   · 买入第一笔（次日接力）：符合选股条件的次日，龙头再次换手涨停（非一字涨停），
     且有助攻——昨日跟风股今天高开红盘无亏钱，或昨日首板晋级产生新的二连板跟风
     （助攻股先于龙头涨停更佳，只作描述标注）；同时龙头连板高度要低于空间龙头
@@ -36,7 +38,8 @@ META = {
     "summit": {
         "name": "山顶洞人",
         "buy": "【选股】板块龙头＝板块最高连板，且为换手 3 连板或以上（一字板不算换手龙头）；"
-               "板块内有换手 2 连板跟风股，组成板块梯队，视为板块有持续性。"
+               "板块内有换手 2 连板跟风股，组成板块梯队，视为板块有持续性；"
+               "且龙头选股日放量（成交量较上一交易日放大，为近 100 个交易日最大成交量最佳）。"
                "【买入一 · 次日接力】符合选股条件的次日，龙头再次换手涨停（非一字涨停），"
                "且有助攻：昨日跟风股今天高开红盘无亏钱，或昨日首板晋级产生新的二连板跟风"
                "（助攻股先于龙头涨停更佳）；龙头连板高度要低于空间龙头 2 个板或以上"
@@ -44,6 +47,9 @@ META = {
                "【买入二 · 空间突破日】此龙头股空间突破日，均为涨停买入。",
         "sell": SELL_TXT,
         "note": "「换手」＝当日涨停且非一字（开盘即封死、全天未开板的一字板不算换手）；"
+                "「放量」＝选股日（T 日）成交量 > 上一交易日成交量，日K 成交量口径；"
+                "若 T 日成交量同时是近 100 个交易日（含 T 日）最大量，在买入理由里标注"
+                "「近100日最大量」（最佳形态，不额外加过滤条件）。"
                 "「空间龙头高度」取前一交易日 stages.suppress（上一个空间龙头整批断板时"
                 "改写的高度），买入一要求龙头当日板数 ≤ 该高度 − 2，"
                 "买入二取当日板数 = 该高度 + 1（突破日）。"
@@ -72,7 +78,7 @@ def build(ctx):
     stats = {"cand": 0, "fire": 0, "yizi": 0, "no_limit": 0,
              "open_skip": 0, "no_kline": 0, "defer": 0, "consec_yizi": 0,
              "burst": 0, "m1": 0, "m2": 0, "pick": 0, "no_assist": 0,
-             "height_skip": 0}
+             "height_skip": 0, "no_vol": 0, "maxvol": 0}
 
     chances = defaultdict(list)
     chance_seen = set()
@@ -149,6 +155,47 @@ def build(ctx):
         if e and e.get("yizi"):
             return True
         return is_oneword_up(code, d)
+
+    # ---------------- 量能（v43 选股条件：选股日放量） ----------------
+    def vol_of(code, d):
+        b = bar_of(code, d)
+        return b[5] if (b and len(b) >= 6 and b[5]) else None
+
+    def vol_prev(code, d):
+        """上一交易日成交量（成交量为 0 / 停牌日自动跳过）。"""
+        rec = KBARS.get(code)
+        i = DIDX.get(d)
+        if not rec or i is None:
+            return None
+        for j in range(i - 1, -1, -1):
+            v = vol_of(code, dates[j])
+            if v:
+                return v
+        return None
+
+    def is_max_vol100(code, d):
+        """T 日成交量是否为近 100 个交易日（含 T 日）最大量 —— 放量的最佳形态。"""
+        v = vol_of(code, d)
+        i = DIDX.get(d)
+        if not v or i is None:
+            return False
+        for j in range(max(0, i - 99), i):        # 前 99 个交易日
+            w = vol_of(code, dates[j])
+            if w and w > v:
+                return False
+        return True
+
+    def vol_ok(code, T):
+        """选股条件之一：龙头股选股日（T）成交量较上一交易日放大。"""
+        v, vp = vol_of(code, T), vol_prev(code, T)
+        return bool(v and vp and v > vp)
+
+    def vol_desc(code, T):
+        v, vp = vol_of(code, T), vol_prev(code, T)
+        if not v or not vp:
+            return ""
+        txt = "选股日放量 %.2f 倍" % (v / vp)
+        return txt + ("（近100日最大量）" if is_max_vol100(code, T) else "")
 
     def consec_oneword_open(code, d):
         """连续一字涨停且当日涨停开盘 —— 全程无换手、买不进，不属于任何战法标的。"""
@@ -270,7 +317,8 @@ def build(ctx):
 
     def pick_set(T):
         """T 日选股：板块龙头＝板块最高连板且换手（非一字）3 板+；
-        板块内另有换手 2 连板跟风股（组成板块梯队 → 板块有持续性）。"""
+        板块内另有换手 2 连板跟风股（组成板块梯队 → 板块有持续性）；
+        且龙头股 T 日放量（成交量较上一交易日放大，v43）。"""
         if T in _pick_cache:
             return _pick_cache[T]
         out = []
@@ -292,6 +340,9 @@ def build(ctx):
                 continue                      # 无换手 2 板跟风 → 无梯队，不入选
             f1 = sorted([x for x in arr if x["boards"] == 1], key=lambda x: x["code"])
             for lead in leads:
+                if not vol_ok(lead["code"], T):
+                    stats["no_vol"] += 1      # 选股日缩量 → 不入选
+                    continue
                 out.append({"nm": nm, "lead": lead, "f2": f2, "f1": f1, "mx": mx})
         _pick_cache[T] = out
         return out
@@ -446,6 +497,8 @@ def build(ctx):
             bd = e.get("boards") or 1
             th = nm                          # 口径：按 T 日选股时的板块（避免买入日题材漂移）
             handover = not (e.get("yizi") or is_oneword_up(c, B))
+            vd = vol_desc(c, T)              # v43：选股日放量（含近100日最大量标注）
+            vtxt = (" · " + vd) if vd else ""
 
             # 买入一 · 次日接力：龙头再次换手涨停 + 助攻 + 高度距空间 ≥2 板
             if bd >= 3 and handover:
@@ -455,8 +508,8 @@ def build(ctx):
                         stats["no_assist"] += 1
                     else:
                         why = ("山顶洞人·次日接力 · 板块「%s」换手 %d 板龙头（昨日 %d 板 + 换手 2 板跟风梯队）"
-                               " · 空间压制 %d 板 · 龙头高度距空间 ≥2 板 · %s"
-                               % (nm, bd, lead["boards"], NB, desc))
+                               " · 空间压制 %d 板 · 龙头高度距空间 ≥2 板 · %s%s"
+                               % (nm, bd, lead["boards"], NB, desc, vtxt))
                         if try_buy(B, c, th, why, bd) == "traded":
                             stats["m1"] += 1
                 else:
@@ -464,8 +517,8 @@ def build(ctx):
 
             # 买入二 · 空间突破日：当日板数 = 压制高度 + 1，涨停买入
             if NB >= 2 and bd == NB + 1:
-                why = ("山顶洞人·空间突破 · 板块「%s」%d 板龙头突破空间压制 %d 板 · 涨停买入"
-                       % (nm, bd, NB))
+                why = ("山顶洞人·空间突破 · 板块「%s」%d 板龙头突破空间压制 %d 板 · 涨停买入%s"
+                       % (nm, bd, NB, vtxt))
                 if try_buy(B, c, th, why, bd) == "traded":
                     stats["m2"] += 1
 
@@ -480,14 +533,19 @@ def build(ctx):
             uniq.append(t)
         uniq.sort(key=lambda x: (x["d"], x["code"]))
         review[m] = uniq
+    # 选股日即为近 100 日最大量的笔数（放量的最佳形态，仅统计不额外过滤）
+    stats["maxvol"] = sum(1 for t in review["summit"]
+                          if "近100日最大量" in str(t.get("why") or ""))
 
-    print("山顶洞人逐笔：%d 笔（次日接力 %d / 空间突破 %d）；选股 %d 次"
-          % (len(review["summit"]), stats["m1"], stats["m2"], stats["pick"]), flush=True)
+    print("山顶洞人逐笔：%d 笔（次日接力 %d / 空间突破 %d）；选股 %d 次（选股日均放量）；"
+          "其中选股日近100日最大量 %d 笔"
+          % (len(review["summit"]), stats["m1"], stats["m2"], stats["pick"],
+             stats["maxvol"]), flush=True)
     print("触发统计：候选 %d；一字买不进 %d；未涨停/未晋级 %d；无助攻 %d；"
-          "高度不符 %d；无日K %d；连续一字剔除 %d；一字跌停顺延 %d 个股票日"
+          "高度不符 %d；选股日缩量 %d；无日K %d；连续一字剔除 %d；一字跌停顺延 %d 个股票日"
           % (stats["cand"], stats["yizi"], stats["no_limit"], stats["no_assist"],
-             stats["height_skip"], stats["no_kline"], stats["consec_yizi"],
-             stats["defer"]), flush=True)
+             stats["height_skip"], stats["no_vol"], stats["no_kline"],
+             stats["consec_yizi"], stats["defer"]), flush=True)
 
     # ---------------- 10. K线骷髅头标记 ----------------
     kMarks = {}
@@ -522,12 +580,14 @@ def build(ctx):
           (len(chances_out), sum(len(v) for v in chances_out.values()),
            sum(1 for v in chances_out.values() for x in v if x["yizi"])), flush=True)
 
-    UNI = ("【统一口径 v42 · 单一战法「山顶洞人」】① 时点：B 为买入日（当日），"
+    UNI = ("【统一口径 v43 · 单一战法「山顶洞人」】① 时点：B 为买入日（当日），"
            "T=B−1 为选股 / 复盘日；本页日期为买入日。② 买入价一律以涨停价打板；"
            "盘中冲击涨停后回落炸板，也按涨停价模拟买入、纳入统计。"
            "③ 一字涨停买不进，只进机会池、不纳入模拟。"
            "④ 选股：板块龙头＝板块最高连板且换手（非一字）3 板及以上；"
-           "板块内有换手 2 连板跟风股（组成板块梯队＝板块有持续性）。"
+           "板块内有换手 2 连板跟风股（组成板块梯队＝板块有持续性）；"
+           "且龙头选股日放量（T 日成交量 > 上一交易日成交量；"
+           "若同时是近 100 个交易日最大成交量，理由里标注「近100日最大量」＝最佳形态）。"
            "⑤ 买入一 次日接力：选股次日龙头再次换手涨停（非一字），有助攻"
            "（昨日跟风股今日高开红盘无亏钱，或昨日首板晋级新的二连板跟风；先于龙头涨停更佳），"
            "且龙头高度 ≤ 空间压制高度 − 2 板。"
@@ -550,6 +610,8 @@ def build(ctx):
             "noLimit": stats["no_limit"],
             "noAssist": stats["no_assist"],
             "heightSkip": stats["height_skip"],
+            "noVol": stats["no_vol"],
+            "maxVol": stats["maxvol"],
             "noKline": stats["no_kline"],
             "consecYizi": stats["consec_yizi"],
             "burst": stats["burst"],

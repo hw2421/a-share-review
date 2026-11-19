@@ -187,6 +187,16 @@
   #ladpop .s:hover{border-color:var(--blue);color:#fff}
   #ladpop .s b{color:var(--text);font-weight:600}
   #ladpop .s.lead{border-color:var(--up);background:rgba(245,69,92,.14)}
+  /* v43 涨停形态标签：一字 / 赚T / 地天 / 普通 / 长腿 / 赚钱 / 低开 */
+  #ladpop .s em.sp{font-style:normal;font-size:9px;margin-left:3px;border-radius:2px;
+        padding:0 3px;font-weight:700;white-space:nowrap}
+  .sp.sp-yz{background:rgba(245,69,92,.24);color:#ff9aa8}
+  .sp.sp-zt{background:rgba(240,185,11,.22);color:#f6db86}
+  .sp.sp-dt{background:rgba(165,94,234,.24);color:#d9b8ff}
+  .sp.sp-pt{background:rgba(61,139,255,.2);color:#9fc6ff}
+  .sp.sp-lt{background:rgba(46,189,133,.22);color:#8ce3bf}
+  .sp.sp-zq{background:rgba(255,122,69,.22);color:#ffbd9e}
+  .sp.sp-dk{background:#26303f;color:#9aa6b8}
   /* 涨停时间（首次封板）：早盘偏金、尾盘偏灰，一眼看出封板质量 */
   #ladpop .s em.st{font-style:normal;font-size:9px;margin-left:3px;
         font-variant-numeric:tabular-nums;color:var(--gold)}
@@ -198,6 +208,7 @@
                  border-top:1px solid #22304a;padding-top:6px;line-height:1.7}
   #ladpop .lfoot b{color:var(--text)}
   .tcard .lad{cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.45);text-underline-offset:2px}
+  .tcard .ld.lad:hover{color:#fff;background:rgba(255,255,255,.14);border-radius:3px}
   .tcard .lad:hover{opacity:1;color:#fff}
   .stg4{display:inline-block;border-radius:3px;padding:0 4px;font-size:10px;
         font-weight:700;white-space:nowrap;line-height:1.5}
@@ -251,6 +262,8 @@
   .rv-bar button.rv-ok{background:#8c1f61;border-color:#ff9ed7;color:#fff;font-weight:800}
   .rv-bar button.rv-ok:hover{background:#a52a76}
   .rv-tbl .rv-cum{color:var(--gold);font-weight:700}
+  .rv-tbl .rv-vmax{color:#8ce3bf;border:1px solid rgba(46,189,133,.5);border-radius:3px;
+      font-size:9px;font-weight:800;padding:0 2px;margin-left:3px;vertical-align:1px}
   .rv-tbl .rv-burst{color:#ffd23f;font-size:10px;font-weight:800;margin-left:4px;
         border:1px solid rgba(255,210,63,.55);border-radius:3px;padding:0 3px;
         background:rgba(255,210,63,.10)}
@@ -337,6 +350,12 @@
   .rv-tbl .rsn{color:var(--dim2);font-size:10px}
   .rv-tbl tr.rv-total td{border-top:2px solid var(--gold);font-weight:800;background:var(--card2)}
   #rv-table{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+  /* v43：买入日 / 个股 两列左右滚动时固定（左侧吸附），第二列偏移取第一列实际宽度 */
+  .rv-tbl .rv-fz{position:sticky;background:var(--card);z-index:3}
+  .rv-tbl th.rv-fz{z-index:6}
+  .rv-tbl .rv-fz1{left:0}
+  .rv-tbl .rv-fz2{left:var(--fz1,58px);box-shadow:6px 0 6px -6px rgba(0,0,0,.85)}
+  .rv-tbl tr.rv-odd td.rv-fz{background:var(--card)}
   /* 复盘页：年 / 月 / 日 三个条件选择（日下拉只列该月真实交易日） */
   .rv-ymd{display:inline-flex;gap:3px;align-items:center}
   .rv-ymd select{background:var(--card2);border:1px solid var(--line);color:var(--text);
@@ -533,8 +552,8 @@
     <nav id="nav">
       <button data-t="market" class="on">空间情绪</button>
       <button data-t="theme">题材炒作</button>
-      <button data-t="review">交易复盘</button>
       <button data-t="decision">复盘决策</button>
+      <button data-t="review">交易复盘</button>
     </nav>
     <span class="upd" id="upd">--</span>
     <span class="alert" id="alert" title="点击查看详情"></span>
@@ -568,11 +587,25 @@
 <!-- ============ 题材炒作图 ============ -->
 <section class="page" id="page-theme">
   <div class="card">
-    <h3>题材炒作图 <span class="sub">板块有连板且涨停 ≥5 只即纳入 · 金框 = 有赚钱效应的题材</span></h3>
+    <h3>题材炒作图 <span class="sub">板块有连板且涨停 >3 只即纳入 · 金框 = 有赚钱效应的题材</span></h3>
     <div class="dpick" id="dp-theme"></div>
     <div class="trange" id="theme-range"></div>
     <div class="tlegend" id="theme-legend"></div>
     <div class="scroll" id="theme-list"></div>
+  </div>
+</section>
+
+<section class="page" id="page-decision">
+  <div class="card">
+    <h3>复盘决策 <span class="sub">今日市场阶段 · 上一空间龙头断板表现与断板后日K · 赚钱效应题材梯队（只列连板股） · 昨日涨停今日赚钱效应（人气板块） · 活跃股池</span></h3>
+    <div class="ch-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button id="dc-prev" class="ch-go">◀ 上一交易日</button>
+      <select id="dc-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
+      <button id="dc-next" class="ch-go">下一交易日 ▶</button>
+      <button id="dc-today" class="ch-go">今日</button>
+      <span id="dc-live" class="sub" style="margin-left:4px"></span>
+    </div>
+    <div id="dc-body"></div>
   </div>
 </section>
 
@@ -624,20 +657,6 @@
         <div id="rr-out"></div>
       </div>
     </div>
-  </div>
-</section>
-
-<section class="page" id="page-decision">
-  <div class="card">
-    <h3>复盘决策 <span class="sub">今日市场阶段 · 上一空间龙头断板表现与断板后日K · 赚钱效应题材梯队 · 昨日涨停今日赚钱效应（人气板块） · 活跃股池</span></h3>
-    <div class="ch-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button id="dc-prev" class="ch-go">◀ 上一交易日</button>
-      <select id="dc-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
-      <button id="dc-next" class="ch-go">下一交易日 ▶</button>
-      <button id="dc-today" class="ch-go">今日</button>
-      <span id="dc-live" class="sub" style="margin-left:4px"></span>
-    </div>
-    <div id="dc-body"></div>
   </div>
 </section>
 
@@ -1318,7 +1337,7 @@ function renderTheme(){
       (srcMap[d]==='ths'?'<span class="src-ths">※同花顺</span>':'')+'</div><div class="tcards">';
     if(!themes.length){
       html += '<span style="color:'+C.dim2+';font-size:12px;padding:2px 0">'+
-        '当日无「有连板且涨停≥5只」的题材</span>';
+        '当日无「有连板且涨停 >3 只」的题材</span>';
     }
     const earnSet = {};
     ((R.money||{})[d]||[]).forEach(g=>{ if(g.theme) earnSet[tName(g.theme)]=1; });
@@ -1353,7 +1372,9 @@ function renderTheme(){
         (earn?'<em style="color:#ffd24a;font-weight:800;font-size:9px" title="有赚钱效应">★赚</em>':'')+'</span>'+
         '<span class="r2"><span class="ct">'+cnt+'只</span>'+
         (st? '<span class="stt" style="color:'+STAGE4_COL[st]+'">'+st+'</span>':'')+'</span>'+
-        (leader? '<span class="r3"><span class="ld">'+leader.name+
+        (leader? '<span class="r3"><span class="ld lad" data-lad="1" data-th="'+nm+'" data-d="'+d+'" '+
+          'title="点击「'+leader.name+'」查看 '+fmtDate(d)+'「'+nm+'」当日板块梯队（含个股涨停形态）">'+
+          leader.name+
           (leader.boards>=2? '<em>'+leader.boards+'板</em>':'<em>首板</em>')+'</span></span>':'')+
         (lad? '<span class="r4"><span class="lad" data-lad="1" data-th="'+nm+'" data-d="'+d+'" '+
               'title="点击查看 '+fmtDate(d)+'「'+nm+'」当日板块梯队">'+
@@ -1385,6 +1406,12 @@ function renderTheme(){
 /* ---- 题材卡点「梯队」→ 浮层显示当日板块梯队（各板数 + 完整涨停个股） ---- */
 /* 涨停时间：梯队完整清单用 t 字段、题材块个股用 time 字段（数据层同源为 HH:MM） */
 function sealOf(s){ return (s && (s.t || s.time)) || ''; }
+/* v43 涨停形态配色：一字 / 赚T / 地天 / 普通 / 长腿 / 赚钱 / 低开 */
+const SP_CLS = {'一字':'sp-yz','赚T':'sp-zt','地天':'sp-dt','普通':'sp-pt',
+                '长腿':'sp-lt','赚钱':'sp-zq','低开':'sp-dk'};
+function shapeCls(s){ return SP_CLS[s] || 'sp-pt'; }
+const SP_TIP = '形态：一字＝涨停开盘全天未开板 · 赚钱＝高开涨停 · 赚T＝涨停开盘振幅<8% · '+
+  '普通＝振幅8%~12% · 长腿＝振幅>12% · 地天＝跌停开盘涨停收盘';
 function lateSeal(t){ return !!(t && t >= '14:00'); }
 function openLadPop(nm, d, ev){
   const R = window.REVIEW;
@@ -1407,11 +1434,12 @@ function openLadPop(nm, d, ev){
       '<span class="lbd">'+bd+'板</span>'+
       '<span class="lbar" title="'+arr.length+' 只"><i style="width:'+w+'%"></i></span>'+
       '<span class="lstk">'+arr.map(s=>{
-        const tm = sealOf(s);
+        const tm = sealOf(s), sp = s.s || '';
         return '<span class="s'+(bd===topB?' lead':'')+'" data-c="'+(s.code||'')+'" '+
-        'data-n="'+s.name+'" data-d="'+d+'" title="'+s.name+' · 涨停时间 '+(tm||'—')+
-        ' ｜ 点击查看日K（箭头指 '+fmtDate(d)+'）">'+
-        '<b>'+s.name+'</b>'+(tm? '<em class="st'+(lateSeal(tm)?' late':'')+'">'+tm+'</em>':'')+
+        'data-n="'+s.name+'" data-d="'+d+'" title="'+s.name+' · '+(sp? sp+'板':'—')+
+        ' · 涨停时间 '+(tm||'—')+' ｜ 点击查看日K（箭头指 '+fmtDate(d)+'）">'+
+        '<b>'+s.name+'</b>'+(sp? '<em class="sp '+shapeCls(sp)+'">'+sp+'</em>':'')+
+        (tm? '<em class="st'+(lateSeal(tm)?' late':'')+'">'+tm+'</em>':'')+
         '</span>';
       }).join('')+'</span></div>';
   }).join('');
@@ -1423,8 +1451,8 @@ function openLadPop(nm, d, ev){
     (rows || '<div style="color:'+C.dim+'">当日无梯队个股</div>')+
     '<div class="lfoot">当日涨停 <b>'+cnt+'</b> 只 · 最高 <b>'+topB+'</b> 板 · 共 '+boards.length+' 个板级'+
     (st? ' · 阶段 <b style="color:'+STAGE4_COL[st]+'">'+st+'</b>':'')+
-    '<br>横条长度 = 该板级个股数；个股名后 <b style="color:'+C.gold+'">HH:MM</b> 为首次封板（涨停）时间；'+
-    '点个股名看日K（箭头指 '+fmtDate(d)+'）</div>';
+    '<br>横条长度 = 该板级个股数；个股名后标签为<b>涨停形态</b>（'+SP_TIP+'），'+
+    '<b style="color:'+C.gold+'">HH:MM</b> 为首次封板（涨停）时间；点个股名看日K（箭头指 '+fmtDate(d)+'）</div>';
   pop.style.display = 'block';
   const W = window.innerWidth, H = window.innerHeight;
   const x = Math.min((ev&&ev.clientX||W/2)+14, W-pop.offsetWidth-8);
@@ -1727,10 +1755,12 @@ function renderReview(){
     kv('最大单笔亏损', n ? Math.min.apply(null, rows.map(t=>t.pnl)).toFixed(2)+'%' : '—', '#2ebd85') +
     kv('模拟累积盈利', capital.toFixed(2)+'%（'+(finalCum>=0?'+':'')+finalCum.toFixed(2)+'%）', col(finalCum));
   const f2 = v => (v==null ? '—' : (+v).toFixed(2));
+  // v43 列顺序：盈亏比例 → 市场情绪阶段 → 当日题材（阶段紧跟盈亏，其后对应题材）；
+  // 买入日 / 个股 两列 sticky 固定，左右滚动不受影响。
   let html = '<table class="rv-tbl"><thead><tr>'+
-    '<th class="l">买入日</th><th class="l">个股</th><th>连板</th>'+
-    '<th>盈亏比例</th><th>累积盈利比例</th><th class="l">卖出原因</th>'+
-    '<th>买入日炸板</th><th>当日题材</th><th>市场情绪阶段</th>'+
+    '<th class="l rv-fz rv-fz1">买入日</th><th class="l rv-fz rv-fz2">个股</th><th>连板</th>'+
+    '<th>盈亏比例</th><th>市场情绪阶段</th><th class="l">当日题材</th>'+
+    '<th>累积盈利比例</th><th class="l">卖出原因</th><th>买入日炸板</th>'+
     '<th>买入价</th><th>卖出日</th><th>持仓</th><th>卖出价</th>'+
     '</tr></thead><tbody>';
   RV_ROWS = rows;
@@ -1741,18 +1771,21 @@ function renderReview(){
     const c = cum[t.d+'|'+t.code] || 100;
     const burst = (t.burst!=null ? t.burst : !t.sealed);
     html += '<tr>'+
-      '<td class="l">'+rvDateStr(t.d)+'</td>'+
-      '<td class="l"><span class="rv-stk" data-i="'+i+
-        '" title="点击查看日K及模拟买卖点（B 买 / S 卖）" style="cursor:pointer;color:'+C.blue+'">'+t.name+'</span>'+
+      '<td class="l rv-fz rv-fz1">'+rvDateStr(t.d)+'</td>'+
+      '<td class="l rv-fz rv-fz2"><span class="rv-stk" data-i="'+i+
+        '" title="点击查看日K及模拟买卖点（B 买 / S 卖）'+
+        (t.why? '&#10;买入理由：'+t.why : '')+'" style="cursor:pointer;color:'+C.blue+'">'+t.name+'</span>'+
+        (String(t.why||'').includes('近100日最大量') ?
+          '<span class="rv-vmax" title="选股日成交量为近 100 个交易日最大量（放量最佳形态）">量</span>' : '')+
         (burst ? '<span class="rv-burst" title="买入当日炸板，仍按涨停价模拟买入">炸</span>' : '')+'</td>'+
       '<td>'+(t.boards!=null ? t.boards+'板' : '—')+'</td>'+
       '<td class="'+cls+'">'+(t.pnl>0?'+':'')+f2(t.pnl)+'%</td>'+
+      '<td class="rv-stg" style="color:'+(STGC[t.stage]||'#78849a')+'">'+(t.stage||'—')+'</td>'+
+      '<td class="rv-thm" data-th="'+(t.theme||'')+'" data-d="'+t.d+'" data-row="'+i+'"'+
+        ' title="点击查看 '+rvDateStr(t.d)+' 该题材当日梯队">'+(t.theme||'—')+'</td>'+
       '<td class="rv-cum'+(c<100?' rv-down':'')+'">'+f2(c)+'%</td>'+
       '<td class="l rsn">'+t.reason+'</td>'+
       '<td>'+(burst ? '<span class="rv-brs">是</span>' : '<span class="rv-no">否</span>')+'</td>'+
-      '<td class="rv-thm" data-th="'+(t.theme||'')+'" data-d="'+t.d+'" data-row="'+i+'"'+
-        ' title="点击查看 '+rvDateStr(t.d)+' 该题材当日梯队">'+(t.theme||'—')+'</td>'+
-      '<td class="rv-stg" style="color:'+(STGC[t.stage]||'#78849a')+'">'+(t.stage||'—')+'</td>'+
       '<td>'+f2(t.buy)+'</td>'+
       '<td>'+rvDateStr(t.sellD)+'</td>'+
       '<td>'+t.hold+'日</td>'+
@@ -1762,6 +1795,7 @@ function renderReview(){
     ';padding:16px">该时间段内无符合条件的交易，请调整起止日期或点「全部区间」</td></tr>';
   html += '</tbody></table>';
   document.getElementById('rv-table').innerHTML = html;
+  rvFreezeCols();
   document.querySelectorAll('#rv-table .rv-stk').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation(); const t = RV_ROWS[+el.dataset.i];
       showK(t.code, t.name, ev, t.d, t); };
@@ -1813,6 +1847,17 @@ function renderReview(){
   applyRvNote();
   renderCompare();          // 同区间两战法对比随明细一起刷新
 }
+
+/* v43：明细表冻结列偏移——「买入日」列实际宽度写入 CSS 变量，供「个股」列 left 吸附 */
+function rvFreezeCols(){
+  const tbl=document.querySelector('#rv-table table');
+  if(!tbl) return;
+  const th=tbl.querySelector('thead th');
+  if(!th) return;
+  const w=Math.round(th.getBoundingClientRect().width);
+  if(w>0) tbl.style.setProperty('--fz1', w+'px');   // 隐藏页签下宽度为 0，跳过
+}
+window.addEventListener('resize', ()=>{ rvFreezeCols(); });
 
 /* v18：同一时期各战法对比。区间、参与模拟（同日首笔）、仓位比例与上方明细表完全同源，
    指标口径也与单战法汇总一致：笔均盈利=盈利累加/盈利笔数、笔均亏损=亏损累加/亏钱笔数、
@@ -2858,13 +2903,14 @@ function paintDecision(){
             '<b style="color:#ffd24a;font-size:13.5px">'+t.name+'</b>'+
             '<span class="sub">涨停 '+t.count+' 只 · 最高 '+t.maxB+' 板'+
             (t.lead? ' · 龙头 '+t.lead : '')+
-            (t.n1? ' · 首板 ×'+t.n1 : '')+'</span></div>'+
+            ((t.big||[]).length? ' · 连板 '+(t.big||[]).length+' 只' : '')+'</span></div>'+
             (rows? '<div style="display:flex;flex-wrap:wrap;gap:6px">'+rows+'</div>' : '')+
             (nbs? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+nbs+'</div>' : '')+
             '</div>';
         }).join('')+'</div>'+
         '<div class="sub" style="margin-top:6px">口径：只列「有赚钱效应且板块有 3 板龙头」的题材；'+
-        '连板个股标注涨停形态（一字 / T字 / 换手）与首次封板时间；首板只报数量；'+
+        '只展示连板股（2 板及以上），不展示首板；个股标注涨停形态'+
+        '（一字 / 赚钱 / 赚T / 普通 / 长腿 / 地天）与首次封板时间；'+
         '紫色卡 = 该板块昨日次高板断板股的今日表现。</div>';
     }else inner='<div class="sub">当日无「有赚钱效应且有 3 板龙头」的题材</div>';
     html+=dcSec('赚钱效应题材梯队 · 资金方向', inner);
@@ -2906,7 +2952,8 @@ function paintDecision(){
       }).join('');
       inner=hotBar+'<div style="display:flex;flex-direction:column;gap:8px">'+cards+'</div>'+
         '<div class="sub" style="margin-top:6px">口径：昨日涨停股按题材分组看今天的表现（只列有具体题材的板块）；'+
-        '个股标注今日连板高度 + 涨停时间 + 今日涨跌幅，点击个股名看日K。晋级（今天买的人明天能出）与'+
+        '统计（晋级 / 红盘 / 均值）按该题材昨日全部涨停股计算，个股明细<b>只列连板股（2 板及以上）</b>、'+
+        '不展示首板；个股标注今日连板高度 + 涨停时间 + 今日涨跌幅，点击个股名看日K。晋级（今天买的人明天能出）与'+
         '红盘率高、均值为正 = 持续赚钱效应，最强者即人气板块；晋级 0、均值深绿的题材（今日涨停明日闷杀型）小心参与。</div>';
     }else inner='<div class="sub">当日无昨日涨停数据（开篇首日 / 昨日涨停股无题材映射）</div>';
     html+=dcSec('昨日涨停 → 今日赚钱效应 · 哪类涨停股次日有肉', inner);
@@ -3047,6 +3094,7 @@ function switchTab(t){
   const tlist = document.getElementById('theme-list');
   if(tlist) tlist.scrollTop = 0;              // 题材按时间降序，最新在最上
   if(t==='decision') renderDecision();
+  if(t==='review') setTimeout(rvFreezeCols, 20);   // 页面可见后再量「买入日」列宽（隐藏时宽度为 0）
   if(t==='market' && mktChart) setTimeout(()=>mktChart.resize(), 30);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.t));
@@ -3085,7 +3133,7 @@ function applyDayPool(ds, stocks){
     .sort((a,b)=> b[1]-a[1] || String(a[2]||'zzz').localeCompare(String(b[2]||'zzz')));
   R.lb = R.lb||{}; R.lb[ds] = lbr;
   // 题材块：与后端同口径，全部由「当日真实涨停池」构成（必须涨停才统计）。
-  // v38 入链门槛：板块有连板（≥2板）且板块涨停≥5只；家数是准确值，不再做约等于估算。
+  // v43 入链门槛：板块有连板（≥2板）且板块涨停 >3 只；家数是准确值，不再做约等于估算。
   R.themeDetail = R.themeDetail||{};
   const old = (R.themeDetail[ds]||[]).filter(t=>t.src!=='pool');
   const byName = {};
