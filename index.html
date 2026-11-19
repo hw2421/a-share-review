@@ -2372,7 +2372,39 @@ function sinaSym(code){
   return 'sz'+code;                                    // 深市 / 创业板
 }
 let K_PROXIES = null;                                  // 由刷新逻辑注入（复用同一组代理）
+/* ---- 实时日K①：同花顺 v6 接口 JSONP 直连（无需代理、不受跨域限制）----
+   接口返回固定回调名 quotebridge_v6_line_hs_<code>_01_last({...})，
+   提前注册同名全局函数即可接住数据；盘中含当日实时未收盘 K 线。 */
+function thsJsonp(code, timeout){
+  return new Promise(res=>{
+    const sym = /^[4892]/.test(code) ? null : 'hs_'+code;   // 北交所无 v6 日K，走新浪兜底
+    if(!sym){ res(null); return; }
+    const CB = 'quotebridge_v6_line_'+sym+'_01_last';
+    const done = v=>{ try{ delete window[CB]; }catch(e){ window[CB]=undefined; }
+                      s.remove(); clearTimeout(t); res(v); };
+    const s = document.createElement('script');
+    const t = setTimeout(()=>done(null), timeout||8000);
+    window[CB] = obj=>{
+      try{
+        const out = [];
+        String(obj.data||'').split(';').forEach(row=>{
+          const p = row.split(',');
+          if(p.length<7) return;
+          const b=[p[0], +p[1], +p[4], +p[3], +p[2], +p[5]];   // 日期,开,收,低,高,量
+          if(/^\d{8}$/.test(b[0]) && b[1]>0) out.push(b);
+        });
+        done(out.length>=2 ? out : null);
+      }catch(e){ done(null); }
+    };
+    s.onerror = ()=>done(null);
+    s.src = 'https://d.10jqka.com.cn/v6/line/'+sym+'/01/last.js?r='+Date.now();
+    document.head.appendChild(s);
+  });
+}
 async function liveK(code){
+  /* 优先同花顺 JSONP 直连（快且稳）；失败回落新浪经代理（北交所只有这条路） */
+  const ths = await thsJsonp(code, 7000);
+  if(ths && ths.length) return ths;
   const px = K_PROXIES || [
     {wrap:u=>'https://api.allorigins.win/get?url='+encodeURIComponent(u), pick:j=>(j.contents||'')},
     {wrap:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u), pick:j=>j},
@@ -2678,11 +2710,15 @@ async function showK(code, name, e, atDate, trade){
     graphic:rvGraphic,
     grid:grid,
     dataZoom:[
+      /* v37：filterMode 必须是 weakFilter —— 之前是 'none'，数据不裁剪，
+         全部 K 线按原始网格渲染，窗口选 50 根时每根蜡烛只占 ~1px，
+         整图被压成细线（「不是原比例、看不清」的根因）。
+         weakFilter 让窗口内蜡烛撑满图宽，宽度随缩放自适应，与同花顺一致。 */
       {type:'inside', xAxisIndex:[0,1], moveOnMouseWheel:true, moveOnMouseMove:true,
-        zoomOnMouseWheel:true, filterMode:'none',
+        zoomOnMouseWheel:true, filterMode:'weakFilter',
         startValue:dates[z0], endValue:dates[z1]},
       // v17：可见缩放条 —— 明确告知可拖动看全貌，解决「日K显示不全 / 被压缩」的困扰
-      {type:'slider', xAxisIndex:[0,1], filterMode:'none',
+      {type:'slider', xAxisIndex:[0,1], filterMode:'weakFilter',
         startValue:dates[z0], endValue:dates[z1],
         bottom:2, height:13, showDetail:false, showDataShadow:false, brushSelect:false,
         borderColor:'#2b3a56', backgroundColor:'rgba(16,24,42,.85)',
