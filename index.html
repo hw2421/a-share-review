@@ -667,12 +667,20 @@
 <button id="backtop" title="返回顶部" aria-label="返回顶部">↑ 返回顶部</button>
 
 <script src="echarts.min.js"></script>
-<script src="version.js"></script>
 <script>
-/* data.js 带版本参数加载：数据包更新后 URL 变化，浏览器不会复用旧缓存 */
+/* 版本号 + 数据包：主源失败（GitHub Pages 发布窗口期 CDN 可能短暂 404）时，
+   同步回落 raw.githubusercontent（仓库同源文件，CORS 允许跨域） */
 (function(){
+  var RAW = 'https://raw.githubusercontent.com/hw2421/a-share-review/main/';
+  document.write('<script src="version.js" onerror="window.__VFAIL=1"><\/script>');
+  if(window.__VFAIL){
+    document.write('<script src="' + RAW + 'version.js"><\/script>');
+  }
   var v = (window.DATA_VER || '');
-  document.write('<script src="data.js?v=' + encodeURIComponent(v) + '"><\/script>');
+  document.write('<script src="data.js?v=' + encodeURIComponent(v) + '" onerror="window.__DFAIL=1"><\/script>');
+  if(window.__DFAIL){
+    document.write('<script src="' + RAW + 'data.js"><\/script>');
+  }
 })();
 </script>
 <script>
