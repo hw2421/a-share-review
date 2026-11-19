@@ -725,9 +725,22 @@ def main():
                         % (B, name, stage_full.get(T, {}).get("stage"))); n_v29 += 1
                 if (t.get("boards") or 0) < 3:
                     err("v32 战法二 %s %s 买入板位不足 3 板" % (B, name)); n_v29 += 1
-                if cmx and (t.get("boards") or 0) < cmx:
-                    err("v32 战法二 %s %s 非当日板块最高板龙头（%s vs %s）"
-                        % (B, name, t.get("boards"), cmx)); n_v29 += 1
+                # v38.1：战法二标的一律为收盘封板股，炸板股只进机会池
+                if not t.get("sealed"):
+                    err("v38.1 战法二 %s %s 为炸板股（盘中触板未封）却进入逐笔"
+                        % (B, name)); n_v29 += 1
+                arrB = _barr(B, th) or []
+                lf_mx = max((x.get("boards") or 1) for x in arrB) if arrB else 0
+                if lf_mx and (t.get("boards") or 0) < lf_mx:
+                    err("v38.1 战法二 %s %s 非当日板块最高板龙头（封板口径 %s vs %s）"
+                        % (B, name, t.get("boards"), lf_mx)); n_v29 += 1
+                # v38.1：3b 带 2b —— 除标的以外仍有 ≥2 板封板跟风股
+                if arrB:
+                    assist = [x for x in arrB
+                              if str(x.get("code")) != str(code) and (x.get("boards") or 1) >= 2]
+                    if not assist:
+                        err("v38.1 战法二 %s %s 板块「%s」无 2b 跟风股（3b 未带 2b）"
+                            % (B, name, th)); n_v29 += 1
                 if "节点" not in str(t.get("why") or ""):
                     err("v32 战法二 %s %s why 缺「节点」留痕" % (B, name)); n_v29 += 1
             else:

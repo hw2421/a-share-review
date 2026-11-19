@@ -57,18 +57,26 @@ META = {
     "trialLead": {
         "name": "战法二 · 试错龙头",
         "buy": "【买入】昨日市场为节点阶段（空间龙头整批断板日）；"
-               "买入日龙头所在板块有赚钱效应的延续：昨日首板今日连板，"
-               "或昨日连板今日断板但处于红盘；"
-               "龙头 3 板开始关注，买入板块最高板龙头，博弈成为新的空间龙头；"
+               "标的必须是当日收盘封板的板块最高板龙头（≥3 板）——"
+               "盘中触板、收盘未封的炸板股不算龙头连板，只进机会池、不买入；"
+               "3b 带 2b：板块内除标的以外仍有 ≥2 板封板跟风股；"
+               "板块有赚钱效应的延续：昨日首板今日连板，或昨日连板今日断板但处于红盘"
+               "（证据不得是标的自身）；"
                "龙头连续缩量或一字时不买——除非板块今天有多个连板，或昨日连板换手晋级；"
                "3-5 板阶段首次放出近期最大成交量的龙头为最佳标的；"
-               "龙头高开但不是涨停开盘。",
+               "买入板块最高板龙头，博弈成为新的空间龙头；龙头高开但不是涨停开盘。",
         "sell": SELL_TXT,
         "note": "「节点」＝市场空间龙头整批断板日（stages.stage＝节点，取复盘日 T）；"
-                "「赚钱效应延续」＝板块昨日首板今日晋级连板，或板块昨日连板股今日断板但收盘仍红盘；"
+                "「3b 带 2b」＝板块最高板 ≥3 板，且除标的以外还有 ≥2 板封板跟风股，"
+                "证明板块是梯队而不是单只个股独走；"
+                "「赚钱效应延续」＝板块昨日首板今日晋级连板，或板块昨日连板股今日断板但收盘仍红盘，"
+                "且该证据不能是标的自己（否则等于「龙头断板自证延续」）；"
                 "「连续缩量」＝龙头今、昨、前日成交量逐日递减；"
                 "「换手晋级」＝昨日连板股今日晋级且非一字。"
-                "一字涨停买不进则只进机会池、不参与模拟；炸板按涨停价买入、纳入统计。",
+                "一字涨停买不进则只进机会池、不参与模拟。"
+                "口径说明：标的以「当日收盘封板」确认（日K无盘中封板时刻数据），"
+                "因此不包含「打板买入后尾盘炸板」的损失，胜率略偏乐观；"
+                "战法一（突破）仍按盘中触板成交、炸板照计，两者口径不同请勿横向比较。",
     },
 }
 
@@ -96,7 +104,8 @@ def build(ctx):
     stats = {"cand": 0, "fire": 0, "yizi": 0, "no_limit": 0,
              "board_skip": 0, "money_skip": 0, "break_skip": 0,
              "open_skip": 0, "no_kline": 0, "defer": 0, "consec_yizi": 0,
-             "burst": 0, "m1": 0, "m2": 0, "prev_skip": 0, "shrink_skip": 0}
+             "burst": 0, "m1": 0, "m2": 0, "prev_skip": 0, "shrink_skip": 0,
+             "cont_skip": 0}
 
     chances = defaultdict(list)
     chance_seen = set()
@@ -507,41 +516,29 @@ def build(ctx):
                         continue
                     try_buy("spaceDragon", B, c, th, why, N + 1, check_open=False)
 
-        # ---------- 战法二 试错龙头（v38：昨日节点 + 板块赚钱效应延续）----------
-        # ① 昨日市场阶段为节点；② 买入日龙头所在板块有赚钱效应延续：
-        #    昨日首板今日连板，或昨日连板今日断板但处于红盘；
-        # ③ 龙头连续缩量或一字时不买 —— 除非板块今天有多个连板，或昨日连板换手晋级；
-        # ④ 3-5 板阶段首次放出近期最大成交量的龙头为最佳标的；
-        # ⑤ 买入板块最高板龙头（≥3 板），高开但不是涨停开盘，博弈新空间龙头。
+        # ---------- 战法二 试错龙头（v38.1：3b带2b 助攻 + 延续证据排除标的自身）----------
+        # ① 昨日市场阶段为节点；
+        # ② 标的必须是「当日收盘封板」的板块最高板龙头（≥3 板）——
+        #    炸板股只是盘中触板、收盘未封，是断板不是龙头连板，只进机会池观察、不买入；
+        # ③ 3b 带 2b：板块内除标的以外仍有 ≥2 板封板跟风股（资金方向真实确认）；
+        # ④ 赚钱效应延续：昨日首板今日连板，或昨日连板今日断板仍红盘，
+        #    证据不得是标的自身（否则等于「龙头自己断板」自证延续）；
+        # ⑤ 龙头连续缩量或一字时不买 —— 除非板块今天有多个连板，或昨日连板换手晋级；
+        # ⑥ 3-5 板阶段首次放出近期最大成交量的龙头为最佳标的。
         if node_T:
             poolT, poolB = pool_map.get(T) or {}, pool_map.get(B) or {}
+            dayB = daily.get(B) or {}
             for nm, arr in sorted((LF.get(B) or {}).items()):
                 if not arr:
                     continue
-                # 赚钱效应延续：昨日首板今日连板 / 昨日连板今日断板但红盘
-                cont = ""
-                if any((x.get("boards") or 1) >= 2 and str(x.get("code")) not in poolT
-                       for x in arr):
-                    cont = "昨日首板今日连板"
-                else:
-                    for x in ((LF.get(T) or {}).get(nm) or []):
-                        if (x.get("boards") or 1) < 2 or str(x.get("code")) in poolB:
-                            continue
-                        chg = chg_on(str(x.get("code")), B)
-                        if chg is not None and chg > 0:
-                            cont = ("昨日连板今日断板仍红盘（%s %+.1f%%）"
-                                    % (x.get("name") or NAME.get(str(x.get("code")), ""),
-                                       chg))
-                            break
-                if not cont:
+                # 板块最高板只按「封板梯队」计算，炸板虚增的板位不参与
+                lf_mx = max((x.get("boards") or 1) for x in arr)
+                if lf_mx < 3:
                     continue
-                cand = [(c, e) for c, e in (daily.get(B) or {}).items()
-                        if theme_of(B, c) == nm]
-                if not cand:
-                    continue
-                cand_mx = max((e.get("boards") or 1) for _, e in cand)
+                # 板块今日的封板连板股（3b 带 2b 里的「2b」必须真实封住）
+                lb_b = [x for x in arr if (x.get("boards") or 1) >= 2]
                 # 缩量 / 一字豁免：板块今天有多个连板股，或昨日连板换手晋级
-                n_lb = sum(1 for x in arr if (x.get("boards") or 1) >= 2)
+                n_lb = len(lb_b)
                 yz_adv = any(
                     str(x.get("code")) in poolB
                     and ((poolB[str(x.get("code"))].get("boards") or 1)
@@ -549,8 +546,44 @@ def build(ctx):
                     and not is_oneword_up(str(x.get("code")), B)
                     for x in ((LF.get(T) or {}).get(nm) or [])
                     if (x.get("boards") or 1) >= 2)
-                for c, e in cand:
-                    if (e.get("boards") or 0) < 3 or (e.get("boards") or 0) < cand_mx:
+                # 只遍历封板梯队：炸板股不进战法二标的
+                for x in arr:
+                    c = str(x.get("code"))
+                    e = dayB.get(c)
+                    if not e:
+                        e = {"code": c, "name": x.get("name"),
+                             "boards": x.get("boards") or 1,
+                             "sealed": True, "yizi": False, "time": x.get("t") or ""}
+                    if not e.get("sealed"):
+                        continue
+                    if (e.get("boards") or 0) < 3 or (e.get("boards") or 0) < lf_mx:
+                        continue
+                    # ③ 3b 带 2b：除标的以外还有 ≥2 板封板跟风股
+                    assist = [y for y in lb_b if str(y.get("code")) != c]
+                    if not assist:
+                        stats["board_skip"] += 1
+                        continue
+                    # ④ 赚钱效应延续（证据一律排除标的自身）
+                    cont = ""
+                    others = [y for y in arr if str(y.get("code")) != c]
+                    y1b = [y for y in others
+                           if (y.get("boards") or 1) == 2
+                           and (poolT.get(str(y.get("code"))) or {}).get("boards") == 1]
+                    if y1b:
+                        cont = "昨日首板今日连板（%s）" % "、".join(
+                            [str(y.get("name") or "") for y in y1b][:2])
+                    else:
+                        for y in ((LF.get(T) or {}).get(nm) or []):
+                            cy = str(y.get("code"))
+                            if cy == c or (y.get("boards") or 1) < 2 or cy in poolB:
+                                continue
+                            chg = chg_on(cy, B)
+                            if chg is not None and chg > 0:
+                                cont = ("昨日连板今日断板仍红盘（%s %+.1f%%）"
+                                        % (y.get("name") or NAME.get(cy, ""), chg))
+                                break
+                    if not cont:
+                        stats["cont_skip"] += 1
                         continue
                     # 龙头连续缩量（今<昨<前日）或一字 → 不买（豁免除外）
                     vb, vt = vol_of(c, B), vol_of(c, T)
@@ -559,8 +592,10 @@ def build(ctx):
                     if (shrink or is_oneword_up(c, B)) and not (n_lb >= 2 or yz_adv):
                         stats["shrink_skip"] += 1
                         continue
-                    why = ("昨日「节点」→ 今日板块「%s」最高 %d 板龙头 · 赚钱效应延续：%s · "
-                           "博弈新空间龙头" % (nm, cand_mx, cont))
+                    why = ("昨日「节点」→ 今日板块「%s」最高 %d 板龙头（%d板带%d板）· "
+                           "赚钱效应延续：%s · 博弈成为新的空间龙头"
+                           % (nm, lf_mx, lf_mx,
+                              max((y.get("boards") or 1) for y in assist), cont))
                     # 最佳标的：3-5 板阶段今日放出近 20 日最大成交量
                     if 3 <= (e.get("boards") or 0) <= 5:
                         v20 = [vol_of(c, dates[j]) for j in range(max(0, i - 19), i + 1)]
@@ -574,7 +609,7 @@ def build(ctx):
                                     why + " · 一字买不进（不参与模拟）",
                                     True, limit_px(c, B), False, "一字买不进")
                         continue
-                    try_buy("trialLead", B, c, nm, why, cand_mx)
+                    try_buy("trialLead", B, c, nm, why, lf_mx)
 
     # ---------------- 9. 去重排序 ----------------
     for m in METHODS:
@@ -593,10 +628,11 @@ def build(ctx):
         "%s %d笔" % (META[m]["name"].split("·")[-1].strip(), len(review[m]))
         for m in METHODS), flush=True)
     print("触发统计：候选 %d；一字买不进 %d；未涨停/未晋级 %d；昨日无助攻 %d；"
-          "断板大亏禁买 %d；缩量/一字龙头禁买 %d；高开条件不符 %d；"
-          "无日K %d；连续一字剔除 %d；一字跌停顺延 %d 个股票日"
+          "断板大亏禁买 %d；板块无 2b 助攻 %d；延续证据不足 %d；缩量/一字龙头禁买 %d；"
+          "高开条件不符 %d；无日K %d；连续一字剔除 %d；一字跌停顺延 %d 个股票日"
           % (stats["cand"], stats["yizi"], stats["no_limit"], stats["prev_skip"],
-             stats["break_skip"], stats["shrink_skip"], stats["open_skip"],
+             stats["break_skip"], stats["board_skip"], stats["cont_skip"],
+             stats["shrink_skip"], stats["open_skip"],
              stats["no_kline"], stats["consec_yizi"], stats["defer"]), flush=True)
 
     # ---------------- 10. K线骷髅头标记 ----------------
@@ -639,9 +675,11 @@ def build(ctx):
            "④ 战法一（空间突破）：面对空间压制 N 板（N ≥ 2）、上一空间龙头断板后无大亏"
            "（无跌停、无连续杀跌）、昨日板块已有助攻股，当日 N+1 板盘中冲击涨停那一刻即买；"
            "当日赚钱效应、当日梯队、高开非涨停开盘等其余条件全部删除，且只在突破当日参与。"
-           "⑤ 战法二（试错龙头）：昨日市场为节点阶段，买入日板块有赚钱效应延续"
-           "（昨日首板今日连板，或昨日连板今日断板但红盘），买入板块 ≥3 板最高板龙头，"
-           "博弈新空间龙头；龙头连续缩量或一字不买，除非板块今天有多个连板或昨日连板换手晋级；"
+           "⑤ 战法二（试错龙头）：昨日市场为节点阶段；标的必须是当日收盘封板的板块最高板"
+           "龙头（≥3 板），炸板股（盘中触板、收盘未封）只进机会池不买入；"
+           "3b 带 2b（板块除标的以外仍有 ≥2 板封板跟风股）；板块有赚钱效应延续"
+           "（昨日首板今日连板，或昨日连板今日断板但红盘，证据不得是标的自身）；"
+           "龙头连续缩量或一字不买，除非板块今天有多个连板或昨日连板换手晋级；"
            "3-5 板首次放出近期最大量的龙头为最佳标的；仍要求高开但不是涨停开盘。"
            "⑥ 卖出（统一）：次日仍涨停持仓，首个收盘未涨停日尾盘按收盘价卖出，"
            "盘中 −7% 无条件止损；遇一字跌停无换手卖不出，顺延至首个可成交日。"
@@ -671,6 +709,7 @@ def build(ctx):
             "burst": stats["burst"],
             "prevSkip": stats["prev_skip"],
             "shrinkSkip": stats["shrink_skip"],
+            "contSkip": stats["cont_skip"],
             "byM": {"spaceDragon": stats["m1"], "trialLead": stats["m2"]},
         },
     }
