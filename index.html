@@ -597,7 +597,7 @@
 
 <section class="page" id="page-decision">
   <div class="card">
-    <h3>复盘决策 <span class="sub">今日市场阶段 · 上一空间龙头断板表现与断板后日K · 赚钱效应题材梯队（只列连板股） · 昨日涨停今日赚钱效应（人气板块） · 活跃股池</span></h3>
+    <h3>复盘决策 <span class="sub">今日市场阶段 · 空间龙头断板表现与断板后日K（今日断板取最新、晋级取上一批） · 赚钱效应题材梯队（只列连板股） · 昨日涨停今日赚钱效应（人气板块） · 活跃股池</span></h3>
     <div class="ch-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button id="dc-prev" class="ch-go">◀ 上一交易日</button>
       <select id="dc-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
@@ -1776,7 +1776,7 @@ function renderReview(){
         '" title="点击查看日K及模拟买卖点（B 买 / S 卖）'+
         (t.why? '&#10;买入理由：'+t.why : '')+'" style="cursor:pointer;color:'+C.blue+'">'+t.name+'</span>'+
         (String(t.why||'').includes('近100日最大量') ?
-          '<span class="rv-vmax" title="选股日成交量为近 100 个交易日最大量（放量最佳形态）">量</span>' : '')+
+          '<span class="rv-vmax" title="买入当日成交量为近 100 个交易日最大量（放量最佳形态）">量</span>' : '')+
         (burst ? '<span class="rv-burst" title="买入当日炸板，仍按涨停价模拟买入">炸</span>' : '')+'</td>'+
       '<td>'+(t.boards!=null ? t.boards+'板' : '—')+'</td>'+
       '<td class="'+cls+'">'+(t.pnl>0?'+':'')+f2(t.pnl)+'%</td>'+
@@ -1834,7 +1834,7 @@ function renderReview(){
         (t.burst?'<em class="st late">炸板</em>':'')+'</span></span></div>'+
         '<div class="lfoot">按全站「<b>必须涨停才统计</b>」口径，题材「'+th+'」在 '+
         rvDateStr(d)+' 无收盘涨停个股，真实梯队为空。该笔为<b>盘中冲击 '+bd+' 板'+
-        (t.burst?'后炸板回落（空间突破失败）':'')+'</b>的模拟买入。点个股名看日K。</div>';
+        (t.burst?'后炸板回落':'')+'</b>的模拟买入。点个股名看日K。</div>';
       lp.style.display='block';
       lp.style.left=Math.max(8,Math.min((ev&&ev.clientX||W/2)+14, W-lp.offsetWidth-8))+'px';
       lp.style.top =Math.max(8,Math.min((ev&&ev.clientY||H/2)-40, H-lp.offsetHeight-8))+'px';
@@ -2855,22 +2855,30 @@ function paintDecision(){
           'border-radius:6px;padding:2px 10px;font-weight:800">⚠ 风险提示</span>'
         : '<span id="dc-chip" style="background:rgba(46,189,133,.15);color:#2ebd85;border:1px solid #2ebd8555;'+
           'border-radius:6px;padding:2px 10px;font-weight:800">✓ 情绪较好</span>';
+      const _brk=fmtDate(dg.brk||dg.stocks.map(x=>x.brk).sort()[0]||dg.ev);
+      const _lead=dg.fresh ? ('昨日空间龙头 '+_brk+' 今日断板')
+                           : ('上一个空间龙头 '+_brk+' 断板');
       inner='<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+chip+
-        '<span class="sub">上一空间龙头 '+fmtDate(dg.stocks.map(x=>x.brk).sort()[0]||dg.ev)+
-        ' 断板（'+(dg.stocks[0]||{}).boards+'板'+
-        (dg.stocks.length>1?' 等'+dg.stocks.length+'只':'')+'）</span></div>'+
+        '<span class="sub">'+_lead+'（'+(dg.stocks[0]||{}).boards+'板'+
+        (dg.stocks.length>1?' 等'+dg.stocks.length+'只':'')+
+        ' · '+(dg.fresh?'今日刚断板 · 展示最新这个':'已断板 · 展示上一批')+'）</span></div>'+
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+
         dg.stocks.map(x=>'<span data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+d+
           '" style="background:#152238;border:1px solid #2b3a56;border-radius:5px;padding:3px 8px;font-size:12px">'+
-          x.name+' <b>'+x.boards+'板</b> · '+fmtDate(x.brk)+'断板 · 今日 '+
+          x.name+' <b>'+x.boards+'板</b> · '+fmtDate(x.brk)+'断板 · '+
+          (dg.fresh? '断板当日 ':'今日 ')+
           '<b data-live="'+x.code+'" class="dc-live">'+chgTxt(x.today, isToday)+'</b>'+
-          ' · 断板后累计 '+chgTxt(x.cum, isToday)+'</span>').join('')+'</div>'+
+          (dg.fresh? '' : ' · 断板后累计 '+chgTxt(x.cum, isToday))+'</span>').join('')+'</div>'+
         '<div id="dc-dragon-note" class="sub" style="margin-top:8px;'+(risk?'color:#f5455c':'')+'">'+
         (risk&&dg.loss&&dg.loss.length?
-          '断板后大亏：'+dg.loss.join('；')+' → 上一个龙头断板直接大亏，谨慎参与、提示风险。'
-        : '判断口径：上一空间龙头断板后无大亏（无跌停、无连续杀跌）→ 情绪较好，愿意继续试错买龙头。')+
+          '断板后大亏：'+dg.loss.join('；')+' → '+
+          (dg.fresh? '昨日龙头今日断板即大亏，谨慎参与、提示风险。'
+                   : '上一个龙头断板直接大亏，谨慎参与、提示风险。')
+        : (dg.fresh? '判断口径：昨日空间龙头今日断板但未大亏（无跌停、无连续杀跌）→ 情绪尚可，观察明日能否修复。'
+                    : '判断口径：上一空间龙头断板后无大亏（无跌停、无连续杀跌）→ 情绪较好，愿意继续试错买龙头。'))+
         '</div>'+
-        '<div class="sub" style="margin-top:10px;font-weight:700;color:#9fc6ff">上一个空间龙头 · 断板后日K'+
+        '<div class="sub" style="margin-top:10px;font-weight:700;color:#9fc6ff">'+
+        (dg.fresh? '最新断板空间龙头 · 断板日K' : '上一个空间龙头 · 断板后日K')+
         '<span style="font-weight:400;color:#78849a;margin-left:6px">（默认展示 · 点击图可放大）</span></div>'+
         '<div id="dc-k" style="height:250px;margin-top:4px"></div>';
     }else{
@@ -3062,7 +3070,7 @@ async function dcLiveChg(root, d){
       chip.style.background='rgba(245,69,92,.15)'; chip.style.color='#f5455c';
       chip.style.border='1px solid #f5455c55'; }
     const note=root.querySelector('#dc-dragon-note');
-    if(note) note.innerHTML='<span style="color:#f5455c">同花顺实时：上一龙头断板当日 '+worst.toFixed(2)+
+    if(note) note.innerHTML='<span style="color:#f5455c">同花顺实时：断板龙头今日 '+worst.toFixed(2)+
       '%（接近跌停）→ 断板直接大亏，谨慎参与、提示风险。</span>';
   }
 }

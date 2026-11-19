@@ -347,15 +347,19 @@ for d in dates:
         bl = sorted({x["boards"] for x in ss}, reverse=True)
         lad[nm] = {"count": len(ss), "boards": bl,
                    "ladder": "-".join(str(b) for b in bl), "maxB": bl[0],
-                   "stocks": sorted(ss, key=lambda x: -x["boards"])}
+                   "stocks": sorted(ss, key=lambda x: (-x["boards"],
+                                                       x["time"] or "99:99", x["code"]))}
     # 梯队完全由「当日真实涨停池」个股构成：文章标注家数不再并入、文章里
     # 未真实涨停的个股也不并入（用户口径：必须涨停才统计，禁止"≈约等于"估算）。
     # 卡片龙头、梯队、家数、连板梯队页因此天然同源，不会再出现错配。
     for nm, e in lad.items():
-        # 浮层用完整清单（按板数降序）；明细表/卡片仍用 slim 版控制体积
+        # 浮层用完整清单（按板数降序；v44 同一身位再按涨停时间升序，早封板的排前面）；
+        # 明细表/卡片仍用 slim 版控制体积
         e["full"] = [{"code": x["code"], "name": x["name"],
                       "boards": x["boards"], "t": x["time"]}
-                     for x in sorted(e["stocks"], key=lambda x: -x["boards"])]
+                     for x in sorted(e["stocks"],
+                                     key=lambda x: (-x["boards"], x["time"] or "99:99",
+                                                    x["code"]))]
         ladder_full.setdefault(d, {})[nm] = e["full"]
         e["stocks"] = slim_stocks(e["stocks"])
     ladders[d] = lad
@@ -829,9 +833,13 @@ for _i, _d in enumerate(dates):
     _pool_d = {s["code"] for s in (pools.get(_d) or [])}
     _dec = {"stage": next((x.get("stage") for x in days if x["date"] == _d), None)}
 
-    # ① 上一个空间龙头：最近一次「今日之前」的整批断板批次（v40：今日断板的
-    #    龙头不纳入——当日只统计之前断板龙头的情况），断板后到今天的表现
-    _ev = next((days[_k] for _k in range(_i - 1, -1, -1)
+    # ① 空间龙头断板情况（v44 用户口径）：取「最近一次断板批次」——
+    #    · 若今日空间龙头涨停晋级（今日无新断板）→ 今日仍带上一批的断板龙头，
+    #      展示的是上一个空间龙头断板后的情况；
+    #    · 若昨日空间龙头今日断板 → 今日记录已被改写为这一批（breakDate=今日），
+    #      优先取今日，展示最新这个断板空间龙头的情况。
+    #    实现：起点从 _i 开始回溯（旧版从 _i−1 起，永远拿不到今日断板批次）。
+    _ev = next((days[_k] for _k in range(_i, -1, -1)
                 if days[_k].get("suppressStocks")), None)
     if _ev:
         _stocks = []
@@ -853,6 +861,9 @@ for _i, _d in enumerate(dates):
         _loss = _big_loss([(s["code"], s["name"], s["brk"]) for s in _stocks], _d)
         _dec["dragon"] = {
             "ev": _ev["date"], "stocks": _stocks, "loss": _loss,
+            # fresh=True：昨日空间龙头今日断板 → 展示的就是今天刚断的这批
+            "fresh": _bd0 == _d,
+            "brk": _bd0,
             "verdict": ("risk" if _loss else "ok") if _stocks else None,
         }
 

@@ -722,56 +722,50 @@ def main():
             B = t["d"]
             i = DIDXV.get(B)
             if i is None or i == 0:
-                err("v42 %s %s 买入日无前一交易日" % (m, B)); n_v29 += 1; continue
-            T = dates[i - 1]
+                err("v44 %s %s 买入日无前一交易日" % (m, B)); n_v29 += 1; continue
             th = t.get("theme") or ""
             code, name = t["code"], t.get("name") or ""
             why = str(t.get("why") or "")
             bd = t.get("boards") or 0
             # ① 买入日必须盘中冲击涨停（封板以收盘涨停池为准，或日K触板；除权日豁免）
             if not (t.get("sealed") or _touch(code, B, name)):
-                err("v42 %s %s %s 买入日既未封板（涨停池）也无日K触板"
+                err("v44 %s %s %s 买入日既未封板（涨停池）也无日K触板"
                     % (m, B, name)); n_v29 += 1
-            # ② 一字买不进不得进逐笔
+            # ② 一字买不进不得进逐笔（v44：一字板除外）
             if _yizi(code, B, name):
-                err("v42 %s %s %s 一字涨停却进入逐笔" % (m, B, name)); n_v29 += 1
+                err("v44 %s %s %s 一字涨停却进入逐笔" % (m, B, name)); n_v29 += 1
             # ③ 战法留痕
-            if "山顶洞人" not in why:
-                err("v42 %s %s %s why 缺「山顶洞人」留痕" % (m, B, name)); n_v29 += 1
-            # ④ T 日选股条件独立复算（换手 3 板+龙头 + 换手 2 板跟风 + 选股日放量）
-            okp, pdesc = _handover_pick(T, th, code, name)
-            if okp is False:
-                err("v43 %s %s %s T 日选股条件不成立：%s"
-                    % (m, B, name, pdesc)); n_v29 += 1
-            # ④b 选股日放量（v43）：T 日成交量 > 上一交易日成交量（近100日最大量只作最佳标注）
-            vT = _vol(code, T)
-            vT1 = _vol(code, dates[i - 2]) if i >= 2 else 0
-            if not vT or not vT1 or vT <= vT1:
-                err("v43 %s %s %s 选股日（%s）未放量：量 %s ≤ 前一日 %s"
-                    % (m, B, name, T, vT or 0, vT1 or 0)); n_v29 += 1
-            if "放量" not in why:
-                err("v43 %s %s %s why 缺「放量」留痕" % (m, B, name)); n_v29 += 1
-            N = (stage_full.get(T, {}) or {}).get("suppress") or 0
-            # ⑤ 两笔买点分别复算
-            if "次日接力" in why:
-                if bd < 3:
-                    err("v42 %s %s %s 次日接力板位不足 3 板" % (m, B, name)); n_v29 += 1
-                if N < 2:
-                    err("v42 %s %s 选股日无 ≥2 板空间压制" % (B, name)); n_v29 += 1
-                elif bd > N - 2:
-                    err("v42 %s %s %s 龙头 %d 板未低于空间 %d 板 2 板以上"
-                        % (m, B, name, bd, N)); n_v29 += 1
-                oka, adesc = _assist_next(B, T, th, code)
-                if not oka:
-                    err("v42 %s %s %s 买入日无助攻（昨日跟风高开红盘 / 首板晋级 2 板）"
-                        % (m, B, name)); n_v29 += 1
-            elif "空间突破" in why:
-                if N < 2 or bd != N + 1:
-                    err("v42 %s %s %s 非空间突破日（板位 %s / 压制 %s）"
-                        % (m, B, name, bd, N)); n_v29 += 1
+            for kw in ("山顶洞人", "当日赚钱效应龙头"):
+                if kw not in why:
+                    err("v44 %s %s %s why 缺「%s」留痕" % (m, B, name, kw)); n_v29 += 1
+            # ④ 当日该题材必须在赚钱效应榜、且该股就是榜内龙头（独立复算）
+            mg = next((g for g in (MV.get(B) or [])
+                       if (g.get("theme") or "") == th), None)
+            if not mg:
+                err("v44 %s %s %s 买入日题材「%s」不在当日赚钱效应榜"
+                    % (m, B, name, th)); n_v29 += 1
             else:
-                err("v42 %s %s %s why 未标注「次日接力 / 空间突破」"
-                    % (m, B, name)); n_v29 += 1
+                if str(mg.get("leadCode") or "") != str(code):
+                    err("v44 %s %s %s 非当日该题材龙头（榜内龙头 %s）"
+                        % (m, B, name, mg.get("lead") or mg.get("leadCode"))); n_v29 += 1
+                if (mg.get("maxB") or 0) < 3:
+                    err("v44 %s %s %s 题材「%s」当日无 ≥3 板（最高 %s）"
+                        % (m, B, name, th, mg.get("maxB"))); n_v29 += 1
+                if (mg.get("count") or 0) < 3:
+                    err("v44 %s %s %s 题材「%s」当日涨停不足 3 只（%s）"
+                        % (m, B, name, th, mg.get("count"))); n_v29 += 1
+            # ⑤ 题材须在当日题材炒作块（入链）内——「当日题材炒作有赚钱效应」
+            _det = {str(x.get("name") or "").strip() for x in (TD.get(B) or [])}
+            if _det and str(th).strip() not in _det:
+                err("v44 %s %s %s 题材「%s」当日未在题材炒作模块入链"
+                    % (m, B, name, th)); n_v29 += 1
+            # ⑥ 该股当日确实是该题材最高连板（龙头）
+            _arr = (LFV.get(B) or {}).get(th) or []
+            if _arr:
+                _mx = max((x.get("boards") or 1) for x in _arr)
+                if (t.get("boards") or 0) != _mx:
+                    err("v44 %s %s %s 板位 %s 非该题材最高板 %s"
+                        % (m, B, name, t.get("boards"), _mx)); n_v29 += 1
 
     # ⑥ v23stat 自洽
     if V23.get("cand") != (V23.get("fire") or 0) + (V23.get("yizi") or 0) + (V23.get("noKline") or 0):
@@ -785,19 +779,17 @@ def main():
     if set(meta.keys()) != set(RV_METHODS):
         err("v42 reviewMeta 战法集合不符：%s" % sorted(meta.keys())); n_v29 += 1
     uni29 = (meta.get("summit") or {}).get("uni") or ""
-    for kw in ("v43", "山顶洞人", "换手（非一字）3 板", "板块梯队＝板块有持续性",
-               "选股日放量", "近100日最大量",
-               "空间压制高度 − 2 板", "空间压制高度 + 1",
+    for kw in ("v44", "山顶洞人", "当日题材炒作里有赚钱效应", "龙头为换手（非一字）",
                "盘中 −7% 无条件止损", "一字涨停买不进"):
         if kw not in uni29:
-            err("v43 统一口径 uni 缺关键字「%s」" % kw); n_v29 += 1
+            err("v44 统一口径 uni 缺关键字「%s」" % kw); n_v29 += 1
     buy_all = " ".join((meta.get(m) or {}).get("buy") or "" for m in RV_METHODS)
     for bad_kw in ("凹凸曼", "黑盒", "示范龙头", "v27 门槛", "首次符合条件", "连续 ≥3 日登"):
         if bad_kw in buy_all:
             err("v42 战法买入文案残留已删除口径「%s」" % bad_kw); n_v29 += 1
-    for m, kw in (("summit", "次日"), ("summit", "助攻"), ("summit", "空间突破日")):
+    for m, kw in (("summit", "有赚钱效应"), ("summit", "龙头股"), ("summit", "一字板除外")):
         if kw not in ((meta.get(m) or {}).get("buy") or ""):
-            err("v42 战法 %s 买入文案缺「%s」" % (m, kw)); n_v29 += 1
+            err("v44 战法 %s 买入文案缺「%s」" % (m, kw)); n_v29 += 1
     if "fillUp" in (meta or {}):
         err("v32 reviewMeta 仍残留已删除的补涨战法"); n_v29 += 1
     # ⑧ boardEarn 与 money_effect.compute 独立复算一致
@@ -809,7 +801,7 @@ def main():
         if not got or bool(got.get("ok")) != bool(v["ok"]):
             err("v32 boardEarn %s「%s」与独立复算不一致" % (bd, nm)); n_be_bad += 1
     n_v29 += n_be_bad
-    print("v40 两战法口径（第一版）：%d 笔逐笔全部复核（战法一 N板压制+昨日助攻+触板即买；战法二昨日赚钱效应+板块助攻+最高板+高开）；"
+    print("v44 单一战法「山顶洞人」：%d 笔逐笔全部复核（当日题材炒作有赚钱效应的题材 → 龙头涨停买入、一字除外）；"
           "boardEarn %d 题材日独立复算一致（异常 %d）；候选 %s / 参与 %s / 一字 %s / 无日K %s；口径异常 %d"
           % (sum(len(RVALL.get(m, [])) for m in RV_METHODS), len(EFFV), n_be_bad,
              V23.get("cand"), V23.get("fire"), V23.get("yizi"), V23.get("noKline"), n_v29))
