@@ -322,6 +322,13 @@ def main():
         ver = s.split('"')[1] if '"' in s else ""
     except Exception:
         pass
+    # v36：同步到 GitHub Pages（仓库 main 分支直出站点，沙箱休眠也不停服）
+    try:
+        r = subprocess.run([sys.executable, os.path.join(BASE, "pages_sync.py")],
+                           capture_output=True, text=True, timeout=1200, cwd=BASE)
+        log("GitHub 同步：%s" % ((r.stdout or r.stderr or "").strip()[-160:] or "无输出"))
+    except Exception as e:
+        log("GitHub 同步失败（不影响本地站点）：%s" % e)
     log("完成：题材来源 %s，%d 个题材，数据版本 %s —— 后续轮次自动停止"
         % (src2, n2, ver))
     state("done", src=src2, themes=n2, via=got["via"], ver=ver)
