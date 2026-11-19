@@ -201,7 +201,14 @@ for d in list(theme_detail.keys()):
         o["maxB"] = max(o["maxB"], t["maxB"])
         o["amount"] = max(o.get("amount", 0), t.get("amount", 0))
     # 题材瘦身（与主流程一致：每板数档最多2只、仅保留最高6档、去 reason）
+    # v39.2 修复：瘦身只作用于「展示 stocks」。完整清单先存 _full ——
+    # 个股题材映射 theme_at（3.2 的 day_map）必须用完整清单生成，
+    # 否则映射被瘦身截断（如 20261118 国产算力 26 只只剩 5 只），
+    # 连带题材梯队家数、战法板块归属、决策页全部失真。
     for t in agg.values():
+        t["_full"] = [{"code": s["code"], "name": s.get("name"),
+                       "boards": s.get("boards") or 1}
+                      for s in t.get("stocks", []) if s.get("code")]
         by = {}
         for s in t.get("stocks", []):
             by.setdefault(s["boards"], []).append(s)
@@ -270,11 +277,12 @@ theme_at, carry = {}, {}
 n_reason = 0
 for d in dates:
     day_map = {}
+    # v39.2：映射必须用完整清单 _full（瘦身只截断展示，不截断映射）
     for t in theme_detail.get(d, []):
-        for s in t.get("stocks", []):
+        for s in (t.get("_full") or t.get("stocks", [])):
             if s.get("code"):
                 day_map[s["code"]] = t["name"]
-    if not theme_detail.get(d):        # 当日无复盘文章 → 涨停原因兜底
+    if not theme_detail.get(d):        # 无复盘日 → 涨停原因兜底
         for s in pools[d]:
             c = s["code"]
             if c not in carry and c not in day_map:
@@ -282,8 +290,15 @@ for d in dates:
                 if nm:
                     day_map[c] = nm
                     n_reason += 1
+    # v39.2：有复盘日严格「以湖南人复盘表为准」—— theme_at 只认当日清单，
+    # 清单外涨停股不做题材映射。历史 carry / 涨停原因会把湖南人未列的股票
+    # 多算进同名题材（如化工应 5 实 11），必须杜绝。
     carry.update(day_map)
-    theme_at[d] = dict(carry)
+    theme_at[d] = dict(day_map) if theme_detail.get(d) else dict(carry)
+# _full 只服务于映射生成，输出前删除（避免进 data.js 膨胀）
+for _ts in theme_detail.values():
+    for _t in _ts:
+        _t.pop("_full", None)
 print("无复盘文章日：按真实涨停原因补题材映射 %d 个股票日" % n_reason)
 
 # ---- 3.3 每日题材梯队：当日涨停池 × 题材映射（这才是明细表「题材·梯队」的唯一数据源） ----
