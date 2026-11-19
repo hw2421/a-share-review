@@ -770,6 +770,15 @@ reviewStat = S.get("reviewStat", {})   # v45：买入逻辑共性统计
 reviewMeta = S["reviewMeta"]
 chances = S["chances"]            # v17：当日机会池 d -> [opp]（含一字买不进 / 炸板）
 kMarks = S["kMarks"]
+
+# ---- 5.6.26 v48 个股级赚钱效应（昨日换手涨停→今日换手涨停，最近两周） ----
+# 独立模块 money_winners.compute，口径与 verify_space 同源复用。
+import money_winners as MW
+MONEY_WINNERS = MW.compute(dates, pools, fd.yizi_map(pools), KBARS, theme_at,
+                           NAME={s["code"]: s["name"] for d in dates for s in pools[d]})
+print("个股赚钱效应（最近 %d 交易日）：%d 个换手涨停接力样本，%d 类形态，结论 %d 条"
+      % (MONEY_WINNERS["n"], MONEY_WINNERS["total"],
+         len(MONEY_WINNERS["cats"]), len(MONEY_WINNERS["read"])))
 excludedConsecYizi = S.get("excludedConsecYizi", [])   # v18：连续一字开盘、不属于战法标的
 v23stat = S.get("v23stat", {})          # 战法 T日复盘→T+1 参与 的触发统计
 
@@ -1106,6 +1115,7 @@ data = {
     "moneyDays": dates,             # 全期均有本地行情口径（区分"有行情"与"当日无达标题材"）
     "review": review,               # 三战法逐笔（前端按自定义时间段筛选）
     "reviewStat": reviewStat,       # v45：买入逻辑共性（市场阶段 / 题材 / 形态 / 涨停时机）
+    "moneyWinners": MONEY_WINNERS,  # v48：个股赚钱效应（昨日换手涨停→今日换手涨停，最近两周）
     "chances": chances,            # v17：当日机会池（全量符合买点候选，含一字/炸板）
     "reviewMeta": reviewMeta,      # 各战法买入 / 卖出逻辑说明
     "boardEarn": BOARD_EARN_SLIM,  # v29：板块赚钱效应验证（题材日 -> 题材 -> 明细）

@@ -997,6 +997,63 @@ def main():
     print("v47 连板梯队题材回退：当日漏抓沿用昨日/历史复盘 %d 个股票日、仍空 %d，异常 %d"
           % (n_lbfill47, n_lbempty47, n_lbbad47))
 
+    # ---- 16 v48 个股赚钱效应：昨日换手涨停→今日换手涨停 ----
+    # 独立复算（不依赖 build 的 theme_at）：逐笔核对「两日都在涨停池、非一字、
+    # 今日涨幅=涨停幅度、标签逻辑自洽」，并验证分类/规模汇总笔数合计=total。
+    MW = D.get("moneyWinners") or {}
+    EV = MW.get("events") or []
+    n_v48 = 0
+    SH_OK48 = {"一字", "赚钱", "赚T", "地天", "普通", "长腿", "低开"}
+    TAG_OK48 = {"极致高开全天红", "断板反包再连板", "地天板次日涨停",
+                "连续一字后首换手涨停", "N字反包次日涨停", "趋势股创新高周涨50%",
+                "题材持续换手连板", "普通换手连板晋级"}
+    poolmap48 = {d: {s["code"]: s for s in pools[d]} for d in dates}
+    yz48 = fd.yizi_map(pools)
+    rng48 = MW.get("range") or []
+    for e in EV:
+        code, d0, d = str(e["code"]), e["d0"], e["d"]
+        # 两日都在涨停池
+        if code not in poolmap48.get(d0, {}) or code not in poolmap48.get(d, {}):
+            err("v48 %s %s(%s) 非两日连续涨停池个股" % (d, e["name"], code)); n_v48 += 1
+        # 一字排除（核心口径）
+        if code in yz48.get(d0, ()) or code in yz48.get(d, ()):
+            err("v48 %s %s(%s) 昨日或今日为一字，不应计入赚钱效应" % (d, e["name"], code)); n_v48 += 1
+        # 形态合法
+        if e.get("s0") not in SH_OK48 or e.get("s1") not in SH_OK48:
+            err("v48 %s %s(%s) 形态非法 %s/%s" % (d, e["name"], code, e.get("s0"), e.get("s1"))); n_v48 += 1
+        # 今日涨幅须≈涨停幅度（主板~10 / 创业科创~20 / 北交~30 / ST~5）
+        lim = 0.05 if "ST" in e["name"] else (0.20 if code.startswith(("30", "688"))
+              else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
+        if abs(e.get("chg", 0) - lim * 100) > 1.0:
+            err("v48 %s %s(%s) 今日涨幅 %s ≠ 涨停幅度 %.0f%%"
+                % (d, e["name"], code, e.get("chg"), lim * 100)); n_v48 += 1
+        # 标签合法 + 主标签在标签内
+        if any(t not in TAG_OK48 for t in (e.get("tags") or [])):
+            err("v48 %s %s(%s) 含非法标签 %s" % (d, e["name"], code, e.get("tags"))); n_v48 += 1
+        if e.get("prim") not in (e.get("tags") or []):
+            err("v48 %s %s(%s) 主标签 %s 不在标签内" % (d, e["name"], code, e.get("prim"))); n_v48 += 1
+        # 极致标签逻辑自洽：要求昨日连板 b0>=2 且今日开盘>0 且最低>0
+        if "极致高开全天红" in (e.get("tags") or []):
+            if not (e.get("b0", 0) >= 2 and e.get("open", 0) > 0 and e.get("low", 0) > 0):
+                err("v48 %s %s(%s) 极致标签但 b0/open/low 不自洽 %s/%s/%s"
+                    % (d, e["name"], code, e.get("b0"), e.get("open"), e.get("low"))); n_v48 += 1
+        # 地天标签必对应昨日地天形态
+        if "地天板次日涨停" in (e.get("tags") or []) and e.get("s0") != "地天":
+            err("v48 %s %s(%s) 地天标签但昨日形态 %s" % (d, e["name"], code, e.get("s0"))); n_v48 += 1
+        # 事件须落在统计区间内
+        if rng48 and not (rng48[0] <= d <= rng48[1]):
+            err("v48 %s %s(%s) 超出统计区间 %s" % (d, e["name"], code, rng48)); n_v48 += 1
+    # 汇总笔数一致
+    if MW.get("total") != len(EV):
+        err("v48 total=%s ≠ 事件数 %d" % (MW.get("total"), len(EV))); n_v48 += 1
+    if sum(c.get("n", 0) for c in (MW.get("caps") or [])) != len(EV):
+        err("v48 规模分组笔数合计 ≠ 事件数 %d" % len(EV)); n_v48 += 1
+    for c in (MW.get("cats") or []):
+        if len(c.get("stocks") or []) > c.get("n", 0):
+            err("v48 分类「%s」代表股数 > 笔数" % c.get("k")); n_v48 += 1
+    print("v48 个股赚钱效应：事件 %d 笔、分类 %d、规模组 %d，独立复核异常 %d"
+          % (len(EV), len(MW.get("cats") or []), len(MW.get("caps") or []), n_v48))
+
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
     n_main = sum(1 for d in days if d.get("stage") == "主升")
