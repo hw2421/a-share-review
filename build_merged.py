@@ -855,6 +855,17 @@ for _day in days:
             _n_sf += 1
 print("空间龙头涨停形态回填：%d 个股票日" % _n_sf)
 
+# ---- v51：明日交易机会推荐（复盘案例前一日前置条件统计 → 决策日匹配） ----
+# 放在形态回填之后，确保 ladder_full 元素已带「s」形态字段，可正确排除一字（买不进）。
+import next_recs as NR
+NEXT_RECS = NR.compute(dates, days, ladder_full, ladders, review["summit"],
+                       fd.yizi_map(pools),
+                       NAME={s["code"]: s["name"] for dd in dates for s in pools.get(dd, [])})
+_today_recs = NEXT_RECS["byDate"].get(dates[-1], {}).get("recs", [])
+print("v51 明日机会推荐：历史画像 %d 组 / %d 笔，决策日 %d 个，今日推荐 %d 只"
+      % (len(NEXT_RECS["profile"]), NEXT_RECS["base"]["n"],
+         len(NEXT_RECS["byDate"]), len(_today_recs)))
+
 def _mood(entries, d, fresh):
     """空间龙头断板后的情绪三档（v45 用户口径）：
 
@@ -1120,6 +1131,7 @@ data = {
     "review": review,               # 三战法逐笔（前端按自定义时间段筛选）
     "reviewStat": reviewStat,       # v45：买入逻辑共性（市场阶段 / 题材 / 形态 / 涨停时机）
     "moneyWinners": MONEY_WINNERS,  # v48：个股赚钱效应（昨日换手涨停→今日换手涨停，最近两周）
+    "nextRecs": NEXT_RECS,         # v51：明日交易机会推荐（复盘前一日前置条件画像 + 决策日匹配）
     "chances": chances,            # v17：当日机会池（全量符合买点候选，含一字/炸板）
     "reviewMeta": reviewMeta,      # 各战法买入 / 卖出逻辑说明
     "boardEarn": BOARD_EARN_SLIM,  # v29：板块赚钱效应验证（题材日 -> 题材 -> 明细）

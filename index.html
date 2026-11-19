@@ -273,18 +273,27 @@
                  border-radius:11px;padding:1px 10px;font-size:11.5px;cursor:pointer}
   .trange button.on{border-color:var(--blue);color:var(--text);background:#1c2740}
   .trange span.co{color:var(--dim2);font-size:11px;margin-left:2px}
-  .tlegend{display:flex;flex-wrap:nowrap;gap:4px;margin-bottom:5px;overflow-x:auto;padding-bottom:2px}
-  .tlegend::-webkit-scrollbar{height:0}
-  /* 「规定期间内出现次数 N天」必须完整显示：原 padding:0 导致按钮盒高只有
-     7.7px、em 文字高 13px，上下被 overflow-x:auto 各裁掉一半。显式给足高度。 */
+  /* v51：题材炒作次数统计——改横滚隐藏滚动条为「自动换行网格 + 可见滚动条 + 限高容器」，
+     全部题材按当前时间段炒作次数降序完整铺开，解决「哪个题材炒作多少次显示不全」。 */
+  .tlegend{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;max-height:132px;
+           flex:0 0 auto;min-height:34px;
+           overflow-y:auto;padding:4px 5px;background:#0e1626;border:1px solid #1d2a42;
+           border-radius:6px}
+  .tlegend::-webkit-scrollbar{width:8px}
+  .tlegend::-webkit-scrollbar-thumb{background:#33456a;border-radius:4px}
+  .tlegend::-webkit-scrollbar-track{background:#0e1626}
   .tlegend button{display:inline-flex;align-items:center;gap:4px;background:var(--card2);
                   border:1px solid var(--line);color:var(--text);border-radius:10px;
                   padding:3px 8px 3px 5px;min-height:20px;line-height:14px;
                   font-size:10px;cursor:pointer;white-space:nowrap;flex:0 0 auto}
   .tlegend button.off{opacity:.38}
+  .tlegend button em{font-style:normal;color:var(--blue);font-weight:700}
   .tlegend i{width:7px;height:7px;border-radius:2px;display:inline-block;flex:0 0 auto}
   .tlegend em{font-style:normal;color:var(--dim);font-size:9px;line-height:14px;
               align-self:center;font-variant-numeric:tabular-nums}
+  .tlegend .lg-hd{flex:0 0 100%;color:var(--dim2);font-size:10px;padding:1px 2px 3px;
+                  border-bottom:1px solid #1d2a42;margin-bottom:2px}
+  .tlegend .lg-hd b{color:var(--blue)}
   .trow{display:flex;gap:6px;padding:0;border-bottom:1px solid #151c29;align-items:center}
   .trow:hover{background:rgba(61,139,255,.05)}
   .tdate{flex:0 0 44px;color:var(--dim);font-size:9.5px;text-align:center;line-height:1.15}
@@ -419,6 +428,21 @@
   .rv-tbl .rv-lg{max-width:300px;min-width:190px;white-space:normal;line-height:1.5;
         color:#9fb6d6;font-size:10px}
   /* v45：买入逻辑共性卡（四维统计 + 结论） */
+  /* v51：明日交易机会推荐（复盘前置条件匹配） */
+  .nr-mkt{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .nr-mkt span{background:#101a2b;border:1px solid #24344f;border-radius:5px;
+        padding:3px 9px;font-size:11.5px;color:var(--dim)}
+  .nr-mkt b{color:var(--gold)}
+  .nr-tbl{width:100%;border-collapse:collapse;font-size:11px}
+  .nr-tbl th{color:var(--dim2);font-weight:600;text-align:center;padding:5px 5px;
+        border-bottom:1px solid var(--line);white-space:nowrap;background:#111a2b}
+  .nr-tbl th.l,.nr-tbl td.l{text-align:left}
+  .nr-tbl td{padding:6px 5px;border-bottom:1px dashed rgba(31,41,55,.6);text-align:center;vertical-align:middle}
+  .nr-tbl tr:hover td{background:rgba(61,139,255,.05)}
+  .nr-stk{color:var(--blue);cursor:pointer;font-weight:600}
+  .nr-win{font-weight:800}
+  .nr-logic{color:var(--dim2);font-size:10px;line-height:1.55;text-align:left;white-space:normal;min-width:280px}
+  .nr-profile{font-size:10px;color:#9fc6ff;white-space:nowrap}
   .lg-card{margin-top:10px;border:1px solid #24344f;border-radius:9px;padding:9px 11px;
         background:linear-gradient(180deg,rgba(61,139,255,.07),rgba(61,139,255,.02))}
   .lg-card h4{margin:0 0 6px;font-size:12.5px;color:#9fc6ff}
@@ -534,6 +558,18 @@
             font-size:17px;cursor:pointer;line-height:1;padding:6px}
   #kpop .kx:hover{color:var(--text)}
   #kpop .kc{position:absolute;left:0;right:0;top:0;bottom:66px}
+  /* v51：分时走势浮层——点日K任一蜡烛弹出该日分时；只显示时间/价/涨幅，不显示开收价浮窗 */
+  #mppop{position:fixed;z-index:130;width:min(920px,94vw);height:min(460px,70vh);
+         background:#10182a;border:1px solid var(--gold);border-radius:10px;display:none;
+         box-shadow:0 12px 44px rgba(0,0,0,.7)}
+  #mppop .mpt{position:absolute;top:6px;left:12px;right:30px;z-index:2;font-size:12.5px;
+              cursor:move;user-select:none;-webkit-user-select:none;touch-action:none;color:var(--gold)}
+  #mppop .mpt small{color:var(--dim);margin-left:6px}
+  #mppop .mpx{position:absolute;top:2px;right:6px;z-index:3;color:var(--dim);
+              font-size:17px;cursor:pointer;line-height:1;padding:6px}
+  #mppop .mpx:hover{color:var(--text)}
+  #mppop .mpc{position:absolute;left:0;right:0;top:26px;bottom:0}
+  #mppop .mpnote{position:absolute;left:12px;bottom:6px;z-index:3;color:var(--dim2);font-size:9.5px}
   /* 当日题材梯队：弹窗底部条，点梯队个股直接切换日K */
   #kpop .klad{position:absolute;left:0;right:0;bottom:0;height:64px;z-index:5;
         background:rgba(12,19,34,.96);border-top:1px solid #26334a;padding:5px 8px;
@@ -781,6 +817,7 @@
 <div id="thpop"></div>
 <div id="ladpop"></div>
 <div id="kpop"><div class="kt" id="kpop-t"></div><span class="kx" id="kpop-x">✕</span><button id="kov-btn" class="kov"></button><div class="kc" id="kpop-c"></div><div class="klad" id="kpop-klad"></div></div>
+<div id="mppop"><div class="mpt" id="mppop-t"></div><span class="mpx" id="mppop-x">✕</span><div class="mpc" id="mppop-c"></div><div class="mpnote" id="mppop-note"></div></div>
 <button id="backtop" title="返回顶部" aria-label="返回顶部">↑ 返回顶部</button>
 
 <script src="echarts.min.js"></script>
@@ -1432,23 +1469,23 @@ function renderTheme(){
     b.onclick = ()=>{ THEME_RANGE = +b.dataset.n; renderTheme(); };
   });
 
-  // 图例：默认只列活跃 top18，可展开全部（点击只看该题材）
+  /* v51：图例 = 「时间段内题材炒作次数统计」。旧版按全期 order 排、默认只列 top18、
+     横滚且隐藏滚动条 → 用户看不到「哪个题材炒作多少次」。改为：按当前时间段内出现次数
+     降序，全部题材一次铺开（限高容器 + 可见滚动条），每个都显示次数。 */
   const inRange = order.filter(n=> dts.some(d=>get(n,d)));
-  const shown = LEGEND_ALL ? inRange : inRange.slice(0, 18);
+  const cntList = inRange.map(n=>({n:n, c:dts.filter(d=>get(n,d)).length}))
+                         .sort((a,b)=> b.c-a.c || a.n.localeCompare(b.n));
+  const totalOcc = cntList.reduce((s,x)=>s+x.c,0);
   document.getElementById('theme-legend').innerHTML =
-    shown.map(n=>{
-      const n0 = dts.filter(d=>get(n,d)).length;
-      return '<button data-th="'+n+'" title="【'+n+'】在当前选定期间内出现 '+
-        n0+' 次（点击只看该题材）"'+(THEME_FOCUS&&THEME_FOCUS!==n?' class="off"':'')+'>'+
-        '<i style="background:'+T_COLOR[n]+'"></i>'+n+' <em>'+n0+'次</em></button>';
-    }).join('')+
-    (inRange.length>18 ? '<button data-more="1"><em>'+
-      (LEGEND_ALL?'收起':'其余 '+(inRange.length-18)+' 个题材')+'</em></button>' : '');
-  document.getElementById('theme-legend').querySelectorAll('button').forEach(b=>{
-    b.onclick = ()=>{
-      if(b.dataset.more){ LEGEND_ALL = !LEGEND_ALL; renderTheme(); return; }
-      THEME_FOCUS = (THEME_FOCUS===b.dataset.th)?null:b.dataset.th; renderTheme();
-    };
+    '<div class="lg-hd">当前时间段（'+dts.length+' 个交易日）题材炒作次数统计：'+
+      '<b>'+cntList.length+'</b> 个题材 · 合计 <b>'+totalOcc+'</b> 次 · 按次数降序 · 点题材只看该题材</div>'+
+    cntList.map(x=>{
+      return '<button data-th="'+x.n+'" title="【'+x.n+'】在当前时间段内炒作 '+x.c+
+        ' 次（点击只看该题材）"'+(THEME_FOCUS&&THEME_FOCUS!==x.n?' class="off"':'')+'>'+
+        '<i style="background:'+T_COLOR[x.n]+'"></i>'+x.n+' <em>'+x.c+'次</em></button>';
+    }).join('');
+  document.getElementById('theme-legend').querySelectorAll('button[data-th]').forEach(b=>{
+    b.onclick = ()=>{ THEME_FOCUS = (THEME_FOCUS===b.dataset.th)?null:b.dataset.th; renderTheme(); };
   });
 
   let html = '';
@@ -2821,6 +2858,185 @@ async function togglePrevLeader(code, name, atDate, prev){
   // e=null 保持弹窗原位置重绘
   showK(code, name, null, atDate);
 }
+/* ================= v51：点日K蜡烛 → 该日分时走势 =================
+   数据源：腾讯 day/query（JSONP 全局回调，覆盖最近约5个交易日，含每日分时价+累计量+累计额）；
+   更早日期回退新浪 1分钟K线（经代理，覆盖最近约4日）；两者都无则给出明确提示。
+   分时图只画「价格线 + 均价线 + 成交量」，tooltip 仅时间/价格/涨幅——不展示开收价浮窗。 */
+let MP_CHART=null, MP_LAST={code:'',name:'',date:''};
+function thsDayMinute(code, timeout){
+  /* 腾讯多日分时：_var=NAME 是「赋值式」JSONP（NAME={...} 直接覆盖全局变量），
+     不是函数名回调——故用轮询检测 window[NAME] 从 null 变为数据对象。
+     返回 [{date:'20261119', data:['HHMM price cumVol cumAmt',...]},...] */
+  return new Promise(res=>{
+    const CB='winMinCB_'+code+'_'+Math.floor(Math.random()*1e6);
+    const sym=(/^[689]/.test(code)?'sh':/^[48]/.test(code)?'bj':'sz')+code;
+    window[CB]=null;
+    const s=document.createElement('script');
+    let finished=false;
+    const cleanup=()=>{ try{ delete window[CB]; }catch(e){ window[CB]=undefined; } s.remove(); };
+    const done=v=>{ if(finished) return; finished=true; clearTimeout(timer); clearInterval(poll);
+                    cleanup(); res(v); };
+    const parse=obj=>{
+      try{
+        const d=(obj&&obj.data&&obj.data[sym]&&obj.data[sym].data)||[];
+        if(!d.length) return done(null);
+        const out=d.map(day=>{
+          const pts=(day.data||[]).map(line=>{
+            const p=String(line).trim().split(/\s+/);
+            return {t:p[0], price:+p[1], vol:+(p[2]||0), amt:+(p[3]||0)};
+          }).filter(x=>/^\d{4}$/.test(x.t)&&x.price>0);
+          return {date:String(day.date), pts:pts};
+        }).filter(x=>x.pts.length);
+        done(out.length?out:null);
+      }catch(err){ done(null); }
+    };
+    const poll=setInterval(()=>{ if(window[CB] && typeof window[CB]==='object') parse(window[CB]); },60);
+    const timer=setTimeout(()=>done(null), timeout||8000);
+    s.onerror=()=>done(null);
+    s.src='https://web.ifzq.gtimg.cn/appstock/app/day/query?code='+sym+'&_var='+CB+'&r='+Date.now();
+    document.head.appendChild(s);
+  });
+}
+async function sinaMinute(code, date, timeout){
+  /* 新浪 1分钟K线兜底：近约4个交易日；按 date 过滤聚合成分时点 */
+  const days=await (async()=>{
+    const px=K_PROXIES||[
+      {wrap:u=>'https://api.allorigins.win/get?url='+encodeURIComponent(u),pick:j=>(j.contents||'')},
+      {wrap:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),pick:j=>j},
+      {wrap:u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u),pick:j=>j}
+    ];
+    const u='https://quotes.sina.cn/cn/api/json_v2.php/CN_MarketDataService.getKLineData?symbol='+
+      sinaSym(code)+'&scale=1&datalen=1023';
+    for(const p of px){
+      try{
+        const r=await fetchT(p.wrap(u),timeout||7000); if(!r.ok) continue;
+        let txt=p.pick(await r.json()); if(typeof txt!=='string') txt=JSON.stringify(txt);
+        if(!txt||txt[0]!=='[') continue;
+        const arr=JSON.parse(txt); if(!Array.isArray(arr)||!arr.length) continue;
+        return arr;
+      }catch(e){}
+    }
+    return [];
+  })();
+  const key=date.slice(0,4)+'-'+date.slice(4,6)+'-'+date.slice(6,8);
+  const rows=days.filter(o=>String(o.day||'').slice(0,10)===key);
+  if(!rows.length) return null;
+  let cv=0,ca=0;
+  const pts=rows.map(o=>{
+    const t=String(o.day).slice(11,16).replace(':','');
+    const price=+o.close, vol=+(o.volume||0);
+    cv+=vol; ca+=price*vol;
+    return {t:t, price:price, vol:cv, amt:ca};
+  }).filter(x=>/^\d{4}$/.test(x.t)&&x.price>0);
+  return pts.length?{date:date,pts:pts}:null;
+}
+async function showMinute(code, name, date, ev){
+  MP_LAST={code:code,name:name,date:date};
+  const pop=document.getElementById('mppop');
+  document.getElementById('mppop-t').innerHTML='<b>'+name+'</b> '+
+    '<small>'+fmtDate(date)+' 分时走势 · 价格线 / 均价线 / 成交量（点日K蜡烛切换）</small>';
+  document.getElementById('mppop-note').textContent='加载分时数据…';
+  pop.style.display='block';
+  // 定位：偏右下，避开日K弹窗
+  const W=window.innerWidth,H=window.innerHeight;
+  let x=(ev&&ev.clientX!=null?ev.clientX:W*0.42)+20, y=(ev&&ev.clientY!=null?ev.clientY:H*0.3)-30;
+  x=Math.max(8,Math.min(x,W-pop.offsetWidth-8)); y=Math.max(8,Math.min(y,H-pop.offsetHeight-8));
+  pop.style.left=x+'px'; pop.style.top=y+'px';
+  if(!MP_CHART) MP_CHART=echarts.init(document.getElementById('mppop-c'),null,{renderer:'canvas'});
+  else MP_CHART.resize();
+  // 腾讯多日分时命中该日
+  let dayData=null, src='腾讯分时', prevFromMulti=null;
+  const multi=await thsDayMinute(code, 8000);
+  if(multi){
+    const mi=multi.findIndex(x=>x.date===date);
+    if(mi>=0){ dayData=multi[mi];
+      // 多日分时里前一交易日的「收盘分价」= 本日昨收（比分时首价更准）
+      if(mi+1<multi.length && multi[mi+1].pts.length)
+        prevFromMulti=multi[mi+1].pts[multi[mi+1].pts.length-1].price;
+    }
+  }
+  if(!dayData){ dayData=await sinaMinute(code,date,7000); src='新浪1分钟K线'; }
+  if(!dayData || !dayData.pts.length){
+    document.getElementById('mppop-note').textContent=
+      '该日（'+fmtDate(date)+'）超出分时数据源范围（腾讯约5日 / 新浪约4日），请以日K为准。';
+    MP_CHART.clear();
+    return;
+  }
+  const pts=dayData.pts;
+  // 昨收优先级：多日分时的前一日收盘 > 日K上一根收盘 > 分时首价
+  let prevClose=prevFromMulti;
+  if(!prevClose){
+    const kb=(window.REVIEW.klines||{})[code]||[];
+    for(let i=0;i<kb.length;i++){ if(kb[i][0]===date && i>0){ prevClose=kb[i-1][2]; break; } }
+  }
+  const base=prevClose||pts[0].price;
+  const labels=pts.map(p=>p.t.slice(0,2)+':'+p.t.slice(2));
+  const price=pts.map(p=>p.price);
+  // 均价 = 累计成交额 / 累计成交量（腾讯量单位为手，额为元；新浪量*价为元，统一按比例）——用相对值即可
+  const avg=pts.map(p=> p.vol>0 ? +(p.amt/p.vol/100).toFixed(3) : p.price);
+  // 分时成交量：相邻累计量之差
+  const volBar=pts.map((p,i)=> i===0?p.vol:Math.max(0,p.vol-pts[i-1].vol));
+  const upC='#f5455c', dnC='#2ebd85';
+  const priceColor=price[price.length-1]>=base?upC:dnC;
+  // 注意：tooltip 只显示 时间/价格/涨幅，绝不含开收价（用户口径）
+  MP_CHART.setOption({
+    backgroundColor:'transparent',
+    animation:false,
+    tooltip:{trigger:'axis',axisPointer:{type:'line',lineStyle:{color:'#7f8ea6',type:'dashed'}},
+      backgroundColor:'#1c2740',borderColor:'#33456a',textStyle:{color:'#e6eef8',fontSize:11},
+      formatter:p=>{
+        if(!p||!p.length) return '';
+        const i=p[0].dataIndex, pr=price[i];
+        const chg=(pr/base-1)*100;
+        return labels[i]+'<br/>价格 <b style="color:'+(chg>=0?upC:dnC)+'">'+pr.toFixed(2)+
+          '</b> <span style="color:'+(chg>=0?upC:dnC)+'">'+(chg>=0?'+':'')+chg.toFixed(2)+'%</span>';
+      }},
+    axisPointer:{link:[{xAxisIndex:'all'}]},
+    grid:[{left:46,right:46,top:16,height:'58%'},{left:46,right:46,top:'76%',height:'16%'}],
+    xAxis:[
+      {type:'category',data:labels,gridIndex:0,axisLabel:{show:false},axisTick:{show:false},
+       axisLine:{lineStyle:{color:'#2b3a56'}}},
+      {type:'category',data:labels,gridIndex:1,
+       axisLabel:{color:'#78849a',fontSize:9,interval:Math.max(0,Math.floor(labels.length/6))},
+       axisTick:{show:false},axisLine:{lineStyle:{color:'#2b3a56'}}}
+    ],
+    yAxis:[
+      {scale:true,gridIndex:0,splitNumber:4,axisLabel:{color:'#78849a',fontSize:9,
+        formatter:v=>v.toFixed(2)},splitLine:{lineStyle:{color:'#18202f'}}},
+      {scale:true,gridIndex:1,splitNumber:2,axisLabel:{show:false},splitLine:{show:false}}
+    ],
+    series:[
+      {name:'价格',type:'line',xAxisIndex:0,yAxisIndex:0,data:price,showSymbol:false,
+       lineStyle:{color:priceColor,width:1.6},areaStyle:{color:priceColor,opacity:0.08},
+       markLine:{silent:true,symbol:'none',label:{show:true,formatter:'昨收 '+base.toFixed(2),
+         position:'end',color:'#78849a',fontSize:9},
+         lineStyle:{color:'#7f8ea6',type:'dashed',width:1},data:[{yAxis:base}]}},
+      {name:'均价',type:'line',xAxisIndex:0,yAxisIndex:0,data:avg,showSymbol:false,
+       lineStyle:{color:'#f0b90b',width:1.1}},
+      {name:'成交量',type:'bar',xAxisIndex:1,yAxisIndex:1,data:volBar,
+       itemStyle:{color:p=>i_color(p.dataIndex,price,base)}}
+    ]
+  },{notMerge:true});
+  function i_color(i,pr,base){ return pr[i]>=base?upC:dnC; }
+  document.getElementById('mppop-note').textContent=
+    '数据源：'+src+' · 昨收基准 '+(prevClose?prevClose.toFixed(2):'取分时首价')+
+    ' · 均价线=累计成交额÷累计成交量 · 点日K其他蜡烛切换日期';
+}
+(async function initMpPop(){
+  const pop=document.getElementById('mppop'), bar=document.getElementById('mppop-t');
+  document.getElementById('mppop-x').onclick=()=>{ pop.style.display='none'; };
+  let drag=null;
+  const down=(x,y)=>{ drag={dx:x-pop.offsetLeft,dy:y-pop.offsetTop}; };
+  bar.addEventListener('mousedown',e=>{ down(e.clientX,e.clientY); e.preventDefault(); });
+  bar.addEventListener('touchstart',e=>{ const t=e.touches[0]; down(t.clientX,t.clientY); },{passive:true});
+  window.addEventListener('mousemove',e=>{
+    if(!drag) return;
+    const W=window.innerWidth,H=window.innerHeight;
+    pop.style.left=Math.max(0,Math.min(e.clientX-drag.dx,W-pop.offsetWidth))+'px';
+    pop.style.top=Math.max(0,Math.min(e.clientY-drag.dy,H-pop.offsetHeight))+'px';
+  });
+  window.addEventListener('mouseup',()=>{ drag=null; });
+})();
 async function showK(code, name, e, atDate, trade){
   // 切换到别的个股时清空叠加（前龙是相对当前龙头的）
   if(K_OVERLAY && K_OVERLAY.owner !== code) K_OVERLAY = null;
@@ -3065,6 +3281,16 @@ async function showK(code, name, e, atDate, trade){
   }, {notMerge:true});
   renderKLad(code, target || dates[idx], trade && trade.theme, trade);
   tipDrag(kChart);
+  /* v51：点日K任一蜡烛 → 弹该日分时走势（只显示时间/价格/涨幅，无开收价浮窗） */
+  if(!kChart.__mpBound){
+    kChart.__mpBound=true;
+    kChart.on('click', p=>{
+      if(p && p.seriesType==='candlestick' && p.dataIndex!=null){
+        const dd=dates[p.dataIndex];
+        if(dd) showMinute(code, name, dd, p.event && p.event.event);
+      }
+    });
+  }
 }
 /* 视口坐标 / 尺寸（弹窗定位与拖动用） */
 function landXY(e){ return [e.clientX, e.clientY]; }
@@ -3307,6 +3533,51 @@ function paintDecision(){
   const chgTxt=(v, live)=> v==null ? (live? '<span class="c-gold">盘中…</span>' : '-')
                                    : '<span style="color:'+(v>=0?C.up:C.down)+'">'+(v>0?'+':'')+v+'%</span>';
   let html='';
+  /* ---------- ⓪ v51：明日交易机会推荐（前置条件统计匹配）放在决策页首个模块 ---------- */
+  {
+    const NR = R.nextRecs||{}, B = (NR.byDate||{})[d]||{};
+    const mk = B.market||{}, recs = B.recs||[], base = NR.base||{};
+    let inner = '<div class="nr-mkt">'+
+      '<span>买入前一日市场阶段 <b>'+(mk.stage||'—')+'</b></span>'+
+      '<span>空间压制 <b>'+(mk.suppress? mk.suppress+'板' : '无压制')+'</b>（前置条件：'+(mk.supp||'—')+'）</span>'+
+      '<span>涨停家数 <b>'+(mk.ztCount!=null?mk.ztCount:'—')+'</b></span>'+
+      '<span>空间高度 <b>'+(mk.spaceTop!=null?mk.spaceTop:'—')+'板</b></span>'+
+      '<span>全样本基准胜率 <b>'+(base.win!=null?base.win+'%':'—')+'</b>（'+(base.n||0)+' 笔）</span>'+
+      '</div>';
+    if(recs.length){
+      inner += '<div class="scroll" style="max-height:420px;overflow:auto"><table class="nr-tbl"><thead><tr>'+
+        '<th class="l">推荐个股</th><th>板数</th><th class="l">题材</th><th>形态/封板</th>'+
+        '<th class="l">前置条件画像</th><th>历史胜率</th><th>超额</th><th>均盈亏</th><th class="l">推荐逻辑</th>'+
+        '</tr></thead><tbody>';
+      recs.forEach(x=>{
+        const edge = x.edge!=null ? ((x.edge>=0?'+':'')+x.edge+'pp') : '—';
+        const edgeCol = x.edge==null?C.dim2:(x.edge>=0?C.up:C.down);
+        inner += '<tr>'+
+          '<td class="l"><span class="nr-stk" data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+d+'" '+
+            'title="点击查看 '+x.name+' 日K">'+x.name+'</span> <span style="color:var(--dim2);font-size:9.5px">'+x.code+'</span></td>'+
+          '<td><b style="color:'+C.gold+'">'+(x.boards||0)+'板</b></td>'+
+          '<td class="l">'+(x.theme||'—')+'</td>'+
+          '<td>'+(x.shape||'换手')+(x.t?' <span style="color:var(--dim2)">'+x.t+'</span>':'')+'</td>'+
+          '<td class="l nr-profile">'+(x.key||'—')+'</td>'+
+          '<td class="nr-win" style="color:'+(x.win!=null?(x.win>=base.win?C.up:C.down):C.dim2)+'">'+
+            (x.win!=null?x.win+'%':'—')+' <span style="font-weight:400;color:var(--dim2);font-size:9px">'+(x.n||0)+'笔</span></td>'+
+          '<td style="color:'+edgeCol+'">'+edge+'</td>'+
+          '<td style="color:'+((x.avg||0)>=0?C.up:C.down)+'">'+(x.avg!=null?(x.avg>0?'+':'')+x.avg+'%':'—')+'</td>'+
+          '<td class="l nr-logic">'+(x.logic||'')+'</td>'+
+          '</tr>';
+      });
+      inner += '</tbody></table></div>';
+    }else{
+      inner += '<div class="sub" style="padding:6px 0;color:'+C.dim2+'">'+
+        '当日无符合条件的明日机会（无 2 板及以上、可买入的非一字赚钱效应题材龙头）。</div>';
+    }
+    inner += kjNote('推荐口径：'+(NR.rule||'')+
+      '推荐个股来自当日 2 板及以上的赚钱效应题材龙头（一字买不进已排除）；'+
+      '「超额」=该前置条件历史胜率−全样本基准胜率；历史笔数越多的画像越具参考性，笔数少需谨慎。',
+      '口径 · 明日机会前置条件');
+    html += dcSec('🎯 明日交易机会推荐 · 前置条件匹配 <span class="sub">'+fmtDate(d)+
+      ' 收盘条件 → 明日买入参考 · 点个股看日K</span>', inner);
+  }
   /* ---------- ① 市场阶段 + 交易机会判断 ---------- */
   {
     const dg=D.dragon||{};

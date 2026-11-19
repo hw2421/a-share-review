@@ -1136,6 +1136,73 @@ def main():
           % (len(EV), len(EVALL), len(MW.get("cats") or []), len(MW.get("caps") or []),
              len(DROPALL), n_v48))
 
+    # ---- v51：明日交易机会推荐（前置条件画像 + 决策日匹配）独立复核 ----
+    NR = D.get("nextRecs") or {}
+    n_v51 = 0
+    NR_DATES = D.get("dates") or []
+    NR_DIDX = {d: i for i, d in enumerate(NR_DATES)}
+    NR_SD = {s.get("date"): s for s in days}
+    NR_LAD = D.get("ladders") or {}
+    NR_LF = D.get("ladderFull") or {}
+    NR_PROF = NR.get("profile") or []
+    NR_BASE = NR.get("base") or {}
+    NR_PM = {p.get("key"): p for p in NR_PROF}
+    # ① profile 笔数合计须等于 base.n
+    if sum(p.get("n", 0) for p in NR_PROF) != NR_BASE.get("n", -1):
+        err("v51 画像笔数合计 %d != 基准 %d"
+            % (sum(p.get("n", 0) for p in NR_PROF), NR_BASE.get("n", -1))); n_v51 += 1
+    # ② 从 review 独立复算每组笔数 / 胜率 / 均盈亏
+    def _supp51(v):
+        if v in (None, 0, "None"): return "无压制"
+        try: v = int(v)
+        except (TypeError, ValueError): return "无压制"
+        return "低压制(≤4板)" if v <= 4 else "高压制(≥5板)"
+    def _lad51(g):
+        if not g: return "题材无/弱梯队"
+        mb = g.get("maxB") or 0
+        if not mb and g.get("boards"): mb = max(g["boards"])
+        return "题材有连板梯队" if mb >= 2 else "题材无/弱梯队"
+    grp = {}
+    for x in RV45:
+        i = NR_DIDX.get(x.get("d"))
+        if i is None or i == 0 or x.get("pnl") is None: continue
+        pd = NR_DATES[i - 1]; st = NR_SD.get(pd) or {}
+        key = "%s/%s/%s" % (st.get("stage") or "未知", _supp51(st.get("suppress")),
+                            _lad51((NR_LAD.get(pd) or {}).get(x.get("theme") or "")))
+        grp.setdefault(key, []).append(float(x["pnl"]))
+    for key, arr in grp.items():
+        pf = NR_PM.get(key)
+        if not pf:
+            err("v51 画像缺组合 %s" % key); n_v51 += 1; continue
+        win = round(sum(1 for p in arr if p > 0) / len(arr) * 100, 1)
+        avg = round(sum(arr) / len(arr), 2)
+        if pf.get("n") != len(arr) or abs((pf.get("win") or 0) - win) > 0.15 \
+           or abs((pf.get("avg") or 0) - avg) > 0.02:
+            err("v51 画像 %s 复算不符 n%s/%s win%s/%s avg%s/%s"
+                % (key, pf.get("n"), len(arr), pf.get("win"), win, pf.get("avg"), avg)); n_v51 += 1
+    # ③ byDate 推荐个股合法：2板+、非一字、画像键存在、胜率一致
+    n_rec = 0
+    for d, blk in (NR.get("byDate") or {}).items():
+        for r in (blk.get("recs") or []):
+            n_rec += 1
+            code, dd = str(r.get("code") or ""), r.get("d") or d
+            arr = (NR_LF.get(d) or {}).get(r.get("theme") or "") or []
+            hit = next((z for z in arr if str(z.get("code")) == code), None)
+            if not hit or (hit.get("boards") or 1) < 2:
+                err("v51 推荐 %s %s 非当日2板+龙头" % (d, code)); n_v51 += 1; continue
+            if hit.get("s") == "一字":
+                err("v51 推荐 %s %s 为一字（买不进）" % (d, code)); n_v51 += 1
+            pf = NR_PM.get(r.get("key") or "")
+            # 早期决策日市场阶段可能为「未知」→ 历史画像无该组合，胜率应为 None（正常边界）
+            if not pf:
+                if r.get("win") is not None:
+                    err("v51 推荐 %s %s 画像缺失却给出胜率" % (d, code)); n_v51 += 1
+            elif r.get("win") != pf.get("win"):
+                err("v51 推荐 %s %s 胜率与画像不符" % (d, code)); n_v51 += 1
+    print("v51 明日机会推荐：画像 %d 组 / %d 笔，决策日 %d 个 / 推荐 %d 笔，独立复核异常 %d"
+          % (len(NR_PROF), NR_BASE.get("n", 0), len(NR.get("byDate") or {}), n_rec, n_v51))
+    n_v48 += n_v51
+
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
     n_main = sum(1 for d in days if d.get("stage") == "主升")
