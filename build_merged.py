@@ -19,6 +19,11 @@ ec = json.load(open(os.path.join(OUT, ".excel_cache.json"), encoding="utf-8"))
 pool_cache = fd.load_pool_cache()
 
 # ---- 1. 合并涨停池 ----
+# v59 内存瘦身：data.json 全量（~1.5GB）整轮持有是 OOM 主因。提前抽出后段
+# 仅需的 supKlines / tgb / 文章快照兜底三块，随后立即释放，给 KBARS（~3.5GB）腾内存。
+_D_SUPKL = D.get("supKlines") or {}
+_D_TGB = D.get("tgb", "")
+_D_PREV_TD = None          # 仅 .theme_articles.json 缺失时的兜底快照源
 pools = {}
 for d, v in ec["pools"].items():          # 2025：Excel OCR 池（板数取图上标注）
     if d < CUT and v:
@@ -122,13 +127,14 @@ if os.path.exists(ART_F):
     article_cache = json.load(open(ART_F, encoding="utf-8"))
 else:
     article_cache = {}
-    for d, ts in D.get("themeDetail", {}).items():
+    for d, ts in (D.get("themeDetail") or {}).items():
         keep = [t for t in (ts or []) if t.get("src") not in ("pool", "ztpool")]
         if keep:
             article_cache[d] = keep
     with open(ART_F, "w", encoding="utf-8") as f:
         json.dump(article_cache, f, ensure_ascii=False)
     print("固定文章输入快照 .theme_articles.json：%d 天" % len(article_cache))
+del D                       # v59：data.json 立即释放（后段只用 _D_SUPKL/_D_TGB）
 for d, ts in article_cache.items():      # 历史 tgb 文章（固定快照）
     if ts:
         theme_detail[d] = ts
@@ -457,7 +463,7 @@ space_series.sort(key=lambda o: (-o["maxB"], o["pts"][0][0]))
 # 379MB 全历史缓存被重复加载（8GB 内存上限下曾触发 OOM）；日常更新不设此开关。
 SKIP_KLINES = os.environ.get("SKIP_KLINES") == "1"
 if SKIP_KLINES:
-    sup_kl = D.get("supKlines") or {}
+    sup_kl = _D_SUPKL
     print("SKIP_KLINES：沿用已有 supKlines %d 段，跳过日K刷新" % len(sup_kl))
 else:
     try:
@@ -1267,7 +1273,7 @@ data = {
     "decision": decision,           # v38：复盘决策页（市场阶段 / 空间龙头断板表现 / 赚钱效应题材梯队；
                                     #      v41 追加：nextday 昨日涨停今日赚钱效应 + pools 三大选股池）
     "klines": kl_main,              # 兼容字段（空）：日K一律走 klines_N.json 分片
-    "tgb": D.get("tgb", ""),
+    "tgb": _D_TGB,
     "spaceSeries": space_series,
     "recentPools": {d: [{"code": s["code"], "name": s["name"],
                          "boards": s["boards"], "ay": 1 if fd.is_yizi(s) else 0}

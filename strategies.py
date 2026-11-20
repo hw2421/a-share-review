@@ -7,11 +7,15 @@
   chances       {买入日: [opp,...]}      当日机会（含一字买不进、炸板）
   kMarks        {code: {date: 1|2}}      K线骷髅头
 
-「山顶洞人」口径（v44 用户原话）：
+「山顶洞人」口径（v44 用户原话 + v59 五要素）：
   · 选股 / 买入：当日题材炒作中**有赚钱效应**的题材，买入其**龙头股**
     （板块最高连板、当日涨停），**一字板除外**（一字买不进，只进机会池）。
     有赚钱效应 = 该题材当日有 ≥3 板个股再涨停、板块涨停 ≥3 只、龙头非一字
     （build_merged 的 money 榜，与题材炒作页金框同源）。
+  · v59 五要素硬门槛（缺一不买）：① 板块连板助攻（当日梯队内 ≥2 板个股含龙头
+    至少 2 只）；② 龙头非一字；③ 市场情绪变好（全市场涨停家数＞前一日）；
+    ④ 板块变强（题材涨停家数或最高板严格高于前一日）；⑤ 持续赚钱效应
+    （题材连续 ≥2 日在赚钱效应榜）。
   · 卖出（统一，不变）：次日涨停持仓，尾盘不涨停卖出，盘中跌幅大于 -7% 无条件止损；
     一字跌停无换手卖不出，顺延至首个可成交日。
   · 已删除：换手 3 板+2 板跟风梯队选股、次日接力、空间突破日买入（v42/v43 口径）。
@@ -34,10 +38,11 @@ META = {
         "buy": "【买入】当日题材炒作中「有赚钱效应」的题材，以涨停价打板买入该题材龙头股"
                "（板块最高连板、当日涨停），一字板除外（一字买不进，只进机会池、不参与模拟）。",
         "sell": SELL_TXT,
-        "note": "「有赚钱效应」＝该题材当日有 ≥3 板个股再涨停、板块当日涨停 ≥3 只、"
-                "且龙头为换手（非一字）连板股 —— 与题材炒作页金框（★赚钱效应题材）同源。"
+        "note": "v59 五要素（缺一不买）：① 板块连板助攻＝当日梯队内 ≥2 板个股（含龙头）"
+                "至少 2 只；② 龙头非一字（换手）；③ 市场情绪变好＝当日全市场涨停家数"
+                "＞前一交易日；④ 板块变强＝当日题材涨停家数或最高板严格高于前一日；"
+                "⑤ 持续赚钱效应＝该题材连续 ≥2 日在赚钱效应榜（与题材炒作页金框同源）。"
                 "「龙头」＝当日该题材最高连板个股；同一只股属多个题材时只记一笔。"
-                "题材须在当日题材炒作模块中入链（有连板且涨停 >3 只）。"
                 "买入价一律按涨停价打板；盘中触板后炸板按涨停价买入并计入逐笔。",
     },
 }
@@ -83,7 +88,9 @@ def build(ctx):
     stats = {"cand": 0, "fire": 0, "yizi": 0, "no_limit": 0,
              "open_skip": 0, "no_kline": 0, "no_kline_exit": 0, "defer": 0, "consec_yizi": 0,
              "burst": 0, "m1": 0, "m2": 0, "pick": 0, "no_assist": 0,
-             "height_skip": 0, "no_vol": 0, "maxvol": 0, "theme_skip": 0}
+             "height_skip": 0, "no_vol": 0, "maxvol": 0, "theme_skip": 0,
+             # v59 五要素门槛计数
+             "gate_assist": 0, "gate_senti": 0, "gate_thup": 0, "gate_sustain": 0}
 
     chances = defaultdict(list)
     chance_seen = set()
@@ -487,6 +494,12 @@ def build(ctx):
             "t": (e.get("time") or "")[:5], "shape": meta.get("shape") or "",
             "volx": meta.get("volx"), "vmax": bool(meta.get("vmax")),
             "lad": meta.get("lad") or "",
+            # v59 五要素留痕（连板助攻 / 情绪 / 板块强度 / 持续天数）
+            "assistN": meta.get("assistN"), "assist": meta.get("assist") or "",
+            "ztCur": meta.get("ztCur"), "ztPrev": meta.get("ztPrev"),
+            "cntCur": meta.get("cntCur"), "cntPrev": meta.get("cntPrev"),
+            "mxbCur": meta.get("mxbCur"), "mxbPrev": meta.get("mxbPrev"),
+            "sustain": meta.get("sustain"),
         }
         t["logic"] = _logic_txt(t)
         review["summit"].append(t)
@@ -497,10 +510,17 @@ def build(ctx):
 
     # ---------------- 8. 主循环：B = 买入日（当日） ----------------
     # v44 用户口径：当日题材炒作里有赚钱效应的题材 → 买其龙头（板块最高连板），一字板除外。
-    # 不再有「T 日选股 / 次日接力 / 空间突破」两笔买点，卖出规则不变。
+    # v59 用户口径：买入龙头必须要有板块连板的助攻，非一字板；买的是市场情绪变好、
+    #               买的是板块变强、买的是板块，有持续的赚钱效应 —— 四项硬门槛缺一不买。
     for i in range(1, len(dates)):
         B = dates[i]
+        PB = dates[i - 1]
         _det = {str(t.get("name") or "").strip() for t in (TD.get(B) or [])}
+        # v59-③ 市场情绪变好：当日全市场涨停家数 > 前一交易日
+        _zt_cur = (stage_by_d.get(B) or {}).get("ztCount")
+        _zt_prev = (stage_by_d.get(PB) or {}).get("ztCount")
+        senti_up = (isinstance(_zt_cur, (int, float)) and isinstance(_zt_prev, (int, float))
+                    and _zt_cur > _zt_prev)
         for g in (MONEY.get(B) or []):
             nm = str(g.get("theme") or "").strip()
             c = str(g.get("leadCode") or "")
@@ -515,13 +535,53 @@ def build(ctx):
                 stats["no_limit"] += 1
                 continue
             bd = e.get("boards") or 1
+            # v59-① 板块连板助攻：当日梯队内 ≥2 板个股（含龙头）至少 2 只
+            _arr = ladder_of(B).get(nm) or []
+            _assist = sorted([x for x in _arr if (x.get("boards") or 1) >= 2
+                              and str(x.get("code")) != c],
+                             key=lambda x: -(x.get("boards") or 1))
+            if not _assist:
+                stats["gate_assist"] += 1
+                continue
+            # v59-③ 市场情绪变好（硬门槛）
+            if not senti_up:
+                stats["gate_senti"] += 1
+                continue
+            # v59-④ 板块变强：当日题材涨停家数或最高板严格高于前一日
+            _arrP = ladder_of(PB).get(nm) or []
+            _cnt_cur, _cnt_prev = len(_arr), len(_arrP)
+            _mxb_cur = max((x.get("boards") or 1) for x in _arr) if _arr else 0
+            _mxb_prev = max((x.get("boards") or 1) for x in _arrP) if _arrP else 0
+            _th_up = _cnt_cur > _cnt_prev or _mxb_cur > _mxb_prev
+            if not _th_up:
+                stats["gate_thup"] += 1
+                continue
+            # v59-⑤ 持续赚钱效应：前一日该题材也在赚钱效应榜（连续 ≥2 日）
+            _pt = {str(x.get("theme") or "").strip() for x in (MONEY.get(PB) or [])}
+            if nm not in _pt:
+                stats["gate_sustain"] += 1
+                continue
+            _sustain = 2
+            _jj = i - 1
+            while _jj > 0 and nm in {str(x.get("theme") or "").strip()
+                                     for x in (MONEY.get(dates[_jj]) or [])}:
+                _sustain += 1
+                _jj -= 1
             stats["pick"] += 1
             vd = vol_desc(c, B)              # 当日量能（仅描述，不作过滤条件）
             vtxt = (" · " + vd) if vd else ""
+            _assist_names = "、".join("%s%d板" % (x.get("name") or "", x.get("boards") or 1)
+                                      for x in _assist[:2])
             why = ("山顶洞人·当日赚钱效应龙头 · 板块「%s」%d 板龙头"
-                   "（当日涨停 %d 只 / 最高 %d 板 / 梯队 %s）· 龙头非一字%s"
+                   "（当日涨停 %d 只 / 最高 %d 板 / 梯队 %s）· 龙头非一字"
+                   " · 板块连板助攻×%d（%s）· 市场情绪变好（全市场涨停 %s 家＞昨 %s 家）"
+                   " · 板块变强（涨停 %d 家 vs 昨 %d 家 / 最高板 %d vs 昨 %d）"
+                   " · 持续赚钱效应 %d 日%s"
                    % (nm, bd, g.get("count") or 0, g.get("maxB") or bd,
-                      g.get("ladder") or "-", vtxt))
+                      g.get("ladder") or "-", len(_assist) + 1, _assist_names,
+                      _zt_cur, _zt_prev,
+                      _cnt_cur, _cnt_prev, _mxb_cur, _mxb_prev,
+                      _sustain, vtxt))
             # v45：买入逻辑字段（首板家数 / 板块家数 / 涨停形态 / 封板时间 / 量能）
             _lad = ladder_of(B).get(nm) or []
             _b1 = sum(1 for x in _lad if (x.get("boards") or 1) == 1)
@@ -540,7 +600,13 @@ def build(ctx):
             _meta = {"b1": _b1, "cnt": g.get("count") or 0,
                      "maxB": g.get("maxB") or bd, "shape": _shp,
                      "volx": _vx, "vmax": is_max_vol100(c, B),
-                     "lad": g.get("ladder") or ""}
+                     "lad": g.get("ladder") or "",
+                     # v59 五要素留痕
+                     "assistN": len(_assist) + 1, "assist": _assist_names,
+                     "ztCur": _zt_cur, "ztPrev": _zt_prev,
+                     "cntCur": _cnt_cur, "cntPrev": _cnt_prev,
+                     "mxbCur": _mxb_cur, "mxbPrev": _mxb_prev,
+                     "sustain": _sustain}
             if try_buy(B, c, nm, why, bd, _meta) == "traded":
                 stats["m1"] += 1
 
@@ -716,6 +782,10 @@ def build(ctx):
           "无日K %d；连续一字剔除 %d；一字跌停顺延 %d 个股票日"
           % (stats["cand"], stats["yizi"], stats["no_limit"], stats["theme_skip"],
              stats["no_kline"], stats["consec_yizi"], stats["defer"]), flush=True)
+    print("v59 五要素门槛：无连板助攻剔除 %d；情绪未变好剔除 %d；板块未变强剔除 %d；"
+          "无持续赚钱效应剔除 %d"
+          % (stats["gate_assist"], stats["gate_senti"], stats["gate_thup"],
+             stats["gate_sustain"]), flush=True)
 
     # ---------------- 10. K线骷髅头标记 ----------------
     kMarks = {}
@@ -750,7 +820,7 @@ def build(ctx):
           (len(chances_out), sum(len(v) for v in chances_out.values()),
            sum(1 for v in chances_out.values() for x in v if x["yizi"])), flush=True)
 
-    UNI = ("【统一口径 v45 · 单一战法「山顶洞人」】① 时点：本页日期即买入日（当日）；"
+    UNI = ("【统一口径 v59 · 单一战法「山顶洞人」】① 时点：本页日期即买入日（当日）；"
            "当日题材炒作里有赚钱效应的题材，当日以涨停价买入其龙头股。"
            "② 买入价一律以涨停价打板；盘中冲击涨停后回落炸板，也按涨停价模拟买入、纳入统计。"
            "③ 一字涨停买不进，只进机会池、不纳入模拟。"
@@ -759,7 +829,10 @@ def build(ctx):
            "同一只股属多个题材只记一笔。"
            "⑤ 卖出：次日仍涨停持仓，首个收盘未涨停日尾盘按收盘价卖出，"
            "盘中 −7% 无条件止损；遇一字跌停无换手卖不出，顺延至首个可成交日。"
-           "⑥ 明细表「买入逻辑」列＝该笔的买入依据摘要（题材阶段 / 板位 / 首板家数 / "
+           "⑥ v59 五要素硬门槛（缺一不买）：板块连板助攻（梯队内 ≥2 板含龙头 ≥2 只）、"
+           "龙头非一字、市场情绪变好（全市场涨停家数＞前一日）、板块变强（题材涨停家数"
+           "或最高板严格高于前一日）、持续赚钱效应（题材连续 ≥2 日在赚钱效应榜）。"
+           "⑦ 明细表「买入逻辑」列＝该笔的买入依据摘要（题材阶段 / 板位 / 首板家数 / "
            "封板时间 / 涨停形态 / 量能），由当日真实数据生成，不做主观修饰。")
 
     meta_out = {m: dict(v, uni=UNI) for m, v in META.items()}
@@ -788,5 +861,8 @@ def build(ctx):
             "pick": stats["pick"],
             "byM": {"summit": len(review["summit"])},
             "sub": {"m1": stats["m1"], "m2": stats["m2"]},
+            # v59 五要素门槛计数
+            "gateAssist": stats["gate_assist"], "gateSenti": stats["gate_senti"],
+            "gateThup": stats["gate_thup"], "gateSustain": stats["gate_sustain"],
         },
     }

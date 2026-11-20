@@ -88,6 +88,7 @@ def refresh(dates, days, theme_detail, pools=None):
             add(s.get("code") if isinstance(s, dict) else None, dt)
     for s in D.get("todayStocks") or []:
         add(s.get("code") if isinstance(s, dict) else None, D.get("today"))
+    del D                       # v59：data.json（~1.5GB）用完即释，防与日K缓存叠加 OOM
     # 本轮全期涨停池：新增历史年份的 2 板+ 个股若既不是空间龙头、
     # 也不在题材块里，上一轮 data.json 里没有，必须直接从 pools 收集，
     # 否则连板梯队 / 赚钱效应里点这些个股会静默无日K。
@@ -108,6 +109,7 @@ def refresh(dates, days, theme_detail, pools=None):
             sup = json.load(open(SUP_CACHE_F, encoding="utf-8"))
             for k, v in sup.items():
                 cache.setdefault(k, v)
+            del sup              # v59：sup 缓存（~0.8GB）合并后立即释放
         except Exception:
             pass
     idx = {d: i for i, d in enumerate(dates)}
@@ -167,6 +169,7 @@ def refresh(dates, days, theme_detail, pools=None):
         out = [bars[i] for i in sorted(keep)]
         if out:
             buckets[bucket_of(code)][code] = out
+    del cache                    # v59：全量日K缓存（~3.5GB）聚簇完成后立即释放
 
     os.makedirs(KDIR, exist_ok=True)
     total = 0

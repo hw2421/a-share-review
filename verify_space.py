@@ -880,6 +880,37 @@ def main():
                 if (t.get("boards") or 0) != _mx:
                     err("v44 %s %s %s 板位 %s 非该题材最高板 %s"
                         % (m, B, name, t.get("boards"), _mx)); n_v29 += 1
+            # ⑦ v59 五要素硬门槛独立复算（缺一不得入逐笔）
+            _ii = DIDXV[B]
+            _PB = dates[_ii - 1]
+            for kw in ("板块连板助攻", "市场情绪变好", "板块变强", "持续赚钱效应", "龙头非一字"):
+                if kw not in why:
+                    err("v59 %s %s %s why 缺「%s」留痕" % (m, B, name, kw)); n_v29 += 1
+            _a2 = [x for x in _arr if (x.get("boards") or 1) >= 2
+                   and str(x.get("code")) != str(code)]
+            if not _a2:
+                err("v59 %s %s %s 板块「%s」当日无连板助攻（≥2板除龙头外）"
+                    % (m, B, name, th)); n_v29 += 1
+            _zt_c = (days[_ii] or {}).get("ztCount")
+            _zt_p = (days[_ii - 1] or {}).get("ztCount")
+            if not (isinstance(_zt_c, (int, float)) and isinstance(_zt_p, (int, float))
+                    and _zt_c > _zt_p):
+                err("v59 %s %s %s 市场情绪未变好（涨停 %s vs 昨 %s）"
+                    % (m, B, name, _zt_c, _zt_p)); n_v29 += 1
+            _arrP = (LFV.get(_PB) or {}).get(th) or []
+            _cc, _cp = len(_arr), len(_arrP)
+            _mc = max((x.get("boards") or 1) for x in _arr) if _arr else 0
+            _mp = max((x.get("boards") or 1) for x in _arrP) if _arrP else 0
+            if not (_cc > _cp or _mc > _mp):
+                err("v59 %s %s %s 板块未变强（涨停 %d vs 昨 %d / 最高板 %d vs 昨 %d）"
+                    % (m, B, name, _cc, _cp, _mc, _mp)); n_v29 += 1
+            _pt = {str(x.get("theme") or "").strip() for x in (MV.get(_PB) or [])}
+            if th not in _pt:
+                err("v59 %s %s %s 题材「%s」前一日不在赚钱效应榜（无持续赚钱效应）"
+                    % (m, B, name, th)); n_v29 += 1
+            _sv = t.get("sustain")
+            if not (isinstance(_sv, (int, float)) and _sv >= 2):
+                err("v59 %s %s %s sustain 字段缺失/＜2（%s）" % (m, B, name, _sv)); n_v29 += 1
 
     # ⑥ v23stat 自洽（v52：候选 = 参与 + 一字 + 买入后无卖出K线；
     #    noKline 总数还含「买入前无K线」的那部分，不计入 cand，故改用 noKlineExit）
@@ -894,8 +925,9 @@ def main():
     if set(meta.keys()) != set(RV_METHODS):
         err("v42 reviewMeta 战法集合不符：%s" % sorted(meta.keys())); n_v29 += 1
     uni29 = (meta.get("summit") or {}).get("uni") or ""
-    for kw in ("v45", "山顶洞人", "当日题材炒作里有赚钱效应", "龙头为换手（非一字）",
-               "盘中 −7% 无条件止损", "一字涨停买不进"):
+    for kw in ("v59", "山顶洞人", "当日题材炒作里有赚钱效应", "龙头为换手（非一字）",
+               "盘中 −7% 无条件止损", "一字涨停买不进",
+               "板块连板助攻", "市场情绪变好", "板块变强", "持续赚钱效应"):
         if kw not in uni29:
             err("v44 统一口径 uni 缺关键字「%s」" % kw); n_v29 += 1
     buy_all = " ".join((meta.get(m) or {}).get("buy") or "" for m in RV_METHODS)
@@ -916,7 +948,8 @@ def main():
         if not got or bool(got.get("ok")) != bool(v["ok"]):
             err("v32 boardEarn %s「%s」与独立复算不一致" % (bd, nm)); n_be_bad += 1
     n_v29 += n_be_bad
-    print("v44 单一战法「山顶洞人」：%d 笔逐笔全部复核（当日题材炒作有赚钱效应的题材 → 龙头涨停买入、一字除外）；"
+    print("v44/v59 单一战法「山顶洞人」：%d 笔逐笔全部复核（当日题材炒作有赚钱效应的题材 → 龙头涨停买入、一字除外；"
+          "v59 五要素：连板助攻/非一字/情绪变好/板块变强/持续赚钱效应 独立复算）；"
           "boardEarn %d 题材日独立复算一致（异常 %d）；候选 %s / 参与 %s / 一字 %s / 无日K %s；口径异常 %d"
           % (sum(len(RVALL.get(m, [])) for m in RV_METHODS), len(EFFV), n_be_bad,
              V23.get("cand"), V23.get("fire"), V23.get("yizi"), V23.get("noKline"), n_v29))
