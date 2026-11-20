@@ -884,18 +884,24 @@ _phase_cnt = {}
 for _r in CYCLE_OUT["days"]:
     if _r.get("phase"):
         _phase_cnt[_r["phase"]] = _phase_cnt.get(_r["phase"], 0) + 1
-print("v60 循环仪表盘：%d 天，健康度均值 %.1f；生命周期 %s；负反馈起点 %d 天"
+print("v60 循环仪表盘：%d 天，健康度均值 %.1f；生命周期 %s；负反馈起点 %d 天；"
+      "互证矩阵 %d 段；压力测试 %d 段（%s）"
       % (len(CYCLE_OUT["days"]),
          (sum(r["score"] for r in CYCLE_OUT["days"] if r["score"] is not None) /
           max(1, sum(1 for r in CYCLE_OUT["days"] if r["score"] is not None))),
          _phase_cnt,
-         sum(1 for r in CYCLE_OUT["days"] if r.get("neg"))))
+         sum(1 for r in CYCLE_OUT["days"] if r.get("neg")),
+         len(CYCLE_OUT.get("cross2") or []),
+         len(CYCLE_OUT.get("stress") or []),
+         '；'.join('%s:%d笔/胜%.0f%%/最坏%+.1f%%' % (x["phase"], x["n"], x["win"], x["worst"]["pnl"])
+                   for x in (CYCLE_OUT.get("stress") or []))))
 
 # ---- v51：明日交易机会推荐（复盘案例前一日前置条件统计 → 决策日匹配） ----
 # 放在形态回填之后，确保 ladder_full 元素已带「s」形态字段，可正确排除一字（买不进）。
 import next_recs as NR
 NEXT_RECS = NR.compute(dates, days, ladder_full, ladders, review["summit"],
                        fd.yizi_map(pools), MONEY=money, CYCLE=CYCLE_MAP,
+                       STRESS=CYCLE_OUT.get("stressMap") or {},
                        NAME={s["code"]: s["name"] for dd in dates for s in pools.get(dd, [])})
 _today_recs = NEXT_RECS["byDate"].get(dates[-1], {}).get("recs", [])
 print("v54 明日机会推荐：盈利画像 %d 笔盈利/%d 笔全部，决策日 %d 个，今日推荐 %d 只，今日实例 %d 条"

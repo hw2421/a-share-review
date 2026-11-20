@@ -30,6 +30,8 @@
 输出：
   days        [{date, s1..s4, score, pct, phase, slope, neg, raw:{...}}, ...] 全期
   cross       生命周期 × 山顶洞人战法 交叉统计（如实呈现，不说谎）
+  cross2      生命周期 × 市场四阶段（突破/节点/补涨/主升）互证矩阵（B2 收尾）
+  stress      同生命周期段（决策日口径）次日买入历史结果：胜率/均盈亏/最坏一笔（B3 压力测试）
   rule        口径说明
 """
 import bisect
@@ -211,9 +213,71 @@ def compute(dates, pools, days, KBARS, summit=None):
             "avg": round(g["sum"] / g["n"], 2),
         })
 
+    # ---------- B2 收尾：生命周期 × 市场四阶段（突破/节点/补涨/主升）互证 ----------
+    # 两套独立标注互相校验：看冰点期是否真落在节点/补涨（退潮）段、高潮期是否真落在主升段。
+    # 如实呈现不一致处——不强行对齐。
+    cross2_raw = {}
+    for r in rows:
+        ph = r.get("phase")
+        stg = (SD.get(r["date"]) or {}).get("stage")
+        if ph and stg:
+            cross2_raw.setdefault(ph, {})
+            cross2_raw[ph][stg] = cross2_raw[ph].get(stg, 0) + 1
+    cross2_out = []
+    for ph in PHASES:
+        m = cross2_raw.get(ph) or {}
+        tot = sum(m.values())
+        if not tot:
+            continue
+        order = ("突破", "主升", "补涨", "节点")
+        cross2_out.append({
+            "phase": ph, "n": tot,
+            "stages": [{"stage": s, "n": m[s], "pct": round(m[s] / tot * 100, 1)}
+                       for s in order if s in m],
+        })
+
+    # ---------- B3 推荐压力测试：同生命周期段 次日买入 历史结果 ----------
+    # 口径：决策日（买入日前一交易日）的生命周期段 → 次日（=买入日）按战法真实买入的
+    # 全部历史结果。回答「今日处于 X 段，历史上这种环境下次日买入最坏亏过多少」。
+    stress_raw = {}
+    for t in summit:
+        i = didx.get(t.get("d"))
+        if not i:                      # 买入日不在日期轴（或缺前一日）
+            continue
+        ph = (phase_map.get(dates[i - 1]) or {}).get("phase")
+        if not ph:
+            continue
+        pnl = t.get("pnl") or 0
+        g = stress_raw.setdefault(ph, {"n": 0, "win": 0, "sum": 0.0,
+                                       "worst": None, "best": None})
+        g["n"] += 1
+        g["win"] += 1 if pnl > 0 else 0
+        g["sum"] += pnl
+        cand = {"d": t["d"], "code": t.get("code"), "name": t.get("name"),
+                "theme": t.get("theme"), "pnl": pnl, "reason": (t.get("reason") or "")[:24]}
+        if g["worst"] is None or pnl < g["worst"]["pnl"]:
+            g["worst"] = cand
+        if g["best"] is None or pnl > g["best"]["pnl"]:
+            g["best"] = cand
+    stress_out = []
+    for ph in PHASES:
+        g = stress_raw.get(ph)
+        if not g or not g["n"]:
+            continue
+        stress_out.append({
+            "phase": ph, "n": g["n"],
+            "win": round(g["win"] / g["n"] * 100, 1),
+            "avg": round(g["sum"] / g["n"], 2),
+            "worst": g["worst"], "best": g["best"],
+        })
+    stress_map = {x["phase"]: x for x in stress_out}
+
     return {
         "days": rows,
         "cross": cross_out,
+        "cross2": cross2_out,
+        "stress": stress_out,
+        "stressMap": stress_map,
         "rule": ("循环健康度：四环节等权合成（各 2.5 分，满分 10）。①买入示范＝昨日≥2板股今日"
                  "不亏钱率（循环的命门）；②溢价扩散＝昨日涨停股今日晋级率+红盘率均值；"
                  "③梯队接力＝1→2板晋级家数+≥2板家数；④高度打开＝空间高度变化+涨停家数变化。"
@@ -223,5 +287,9 @@ def compute(dates, pools, days, KBARS, summit=None):
                  "负反馈起点＝前一日≥3板个股中 ≥2 只当日收盘跌幅 ≤−8% 的高位集中处刑日"
                  "（高位买入者被公开处刑）。"
                  "推荐联动（v60）：健康度<4 仅防守型机会（推荐缩减至3只）；4-6 循环转弱提示；"
-                 "≥6 正常。回测样本不受影响。"),
+                 "≥6 正常。回测样本不受影响。"
+                 "压力测试（v61）：按决策日（买入日前一交易日）生命周期段分组，统计次日按战法"
+                 "真实买入的全部历史结果（胜率/均盈亏/最坏一笔）——「今日处于 X 段，这种环境"
+                 "下历史上次日买入最坏亏过多少」。互证矩阵：生命周期 × 市场四阶段（突破/主升/"
+                 "补涨/节点）两套独立标注的分布对照，不一致处如实呈现。"),
     }

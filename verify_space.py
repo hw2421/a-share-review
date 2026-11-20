@@ -1622,6 +1622,93 @@ def main():
              min(300, len(cy_days)) + min(60, len(_cyc_pool)), _cross_n, n_v60))
     n_v48 += n_v60
 
+    # ---- v61：B2 互证矩阵 + B3 压力测试 独立复核 ----
+    n_v61 = 0
+    # ① 互证矩阵：各段天数合计 = 全部「生命周期+四阶段」双记录天数，且逐段独立重算
+    _stage_map = {x.get("date"): x.get("stage") for x in days}
+    ST4 = ("突破", "主升", "补涨", "节点")
+    _exp2 = {}
+    for r in cy_days:
+        ph, stg = r.get("phase"), _stage_map.get(r.get("date"))
+        if ph and stg:
+            _exp2.setdefault(ph, {})
+            _exp2[ph][stg] = _exp2[ph].get(stg, 0) + 1
+    for x in (CYV.get("cross2") or []):
+        ph = x.get("phase")
+        _m = {z.get("stage"): z for z in (x.get("stages") or [])}
+        if sum(z.get("n") or 0 for z in x.get("stages") or []) != (x.get("n") or 0):
+            err("v61 %s期 互证矩阵 stages 合计 ≠ n" % ph); n_v61 += 1
+        for s in ST4:
+            _e = (_exp2.get(ph) or {}).get(s, 0)
+            _g = (_m.get(s) or {}).get("n", 0)
+            if _g != _e:
+                err("v61 %s期×%s 互证不符 %d vs %d" % (ph, s, _g, _e)); n_v61 += 1
+            elif _g and (ph in _exp2):
+                _ep = round(_e / sum(_exp2[ph].values()) * 100, 1)
+                if abs((_m.get(s) or {}).get("pct", 0) - _ep) > 0.15:
+                    err("v61 %s期×%s 占比不符" % (ph, s)); n_v61 += 1
+    _n2 = sum(x.get("n") or 0 for x in (CYV.get("cross2") or []))
+    _exp_n2 = sum(1 for r in cy_days if r.get("phase") and _stage_map.get(r.get("date")))
+    if _n2 != _exp_n2:
+        err("v61 互证矩阵总天数 %d ≠ 双记录天数 %d" % (_n2, _exp_n2)); n_v61 += 1
+    # ② 压力测试：按「买入日前一交易日」生命周期段独立重算 n/win/avg/worst
+    _sm = CYV.get("stressMap") or {}
+    _expS = {}
+    for t in (D.get("review") or {}).get("summit", []):
+        _i = DIDXV.get(t.get("d"))
+        if not _i:
+            continue
+        _ph = (pmapv.get(dates[_i - 1]) or {}).get("phase")
+        if not _ph:
+            continue
+        _pnl = t.get("pnl") or 0
+        _g = _expS.setdefault(_ph, {"n": 0, "win": 0, "sum": 0.0, "worst": None})
+        _g["n"] += 1
+        _g["win"] += 1 if _pnl > 0 else 0
+        _g["sum"] += _pnl
+        if _g["worst"] is None or _pnl < _g["worst"]:
+            _g["worst"] = _pnl
+    for x in (CYV.get("stress") or []):
+        ph = x.get("phase")
+        _e = _expS.get(ph)
+        if not _e:
+            err("v61 %s期 压力测试多余（独立复算无此段）" % ph); n_v61 += 1
+            continue
+        if x.get("n") != _e["n"]:
+            err("v61 %s期 压力测试笔数 %s ≠ %d" % (ph, x.get("n"), _e["n"])); n_v61 += 1
+            continue
+        if abs((x.get("win") or 0) - _e["win"] / _e["n"] * 100) > 0.15:
+            err("v61 %s期 压力测试胜率不符" % ph); n_v61 += 1
+        if abs((x.get("avg") or 0) - _e["sum"] / _e["n"]) > 0.02:
+            err("v61 %s期 压力测试笔均不符" % ph); n_v61 += 1
+        if (x.get("worst") or {}).get("pnl") != _e["worst"]:
+            err("v61 %s期 压力测试最坏一笔不符 %s vs %s" % (ph, (x.get("worst") or {}).get("pnl"), _e["worst"]))
+            n_v61 += 1
+        _sm_p = _sm.get(ph) or {}
+        if (_sm_p.get("worst") or {}).get("pnl") != (x.get("worst") or {}).get("pnl"):
+            err("v61 %s期 stressMap 与 stress 不一致" % ph); n_v61 += 1
+    if set(_sm.keys()) - set(x.get("phase") for x in (CYV.get("stress") or [])):
+        err("v61 stressMap 含 stress 列表之外的段"); n_v61 += 1
+    # ③ 推荐内嵌 stress：段位与决策日一致、数值与 stressMap 对得上
+    for _d, blk in (NR.get("byDate") or {}).items():
+        _cy = (blk or {}).get("cycle") or {}
+        _st = _cy.get("stress")
+        _ph = _cy.get("phase")
+        if _st is not None:
+            if _st.get("phase") != _ph:
+                err("v61 %s 推荐内嵌压力段 %s ≠ 决策日段 %s" % (_d, _st.get("phase"), _ph)); n_v61 += 1
+            _ref = _sm.get(_ph) or {}
+            if _ref and (_st.get("n") != _ref.get("n") or
+                         (_st.get("worst") or {}).get("pnl") != (_ref.get("worst") or {}).get("pnl")):
+                err("v61 %s 推荐内嵌压力数值与 stressMap 不符" % _d); n_v61 += 1
+        elif _ph and _sm.get(_ph):
+            err("v61 %s 决策日 %s 期但缺压力测试" % (_d, _ph)); n_v61 += 1
+    print("v61 压力测试+互证矩阵：互证 %d 天、压力测试 %d 段（%s），异常 %d"
+          % (_n2, len(CYV.get("stress") or []),
+             '；'.join('%s:%d笔' % (x.get("phase"), x.get("n")) for x in (CYV.get("stress") or [])),
+             n_v61))
+    n_v48 += n_v61
+
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
     n_main = sum(1 for d in days if d.get("stage") == "主升")

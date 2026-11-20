@@ -4390,8 +4390,24 @@ function paintCyclePanel(dp){
       '<td style="color:'+(x.avg>=0?C.up:C.down)+'">'+(x.avg>0?'+':'')+x.avg+'%</td></tr>').join('')+
     '</tbody></table><div class="sub" style="margin-top:4px;color:'+C.dim2+'">口径：山顶洞人逐笔买入日所在日的生命周期；工具如实呈现数据——若某段胜率与直觉不符，以数据为准。</div></details>'
     : '';
+  // v61 B2 收尾：生命周期 × 市场四阶段（突破/主升/补涨/节点）互证矩阵
+  const STAGES4=['突破','主升','补涨','节点'];
+  const cross2=CY.cross2||[];
+  const cross2Html = cross2.length ? '<details style="margin-top:6px"><summary class="sub" style="cursor:pointer">生命周期 × 市场四阶段 互证矩阵（两套独立标注对照）</summary>'+
+    '<table class="wn-ov" style="margin-top:6px"><thead><tr><th>生命周期</th>'+STAGES4.map(s=>'<th>'+s+'</th>').join('')+'<th>天数</th></tr></thead><tbody>'+
+    cross2.map(x=>{
+      const mx=Math.max.apply(null,x.stages.map(z=>z.pct));
+      const m={}; x.stages.forEach(z=>m[z.stage]=z);
+      return '<tr><td style="color:'+CY_PHASE_COLOR[x.phase]+';font-weight:700">'+x.phase+'期</td>'+
+        STAGES4.map(s=>{
+          const z=m[s]; if(!z) return '<td style="color:'+C.dim2+'">—</td>';
+          return '<td'+(z.pct===mx?' style="color:#ffd24a;font-weight:700"':'')+'>'+z.n+'（'+z.pct+'%）</td>';
+        }).join('')+'<td>'+x.n+'</td></tr>';
+    }).join('')+
+    '</tbody></table><div class="sub" style="margin-top:4px;color:'+C.dim2+'">口径：全期每个交易日的生命周期段（循环仪表盘）× 市场四阶段（空间情绪）两套独立标注的分布；金色为该段占比最高的阶段。不一致处如实呈现——例如冰点期若大量落在突破/主升段，说明两套信号有错位，以数据为准。</div></details>'
+    : '';
   host.innerHTML='<details open><summary style="cursor:pointer;font-weight:800;color:#ffd24a">☯ 赚钱效应循环仪表盘 <span class="sub">万变不离其宗：来了能赚 · 赚了还想来 —— 四环节量化 + 五段生命周期</span></summary>'+
-    top + banner + chartHtml + crossHtml +
+    top + banner + chartHtml + crossHtml + cross2Html +
     '<div class="sub" style="margin-top:4px;color:'+C.dim2+'">'+(CY.rule||'')+'</div></details>';
   // ECharts 曲线
   if(CY_CHART){ CY_CHART.dispose(); CY_CHART=null; }
@@ -4454,6 +4470,18 @@ function paintDecision(){
       degHtml += '<div style="background:rgba(245,69,92,.14);border:1px solid rgba(245,69,92,.45);border-radius:8px;'+
         'padding:5px 12px;margin:6px 0;color:'+C.up+';font-size:12px">⚠ 负反馈起点：昨日≥3板高位股剧烈亏钱'+
         ((CYC.negNames||[]).length?('（'+CYC.negNames.join('、')+'）'):'')+' —— 高位接力被公开处刑，明日推荐仅供观察、谨慎参与</div>';
+    }
+    /* v61 B3 压力测试：今日生命周期段下，历史上同段环境次日买入的最坏情况 */
+    const ST=CYC.stress;
+    if(ST){
+      degHtml += '<div style="background:rgba(61,139,255,.08);border:1px solid #2b3a56;border-radius:8px;'+
+        'padding:5px 12px;margin:6px 0;font-size:12px">🧪 压力测试 · 今日 '+
+        '<span style="color:'+CY_PHASE_COLOR[ST.phase]+';font-weight:700">'+ST.phase+'期</span>'+
+        '：历史上同段环境次日买入 <b>'+ST.n+'</b> 笔，胜率 <b style="color:'+(ST.win>=50?C.up:C.down)+'">'+ST.win+'%</b>'+
+        '，笔均 <b style="color:'+((ST.avg||0)>=0?C.up:C.down)+'">'+((ST.avg||0)>0?'+':'')+(ST.avg||0)+'%</b>'+
+        (ST.worst? '，最坏一笔 <b style="color:'+C.down+'">'+(ST.worst.pnl>0?'+':'')+ST.worst.pnl+'%</b>（'+
+          (ST.worst.name||'—')+' '+(ST.worst.d||'').slice(4,6)+'/'+(ST.worst.d||'').slice(6,8)+'）':'')+
+        ' —— <span style="color:'+C.dim2+'">买前先看最坏情况，扛得住再下手</span></div>';
     }
     let inner = '<div class="nr-mkt">'+
       '<span>今日市场阶段 <b>'+(mk.stage||'—')+'</b></span>'+
