@@ -14,6 +14,8 @@
   6 题材持续换手连板 —— 该股所属题材连续多日有换手连板股（题材维度持续性）；
   7 趋势股创新高周涨50% —— 今日创近 20 日新高且近 5 交易日涨幅 ≥50%；
   8 普通换手连板晋级 —— 昨日首板/低位换手板，今日换手晋级（最基础形式）。
+  9 强势股 —— 近10交易日涨停≥5 次 且 每日收盘价在5日均线之上 且 近3日至少创一次(20日)新高。
+            （叠加标签：可与上述形态共存，不参与 prim 主模式抢占）
 规模维度：大盘 / 中盘 / 小盘（流通市值 = 成交额 ÷ 换手率 估算），回答「大盘股还是小盘股赚钱」。
 
 v49 口径收紧：单纯「首板连板」的普通晋级不算赚钱效应，除非该股近 10 交易日
@@ -31,7 +33,9 @@ from collections import Counter, defaultdict
 
 PRI = ["极致高开全天红", "地天板次日涨停", "连续一字后首换手涨停",
        "断板反包再连板", "N字反包次日涨停", "趋势股创新高周涨50%",
-       "题材持续换手连板", "普通换手连板晋级"]
+       "题材持续换手连板", "普通换手连板晋级", "强势股"]
+# 主模式候选（强势股为叠加标签，不参与 prim 主模式抢占）
+PRI_PRIM = [p for p in PRI if p != "强势股"]
 WINDOWS = {"week": 5, "twoweek": 10, "month": 20}
 
 
@@ -111,6 +115,54 @@ def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None,
             return 0
         return sum(1 for k in range(max(0, i - 9), i + 1)
                    if code in pmap.get(dates[k], ()))
+
+    def strong_stock(code, d):
+        """v53 强势股叠加标签：
+           ① 近 10 交易日涨停 ≥5 次；
+           ② 近 5 个交易日「每日收盘价在 5 日均线之上」（可计算 MA5 的交易日全部满足，至少 3 天可核验）；
+           ③ 近 3 个交易日至少一次创近 20 日收盘新高。
+           日K不足（如 2017-2018 历史无日K）返回 False，优雅降级。
+           K线 bar 结构：[日期, 开, 收, 低, 高, 量]，收盘 = b[2]。
+        """
+        if zt_count_10(code, d) < 5:
+            return False
+        ds = CD.get(str(code))
+        if not ds:
+            return False
+        k = bisect.bisect_left(ds, d)
+        if k < 0 or k >= len(ds):
+            return False
+        rec = KBARS.get(str(code)) or {}
+        # ② 近 5 交易日每日收盘 > 当日 MA5
+        checked = 0
+        for j in range(max(4, k - 4), k + 1):
+            closes = []
+            for t in range(j - 4, j + 1):
+                bt = rec.get(ds[t])
+                if not bt or len(bt) < 5 or not bt[2]:
+                    closes = []
+                    break
+                closes.append(bt[2])
+            if len(closes) < 5:
+                continue
+            bj = rec.get(ds[j])
+            if not bj or len(bj) < 5:
+                continue
+            if bj[2] <= sum(closes) / 5:
+                return False
+            checked += 1
+        if checked < 3:
+            return False
+        # ③ 近 3 交易日至少一次创近 20 日收盘新高
+        for j in range(max(1, k - 2), k + 1):
+            bj = rec.get(ds[j])
+            if not bj or len(bj) < 5:
+                continue
+            prior = [rec[ds[t]][2] for t in range(max(0, j - 20), j)
+                     if rec.get(ds[t]) and len(rec[ds[t]]) >= 5 and rec[ds[t]][2]]
+            if prior and bj[2] >= max(prior):
+                return True
+        return False
 
     end = dates[-1]
     all_start = dates[max(0, len(dates) - ALL_N)]
@@ -212,6 +264,9 @@ def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None,
                     tags.append("题材持续换手连板")
             if not tags:
                 tags.append("普通换手连板晋级")
+            # v53 强势股叠加标签（不影响 prim 主模式）
+            if strong_stock(code, d):
+                tags.append("强势股")
 
             ev = {
                 "d0": pd_, "d": d, "code": code, "name": s["name"],
@@ -221,7 +276,7 @@ def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None,
                 "why": (s.get("reason") or ""),
                 "zt10": zt_count_10(code, d),
             }
-            ev["prim"] = next((p for p in PRI if p in tags), tags[0])
+            ev["prim"] = next((p for p in PRI_PRIM if p in tags), tags[0])
             raw.append(ev)
 
     # v49 过滤：单纯首板连板晋级默认剔除（例外：近10日涨停≥5 / N字形态）

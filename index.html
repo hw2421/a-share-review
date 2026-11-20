@@ -379,7 +379,9 @@
   .wn-winbar button.on{border-color:var(--gold);color:var(--gold);background:rgba(240,185,11,.1)}
   .wn-tab{width:100%;border-collapse:collapse;font-size:11px}
   .wn-tab th,.wn-tab td{padding:4px 7px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-  .wn-tab th{color:var(--dim2);font-weight:600;position:sticky;top:0;background:var(--card);z-index:1}
+  /* v53：表头垂直固定在滚动容器顶部；z-index 高于固定列(2/3)，滚动内容不穿透表头 */
+  .wn-tab th{color:var(--dim2);font-weight:600;position:sticky;top:0;background:var(--card);z-index:8;
+             box-shadow:0 2px 4px -2px rgba(0,0,0,.7)}
   .wn-tab td.l,.wn-tab th.l{text-align:left}
   .wn-tab tr:hover td{background:rgba(61,139,255,.06)}
   .wn-tag{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:0 4px;
@@ -1845,6 +1847,7 @@ const WN_MODES = [
   ['地天板次日涨停','地天次日'],['连续一字后首换手涨停','一字首换'],
   ['N字反包次日涨停','N字反包'],['趋势股创新高周涨50%','趋势新高'],
   ['题材持续换手连板','题材持续'],['普通换手连板晋级','普通晋级'],
+  ['强势股','强势股'],
 ];
 const WN_PRI = WN_MODES.map(x=>x[0]);
 
@@ -1951,8 +1954,14 @@ function renderWinners(){
     (c.avg>0?'+':'')+c.avg+'%</b></span></div>'+
     c.groups.map(g=>'<div class="stkg"><span class="gt">['+g.theme+']'+
       (g.maxB?'<span class="gb">'+g.maxB+'板</span>':'')+'</span>'+
-      g.stocks.map(s=>'<b>'+s[0]+'</b><span class="sbd">'+s[3]+'板</span>').join('、')+
+      g.stocks.map(s=>'<b class="wn-kstk" data-c="'+s[1]+'" data-n="'+s[0]+'" data-d="'+s[2]+'" '+
+        'style="cursor:pointer;color:'+C.blue+'" title="点看 '+s[0]+' 日K">'+s[0]+'</b>'+
+        '<span class="sbd">'+s[3]+'板</span>').join('、')+
       '</div>').join('')+'</div>').join('');
+  // v53：分类汇总卡的个股可点开日K
+  document.querySelectorAll('#wn-cats .wn-kstk').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
+  });
   const allTags = ['', ...WN_PRI];
   const filt = document.getElementById('wn-filter');
   filt.innerHTML = allTags.map(t=>'<button data-f="'+t+'"'+(t===WN_FILTER?' class="on"':'')+'>'+
@@ -3552,7 +3561,7 @@ function paintDecision(){
     const NR = R.nextRecs||{}, B = (NR.byDate||{})[d]||{};
     const mk = B.market||{}, recs = B.recs||[], base = NR.base||{};
     let inner = '<div class="nr-mkt">'+
-      '<span>买入前一日市场阶段 <b>'+(mk.stage||'—')+'</b></span>'+
+      '<span>今日市场阶段 <b>'+(mk.stage||'—')+'</b></span>'+
       '<span>空间压制 <b>'+(mk.suppress? mk.suppress+'板' : '无压制')+'</b>（前置条件：'+(mk.supp||'—')+'）</span>'+
       '<span>涨停家数 <b>'+(mk.ztCount!=null?mk.ztCount:'—')+'</b></span>'+
       '<span>空间高度 <b>'+(mk.spaceTop!=null?mk.spaceTop:'—')+'板</b></span>'+

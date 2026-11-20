@@ -1023,7 +1023,7 @@ def main():
     SH_OK48 = {"一字", "赚钱", "赚T", "地天", "普通", "长腿", "低开"}
     TAG_OK48 = {"极致高开全天红", "断板反包再连板", "地天板次日涨停",
                 "连续一字后首换手涨停", "N字反包次日涨停", "趋势股创新高周涨50%",
-                "题材持续换手连板", "普通换手连板晋级"}
+                "题材持续换手连板", "普通换手连板晋级", "强势股"}
     poolmap48 = {d: {s["code"]: s for s in pools[d]} for d in dates}
     yz48 = fd.yizi_map(pools)
     rng48 = MW.get("range") or []
@@ -1096,6 +1096,14 @@ def main():
         if (th_today or th_yest) and th_e and th_e not in (th_today, th_yest):
             err("v49 %s %s(%s) 题材「%s」非当日/昨日复盘归类(当日=%s/昨日=%s)"
                 % (d, e["name"], code, th_e, th_today, th_yest)); n_v48 += 1
+        # v53③：强势股为叠加标签——须满足 10 日涨停≥5，且不能抢占 prim 主模式
+        if "强势股" in (e.get("tags") or []):
+            if e.get("zt10", 0) < 5:
+                err("v53 %s %s(%s) 强势股但 zt10=%d<5"
+                    % (d, e["name"], code, e.get("zt10", 0))); n_v48 += 1
+            if e.get("prim") == "强势股":
+                err("v53 %s %s(%s) 强势股不应作为 prim 主模式"
+                    % (d, e["name"], code)); n_v48 += 1
     # 汇总笔数一致
     if MW.get("total") != len(EV):
         err("v48 total=%s ≠ 事件数 %d" % (MW.get("total"), len(EV))); n_v48 += 1
