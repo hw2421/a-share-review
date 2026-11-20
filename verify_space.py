@@ -1511,7 +1511,8 @@ def main():
                 raw = json.load(open(fp, encoding="utf-8"))
             except Exception:
                 raw = {}
-            _KB58_BUCKETS[bkt] = {str(c): {b[0]: b for b in bars if b}
+            _KB58_BUCKETS[bkt] = {str(c): {b[0]: b for b in bars
+                                           if b and (not isinstance(b[2], (int, float)) or b[2] > 0)}
                                   for c, bars in raw.items()}
         return _KB58_BUCKETS[bkt]
     _rnd.seed(58)
@@ -1550,7 +1551,6 @@ def main():
     n_v60 = 0
     CYV = D.get("cycle") or {}
     cy_days = CYV.get("days") or []
-    PHASES_V = ("发酵", "扩散", "高潮", "退潮", "冰点")
     # ① 覆盖：除首个交易日外全期应有记录
     if len(cy_days) < len(days) - 2:
         err("v60 cycle 天数 %d < 交易日 %d - 2" % (len(cy_days), len(days))); n_v60 += 1
@@ -1562,25 +1562,13 @@ def main():
         sc = r.get("score")
         if sc is not None and not (0 <= sc <= 10):
             err("v60 %s 健康度超界 %s" % (d, sc)); n_v60 += 1
-        pc = r.get("pct")
-        if pc is not None and not (0 <= pc <= 100):
-            err("v60 %s 分位超界 %s" % (d, pc)); n_v60 += 1
-        ph = r.get("phase")
-        if r.get("score") is not None and ph not in PHASES_V:
-            err("v60 %s 生命周期非法 %s" % (d, ph)); n_v60 += 1
+        if r.get("phase") is not None:
+            err("v60 %s 仍残留生命周期字段 phase（v63 应已取消）" % d); n_v60 += 1
         for k in ("s1", "s2", "s3", "s4"):
             if r.get("score") is not None and r.get(k) is None:
                 err("v60 %s 缺环节分 %s" % (d, k)); n_v60 += 1
         pmapv[d] = r
-    # ② 分位数映射抽样复算：健康度分位 = 分数在全体分数中的相对位置
-    _scs_all = sorted(r["score"] for r in cy_days if r.get("score") is not None)
-    for r in _rnd.sample([x for x in cy_days if x.get("score") is not None],
-                         min(300, len(cy_days))):
-        _p = bisect.bisect_left(_scs_all, r["score"]) / len(_scs_all) * 100
-        if abs(_p - (r.get("pct") or 0)) > 1.5:
-            err("v60 %s 健康度分位复算不符 %s vs %s" % (r["date"], round(_p, 1), r.get("pct")))
-            n_v60 += 1
-    # ③ 四环节原始读数抽样复算（r1 不亏钱率 / r2a 晋级率，按涨停池独立重算）
+    # ② 四环节原始读数抽样复算（r1 不亏钱率 / r2a 晋级率，按涨停池独立重算）
     def _closev(code, d):
         b = _kb58_bucket(code).get(str(code), {}).get(d)
         return b[2] if (b and len(b) >= 5 and b[2]) else None
@@ -1592,122 +1580,28 @@ def main():
         _pd = dates[_ii - 1]
         _hi2 = [s for s in (pools.get(_pd) or [])
                 if (s.get("boards") or 1) >= 2 and _closev(s["code"], _pd) and _closev(s["code"], r["date"])]
+        if r["date"] == "20190402":
+            import sys as _s
+            print("DBG 20190402 hi2:", [(s.get("name"), s["code"], s.get("boards"),
+                                        _closev(s["code"], _pd), _closev(s["code"], r["date"])) for s in _hi2],
+                  "r1=%.2f" % (sum(1 for s in _hi2 if _closev(s["code"], r["date"]) >= _closev(s["code"], _pd)) / len(_hi2)),
+                  file=_s.stderr)
         if not _hi2:
             continue
         _r1 = sum(1 for s in _hi2 if _closev(s["code"], r["date"]) >= _closev(s["code"], _pd)) / len(_hi2)
         if abs(_r1 - r["r1"]) > 0.02:
             err("v60 %s 不亏钱率复算不符 %.2f vs %.2f" % (r["date"], _r1, r["r1"])); n_v60 += 1
-    # ④ 推荐循环联动自洽：degrade 与分数阈值一致
+    # ③ 推荐内嵌健康度自洽：score/neg 与仪表盘一致（v63 无降级/无 phase）
     for _d, blk in (NR.get("byDate") or {}).items():
         _cy = (blk or {}).get("cycle") or {}
-        _sc = _cy.get("score")
-        _deg = _cy.get("degrade")
-        _exp = "normal"
-        if _sc is not None:
-            _exp = "ice" if _sc < 4 else ("weak" if _sc < 6 else "normal")
-        if _deg != _exp:
-            err("v60 %s 推荐降级口径不符 %s（分数 %s，应为 %s）" % (_d, _deg, _sc, _exp)); n_v60 += 1
-        if _cy.get("phase") != (pmapv.get(_d) or {}).get("phase"):
-            err("v60 %s 推荐内嵌生命周期与仪表盘不符" % _d); n_v60 += 1
-    # ⑤ 交叉统计：各段笔数合计 = 有生命周期记录的逐笔数
-    _cross_n = sum(x.get("n") or 0 for x in (CYV.get("cross") or []))
-    _exp_cross_n = sum(1 for t in (D.get("review") or {}).get("summit", [])
-                       if (pmapv.get(t.get("d")) or {}).get("phase"))
-    if _cross_n != _exp_cross_n:
-        err("v60 交叉统计笔数 %d ≠ 逐笔可归段数 %d" % (_cross_n, _exp_cross_n)); n_v60 += 1
-    print("v60 循环仪表盘：%d 天（生命周期 %s），健康度分位/四环节抽样 %d 复核一致，"
-          "交叉统计 %d 笔，异常 %d"
-          % (len(cy_days),
-             {p: sum(1 for r in cy_days if r.get("phase") == p) for p in PHASES_V},
-             min(300, len(cy_days)) + min(60, len(_cyc_pool)), _cross_n, n_v60))
+        if _cy.get("score") != (pmapv.get(_d) or {}).get("score"):
+            err("v60 %s 推荐内嵌健康度与仪表盘不符" % _d); n_v60 += 1
+        if _cy.get("degrade") is not None or _cy.get("stress") is not None:
+            err("v60 %s 推荐内嵌仍残留降级/压力字段（v63 应已取消）" % _d); n_v60 += 1
+    print("v60 循环仪表盘：%d 天，四环节读数抽样 %d 复核一致，推荐内嵌健康度对账 %d 天，异常 %d"
+          % (len(cy_days), min(60, len(_cyc_pool)),
+             len(NR.get("byDate") or {}), n_v60))
     n_v48 += n_v60
-
-    # ---- v61：B2 互证矩阵 + B3 压力测试 独立复核 ----
-    n_v61 = 0
-    # ① 互证矩阵：各段天数合计 = 全部「生命周期+四阶段」双记录天数，且逐段独立重算
-    _stage_map = {x.get("date"): x.get("stage") for x in days}
-    ST4 = ("突破", "主升", "补涨", "节点")
-    _exp2 = {}
-    for r in cy_days:
-        ph, stg = r.get("phase"), _stage_map.get(r.get("date"))
-        if ph and stg:
-            _exp2.setdefault(ph, {})
-            _exp2[ph][stg] = _exp2[ph].get(stg, 0) + 1
-    for x in (CYV.get("cross2") or []):
-        ph = x.get("phase")
-        _m = {z.get("stage"): z for z in (x.get("stages") or [])}
-        if sum(z.get("n") or 0 for z in x.get("stages") or []) != (x.get("n") or 0):
-            err("v61 %s期 互证矩阵 stages 合计 ≠ n" % ph); n_v61 += 1
-        for s in ST4:
-            _e = (_exp2.get(ph) or {}).get(s, 0)
-            _g = (_m.get(s) or {}).get("n", 0)
-            if _g != _e:
-                err("v61 %s期×%s 互证不符 %d vs %d" % (ph, s, _g, _e)); n_v61 += 1
-            elif _g and (ph in _exp2):
-                _ep = round(_e / sum(_exp2[ph].values()) * 100, 1)
-                if abs((_m.get(s) or {}).get("pct", 0) - _ep) > 0.15:
-                    err("v61 %s期×%s 占比不符" % (ph, s)); n_v61 += 1
-    _n2 = sum(x.get("n") or 0 for x in (CYV.get("cross2") or []))
-    _exp_n2 = sum(1 for r in cy_days if r.get("phase") and _stage_map.get(r.get("date")))
-    if _n2 != _exp_n2:
-        err("v61 互证矩阵总天数 %d ≠ 双记录天数 %d" % (_n2, _exp_n2)); n_v61 += 1
-    # ② 压力测试：按「买入日前一交易日」生命周期段独立重算 n/win/avg/worst
-    _sm = CYV.get("stressMap") or {}
-    _expS = {}
-    for t in (D.get("review") or {}).get("summit", []):
-        _i = DIDXV.get(t.get("d"))
-        if not _i:
-            continue
-        _ph = (pmapv.get(dates[_i - 1]) or {}).get("phase")
-        if not _ph:
-            continue
-        _pnl = t.get("pnl") or 0
-        _g = _expS.setdefault(_ph, {"n": 0, "win": 0, "sum": 0.0, "worst": None})
-        _g["n"] += 1
-        _g["win"] += 1 if _pnl > 0 else 0
-        _g["sum"] += _pnl
-        if _g["worst"] is None or _pnl < _g["worst"]:
-            _g["worst"] = _pnl
-    for x in (CYV.get("stress") or []):
-        ph = x.get("phase")
-        _e = _expS.get(ph)
-        if not _e:
-            err("v61 %s期 压力测试多余（独立复算无此段）" % ph); n_v61 += 1
-            continue
-        if x.get("n") != _e["n"]:
-            err("v61 %s期 压力测试笔数 %s ≠ %d" % (ph, x.get("n"), _e["n"])); n_v61 += 1
-            continue
-        if abs((x.get("win") or 0) - _e["win"] / _e["n"] * 100) > 0.15:
-            err("v61 %s期 压力测试胜率不符" % ph); n_v61 += 1
-        if abs((x.get("avg") or 0) - _e["sum"] / _e["n"]) > 0.02:
-            err("v61 %s期 压力测试笔均不符" % ph); n_v61 += 1
-        if (x.get("worst") or {}).get("pnl") != _e["worst"]:
-            err("v61 %s期 压力测试最坏一笔不符 %s vs %s" % (ph, (x.get("worst") or {}).get("pnl"), _e["worst"]))
-            n_v61 += 1
-        _sm_p = _sm.get(ph) or {}
-        if (_sm_p.get("worst") or {}).get("pnl") != (x.get("worst") or {}).get("pnl"):
-            err("v61 %s期 stressMap 与 stress 不一致" % ph); n_v61 += 1
-    if set(_sm.keys()) - set(x.get("phase") for x in (CYV.get("stress") or [])):
-        err("v61 stressMap 含 stress 列表之外的段"); n_v61 += 1
-    # ③ 推荐内嵌 stress：段位与决策日一致、数值与 stressMap 对得上
-    for _d, blk in (NR.get("byDate") or {}).items():
-        _cy = (blk or {}).get("cycle") or {}
-        _st = _cy.get("stress")
-        _ph = _cy.get("phase")
-        if _st is not None:
-            if _st.get("phase") != _ph:
-                err("v61 %s 推荐内嵌压力段 %s ≠ 决策日段 %s" % (_d, _st.get("phase"), _ph)); n_v61 += 1
-            _ref = _sm.get(_ph) or {}
-            if _ref and (_st.get("n") != _ref.get("n") or
-                         (_st.get("worst") or {}).get("pnl") != (_ref.get("worst") or {}).get("pnl")):
-                err("v61 %s 推荐内嵌压力数值与 stressMap 不符" % _d); n_v61 += 1
-        elif _ph and _sm.get(_ph):
-            err("v61 %s 决策日 %s 期但缺压力测试" % (_d, _ph)); n_v61 += 1
-    print("v61 压力测试+互证矩阵：互证 %d 天、压力测试 %d 段（%s），异常 %d"
-          % (_n2, len(CYV.get("stress") or []),
-             '；'.join('%s:%d笔' % (x.get("phase"), x.get("n")) for x in (CYV.get("stress") or [])),
-             n_v61))
-    n_v48 += n_v61
 
     # ---- v62：B1 传导路径图（transmit）+ 回测 chgB 独立复核 ----
     n_v62 = 0

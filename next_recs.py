@@ -159,11 +159,10 @@ def _add(idx, key, rec):
 
 
 def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, MONEY=None,
-            CYCLE=None, STRESS=None):
+            CYCLE=None):
     NAME = NAME or {}
     MONEY = MONEY or {}
-    CYCLE = CYCLE or {}   # v60：{date: {score, phase, s1..s4, neg, pct, ...}} 循环仪表盘
-    STRESS = STRESS or {}  # v61 B3：{生命周期段: {n,win,avg,worst,best}} 同段次日买入历史结果
+    CYCLE = CYCLE or {}   # v60/v63：{date: {score, s1..s4, neg, negNames}} 循环健康度读数
     LAD_STAGE = build_ladder_stage(dates, ladder_full)   # v58：题材复盘阶段补算表
     didx = {d: i for i, d in enumerate(dates)}
     SD = {s['date']: s for s in (days or [])}
@@ -344,24 +343,12 @@ def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, M
         # v60 循环联动：健康度<4 → 仅防守型机会（展示层缩减至3只）；<6 → 转弱提示。
         # 推荐数据本身不删（明日交易机会复盘回测口径不变），降级由前端按 cycle.degrade 呈现。
         _cyc = CYCLE.get(d) or {}
-        _sc = _cyc.get('score')
-        _deg = 'normal'
-        if _sc is not None:
-            if _sc < 4:
-                _deg = 'ice'
-            elif _sc < 6:
-                _deg = 'weak'
-        # v61 B3 压力测试：按今日生命周期段取「同段环境次日买入」的历史结果（最坏/均值/胜率）
-        _stress = STRESS.get(_cyc.get('phase')) if _cyc.get('phase') else None
         byDate[d] = {'market': market, 'recs': recs,
-                     'cycle': {'score': _sc, 'phase': _cyc.get('phase'),
-                               'pct': _cyc.get('pct'),
+                     'cycle': {'score': _cyc.get('score'),
                                's1': _cyc.get('s1'), 's2': _cyc.get('s2'),
                                's3': _cyc.get('s3'), 's4': _cyc.get('s4'),
                                'neg': bool(_cyc.get('neg')),
-                               'negNames': _cyc.get('negNames') or [],
-                               'degrade': _deg,
-                               'stress': _stress}}
+                               'negNames': _cyc.get('negNames') or []}}
 
     return {
         'featureProfile': feature_profile, 'byDate': byDate,
@@ -374,10 +361,11 @@ def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, M
                  '题材阶段口径：优先取题材炒作页/赚钱效应阶段；该题材当日无阶段记录时，'
                  'v58 起用题材复盘自身涨停序列按同一规则补算（启动/加强/反复/转弱），不再出现「未知」。'
                  '「超额」=匹配画像胜率−全样本胜率；一字买不进已排除。'
-                 'v60 循环联动：决策日附赚钱效应循环健康度（0-10，四环节等权：买入示范/溢价扩散/'
-                 '梯队接力/高度打开）与生命周期五段（发酵/扩散/高潮/退潮/冰点）；健康度<4 时'
-                 '推荐降级为「仅防守型机会」（展示缩减至3只），4-6 显示循环转弱提示；'
-                 '推荐数据与回测口径不变，降级仅影响展示层。'
-                 'v61 压力测试：按决策日生命周期段分组，附历史上同段环境次日按战法真实买入的'
-                 '结果（笔数/胜率/均盈亏/最坏一笔）——提前告诉你这类环境买入的最坏历史情况。'),
+                 '决策日附赚钱效应循环健康度（0-10，四环节等权：买入示范/溢价扩散/梯队接力/'
+                 '高度打开）与负反馈起点提示，供参与力度参考。'
+                 'v63 备选股定位（用户口径）：市场阶段沿用空间龙头四阶段（突破/主升/补涨/节点）；'
+                 '节点/补涨次日关注新崛起的板块龙头，博弈其成为新空间龙头、带领市场空间突破/主升；'
+                 '空间龙头（板数=当前空间高度，表中带「🎯空间龙头」标记）明日再板即空间突破——'
+                 '空间龙头突破代表赚钱效应好，参与空间突破龙头本身。备选股全量呈现，'
+                 '不按健康度缩减；推荐 ≠ 买入信号。'),
     }

@@ -92,8 +92,15 @@ def fetch_year(sym, year, retries=5):
                 if len(p) < 6 or not re.match(r"^\d{8}$", p[0]):
                     continue
                 # 同花顺字段：0日期 1开 2高 3低 4收 5量(手) —— 与 thsJsonp 同口径
-                out.append([p[0], float(p[1]), float(p[4]), float(p[3]),
-                            float(p[2]), float(p[5] or 0)])
+                try:
+                    o, c, l, h = float(p[1]), float(p[4]), float(p[3]), float(p[2])
+                except ValueError:
+                    continue
+                # v63 防线：除权股（如山煤国际 600546 2019 配股）同花顺 v6 "01"
+                # 返回归一化负值而非真实价格——close<=0 的 bar 一律丢弃，绝不入缓存。
+                if c <= 0:
+                    continue
+                out.append([p[0], o, c, l, h, float(p[5] or 0)])
             return out
         except Exception:
             time.sleep(0.8 * (k + 1))

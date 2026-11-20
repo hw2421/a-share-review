@@ -510,6 +510,10 @@ def _load_kbars():
                 for b in bars:
                     if not b or len(b) < 5:
                         continue
+                    # v63 防线：close<=0 的非法 bar（同花顺 v6 对除权股返回归一化负值）
+                    # 一律不入库——build 与 verify（分片加载）同规则，保证两边永远一致。
+                    if not isinstance(b[2], (int, float)) or b[2] <= 0:
+                        continue
                     old = rec.get(b[0])
                     if old is not None and (b[5] if len(b) > 5 else 0) < (old[5] if len(old) > 5 else 0):
                         fixed += 1
@@ -880,28 +884,17 @@ print("空间龙头涨停形态回填：%d 个股票日" % _n_sf)
 import cycle as CY
 CYCLE_OUT = CY.compute(dates, pools, days, KBARS, summit=review["summit"])
 CYCLE_MAP = {r["date"]: r for r in CYCLE_OUT["days"]}
-_phase_cnt = {}
-for _r in CYCLE_OUT["days"]:
-    if _r.get("phase"):
-        _phase_cnt[_r["phase"]] = _phase_cnt.get(_r["phase"], 0) + 1
-print("v60 循环仪表盘：%d 天，健康度均值 %.1f；生命周期 %s；负反馈起点 %d 天；"
-      "互证矩阵 %d 段；压力测试 %d 段（%s）"
+print("v63 循环仪表盘：%d 天，健康度均值 %.1f；负反馈起点 %d 天（五段生命周期已取消）"
       % (len(CYCLE_OUT["days"]),
          (sum(r["score"] for r in CYCLE_OUT["days"] if r["score"] is not None) /
           max(1, sum(1 for r in CYCLE_OUT["days"] if r["score"] is not None))),
-         _phase_cnt,
-         sum(1 for r in CYCLE_OUT["days"] if r.get("neg")),
-         len(CYCLE_OUT.get("cross2") or []),
-         len(CYCLE_OUT.get("stress") or []),
-         '；'.join('%s:%d笔/胜%.0f%%/最坏%+.1f%%' % (x["phase"], x["n"], x["win"], x["worst"]["pnl"])
-                   for x in (CYCLE_OUT.get("stress") or []))))
+         sum(1 for r in CYCLE_OUT["days"] if r.get("neg"))))
 
 # ---- v51：明日交易机会推荐（复盘案例前一日前置条件统计 → 决策日匹配） ----
 # 放在形态回填之后，确保 ladder_full 元素已带「s」形态字段，可正确排除一字（买不进）。
 import next_recs as NR
 NEXT_RECS = NR.compute(dates, days, ladder_full, ladders, review["summit"],
                        fd.yizi_map(pools), MONEY=money, CYCLE=CYCLE_MAP,
-                       STRESS=CYCLE_OUT.get("stressMap") or {},
                        NAME={s["code"]: s["name"] for dd in dates for s in pools.get(dd, [])})
 _today_recs = NEXT_RECS["byDate"].get(dates[-1], {}).get("recs", [])
 print("v54 明日机会推荐：盈利画像 %d 笔盈利/%d 笔全部，决策日 %d 个，今日推荐 %d 只，今日实例 %d 条"

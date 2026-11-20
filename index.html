@@ -4474,8 +4474,9 @@ function paintDecision(){
           '<span style="color:'+C.dim2+'">无同档盈利实例</span>';
         inner += '<tr>'+
           '<td class="l"><span class="nr-stk" data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+d+'" '+
-            'title="点击查看 '+x.name+' 日K">'+x.name+'</span> <span style="color:var(--dim2);font-size:9.5px">'+x.code+'</span></td>'+
-          '<td><b style="color:'+C.gold+'">'+(x.boards||0)+'板</b></td>'+
+            'title="点击查看 '+x.name+' 日K">'+x.name+'</span> <span style="color:var(--dim2);font-size:9.5px">'+x.code+'</span>'+
+            ((mk.spaceTop!=null && (x.boards||0)>=mk.spaceTop) ? ' <span style="font-size:9.5px;color:#ffd24a;border:1px solid #ffd24a55;border-radius:4px;padding:0 4px" title="当前空间高度 '+mk.spaceTop+' 板：此股明日再板即空间突破，赚钱效应好时参与空间突破龙头本身">🎯空间龙头</span>' : '')+'</td>'+
+          '<td><b style="color:'+C.gold+'">'+(x.boards||0)+'板</b>'+(x.boards>=4?' <span style="color:#ffd24a;font-size:9px">冲'+(x.boards+1)+'板=突破</span>':'')+'</td>'+
           '<td class="l"><span class="dc-th" data-th="'+(x.theme||'')+'" data-d="'+d+'" '+
             'title="点击查看 '+fmtDate(d)+' 该题材当日梯队" style="cursor:pointer;color:#dcbafb">'+
             (x.theme||'—')+'</span></td>'+
@@ -4499,8 +4500,8 @@ function paintDecision(){
       '「匹配胜率/超额」按三维特征逐级回退（三维→二维→一维→全样本）匹配的历史画像；'+
       '「历史符合实例」取历史上同档、且真实盈利的买入案例（点个股看其买入日K）。笔数少需谨慎。',
       '口径 · 明日机会盈利特征画像');
-    html += dcSec('🎯 明日交易机会推荐 · 盈利特征画像 <span class="sub">'+fmtDate(d)+
-      ' 收盘条件 → 明日买入参考 · 点个股看日K / 点题材看梯队 / 点实例看当日K</span>', inner);
+    html += dcSec('🎯 明日备选股 · 赚钱特征画像 <span class="sub">'+fmtDate(d)+
+      ' 收盘条件 → 明日关注参考 · 空间龙头明日再板=空间突破（参与龙头本身） · 节点/补涨次日关注新崛起板块龙头博弈新空间龙头 · 点个股看日K / 点题材看梯队 / 点实例看当日K</span>', inner);
   }
   /* ---------- ① 市场阶段 + 交易机会判断 ---------- */
   {
