@@ -143,35 +143,31 @@
      放宽宽度/高度比例，把「炒了多少次」独立成统计区完整展示，不再挤在标题里 */
   /* v55 新旧龙头交接叠加图浮层 */
   #hdpop{position:fixed;z-index:128;background:#10182a;border:1px solid #b07cf0;
-         border-radius:10px;width:min(960px,95vw);height:min(620px,86vh);display:none;
-         box-shadow:0 12px 40px rgba(0,0,0,.7)}
-  #hdpop .hdt{position:absolute;top:8px;left:14px;right:36px;z-index:2;font-size:13.5px;
+         border-radius:10px;width:min(980px,95vw);height:min(700px,88vh);
+         box-shadow:0 12px 40px rgba(0,0,0,.7);flex-direction:column}
+  #hdpop .hdt{flex:none;padding:8px 36px 0 14px;font-size:13.5px;
               font-weight:700;color:#dcc0ff;cursor:move;user-select:none}
   #hdpop .hdt small{color:var(--dim);font-weight:400;margin-left:6px}
-  #hdpop .hdx{position:absolute;top:4px;right:8px;z-index:3;color:var(--dim);font-size:18px;cursor:pointer;padding:4px}
-  #hdpop .hdnav{position:absolute;top:34px;left:14px;right:14px;z-index:3;display:flex;
-                align-items:center;gap:8px;justify-content:center}
+  #hdpop .hdx{position:absolute;top:4px;right:8px;z-index:5;color:var(--dim);font-size:18px;cursor:pointer;padding:4px}
+  #hdpop .hdnav{flex:none;display:flex;align-items:center;gap:8px;padding:4px 14px}
   #hdpop .hdnav button{background:#241b38;border:1px solid #6a4a92;color:#dcc0ff;
                 border-radius:6px;padding:2px 11px;font-size:11.5px;font-weight:700;cursor:pointer}
   #hdpop .hdnav button:hover{background:#3a2a56}
   #hdpop .hdnav span{color:var(--dim2);font-size:11.5px;min-width:120px;text-align:center}
-  #hdpop .hdnav .hdmode{margin-left:auto;display:inline-flex;gap:4px;min-width:0}
-  #hdpop .hdnav .hdmode button{padding:2px 9px;font-size:11px;opacity:.6}
-  #hdpop .hdnav .hdmode button.on{opacity:1;border-color:#9d6fd0;background:#3a2a56;box-shadow:0 0 0 1px #9d6fd055}
-  #hdpop .hdlegend{position:absolute;top:60px;left:16px;right:16px;z-index:3;
-                   display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;
-                   font-size:11px;line-height:1.4;color:var(--dim)}
-  #hdpop .hdlegend .hd-grp{width:100%;font-size:10.5px;margin-bottom:1px}
+  #hdpop .hdscroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:0 8px;
+                   border-top:1px solid #241b38}
+  #hdpop .hdc{position:relative;width:100%}
+  #hdpop .hdhead{position:absolute;left:66px;z-index:4;height:17px;display:flex;align-items:center;
+                 gap:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+  #hdpop .hdhead:hover{text-decoration:underline}
+  #hdpop .hdhead .bd{color:#ffd24a;font-weight:700}
+  #hdpop .hdhead .brk{color:var(--dim2);font-weight:400;font-size:9.5px}
+  #hdpop .hdlegend{flex:none;position:static;padding:3px 14px 0;font-size:10.5px;
+                   line-height:1.5;color:var(--dim)}
   #hdpop .hdlegend .hd-grp b{color:var(--text)}
-  #hdpop .hdleg{display:inline-flex;align-items:center;gap:4px;cursor:pointer;
-                border:1px solid #33405c;border-radius:5px;padding:2px 7px;background:#1a2338;
-                font-size:11px;color:var(--text);transition:background .12s}
-  #hdpop .hdleg:hover{background:#2a3654;border-color:#6a4a92}
-  #hdpop .hdleg .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
-  #hdpop .hdleg .bd{color:#ffd24a;font-weight:700}
-  #hdpop .hdleg .bx{font-size:9px;color:var(--dim2)}
-  #hdpop .hdc{position:absolute;top:112px;left:8px;right:8px;bottom:34px}
-  #hdpop .hdnote{position:absolute;left:14px;bottom:8px;z-index:3;color:var(--dim2);font-size:10px}
+  #hdpop .hdlegend a{color:var(--text);cursor:pointer}
+  #hdpop .hdlegend a:hover{color:#dcc0ff}
+  #hdpop .hdnote{flex:none;position:static;padding:2px 14px 8px;color:var(--dim2);font-size:10px}
   .hd-open{float:right;background:#241b38;border:1px solid #6a4a92;color:#dcc0ff;
            border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-left:8px}
   .hd-open:hover{background:#3a2a56}
@@ -403,6 +399,17 @@
   /* v55 买入日👛 / 赚钱效应日💵 图标 */
   .wn-icon{font-size:13px}
   .wn-buy{color:#e0b070}.wn-earn{color:var(--gold)}.wn-lossday{color:var(--down)}
+  /* v57 形态总览表 + 豁免徽标 */
+  .wn-ov{width:100%;border-collapse:collapse;font-size:11.5px;margin:2px 0 10px;
+         background:var(--card2);border-radius:8px;overflow:hidden}
+  .wn-ov th{background:#1c2438;color:var(--dim2);font-weight:600;padding:5px 8px;
+            border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+  .wn-ov td{padding:4.5px 8px;border-bottom:1px solid #202a40;text-align:center;color:var(--text)}
+  .wn-ov tr.ovrow{cursor:pointer;transition:background .12s}
+  .wn-ov tr.ovrow:hover{background:#25314d}
+  .wn-ov tr.ovrow.on{background:#2b3a5c;outline:1px solid var(--blue)}
+  .exbad{display:inline-block;background:rgba(240,185,11,.14);color:#f0b90b;border:1px solid #f0b90b55;
+         border-radius:3px;padding:0 4px;font-size:9.5px;font-weight:700;vertical-align:1px}
   .wn-sum{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
   .wn-sum .wn-kpi{background:var(--card2);border:1px solid var(--line);border-radius:8px;
                   padding:8px 14px;min-width:96px}
@@ -910,10 +917,9 @@
 <!-- v55 新旧龙头交接叠加图浮层 -->
 <div id="hdpop">
   <div class="hdt" id="hdpop-t"></div><span class="hdx" id="hdpop-x">✕</span>
-  <div class="hdnav"><button id="hd-prev">◀ 上一次</button><span id="hd-idx"></span><button id="hd-next">下一次 ▶</button>
-    <span class="hdmode"><button id="hd-mode-k" class="on">🕯蜡烛</button><button id="hd-mode-l">📈折线</button></span></div>
+  <div class="hdnav"><button id="hd-prev">◀ 上一次</button><span id="hd-idx"></span><button id="hd-next">下一次 ▶</button></div>
+  <div class="hdscroll"><div class="hdc" id="hdpop-c"></div></div>
   <div class="hdlegend" id="hdpop-lg"></div>
-  <div class="hdc" id="hdpop-c"></div>
   <div class="hdnote" id="hdpop-note"></div>
 </div>
 <button id="backtop" title="返回顶部" aria-label="返回顶部">↑ 返回顶部</button>
@@ -1836,8 +1842,8 @@ function openThPop(nm, ev, fromD){
    kind='theme'(题材板块龙头) / 'space'(全市场空间龙头)。
    按交接日对齐各龙头日K，以窗口首日收盘归一化成涨幅%后叠加：
    默认蜡烛K线(开/高/低/收全归一)，可切折线(仅收盘)；每只个股唯一颜色+末端标注+可点图例看日K。 */
-let HD_STATE = null, HD_CHART = null, HD_MODE = 'k';  // 'k'=蜡烛 'l'=折线
-// 新旧各自独立调色板，按组内序号取色（修复旧龙头负数索引取色 bug），保证同组不重色
+let HD_STATE = null, HD_CHART = null;
+// 新旧各自独立调色板，按组内序号取色（同组不重色），用于小图标题个股名标识
 const HD_COLORS_NEW = ['#f5455c','#f0b90b','#ff8c42','#ff5fa2','#e04343','#ffa726','#f76b8a','#ffcf5c'];
 const HD_COLORS_OLD = ['#5a9fe0','#7a6fa8','#4fb3a6','#c9a24a','#8a7ad0','#4aa08a','#6a8fd0','#b08a5a'];
 async function openHandover(kind, themeName, ev, anchorDate){
@@ -1851,7 +1857,7 @@ async function openHandover(kind, themeName, ev, anchorDate){
   }
   HD_STATE = {kind, themeName, evs, cur};
   const pop=document.getElementById('hdpop');
-  pop.style.display='block';
+  pop.style.display='flex';
   // 定位（点击处附近 / 屏幕中央）
   const W=window.innerWidth,H=window.innerHeight;
   let x=Math.min((ev&&ev.clientX||W/2)-300, W-pop.offsetWidth-8);
@@ -1860,10 +1866,6 @@ async function openHandover(kind, themeName, ev, anchorDate){
   document.getElementById('hdpop-x').onclick=()=>{ pop.style.display='none'; };
   document.getElementById('hd-prev').onclick=()=>{ if(HD_STATE.cur>0){HD_STATE.cur--;renderHandover();} };
   document.getElementById('hd-next').onclick=()=>{ if(HD_STATE.cur<HD_STATE.evs.length-1){HD_STATE.cur++;renderHandover();} };
-  const mk=document.getElementById('hd-mode-k'), ml=document.getElementById('hd-mode-l');
-  mk.classList.toggle('on',HD_MODE==='k'); ml.classList.toggle('on',HD_MODE==='l');
-  mk.onclick=()=>{ HD_MODE='k'; mk.classList.add('on'); ml.classList.remove('on'); renderHandover(); };
-  ml.onclick=()=>{ HD_MODE='l'; ml.classList.add('on'); mk.classList.remove('on'); renderHandover(); };
   // 标题拖动（就地实现，避免依赖）
   const hd=document.getElementById('hdpop-t');
   if(!hd.__drag){ hd.__drag=1;
@@ -1882,101 +1884,118 @@ async function renderHandover(){
   const dates=R.dates||[];
   const title=document.getElementById('hdpop-t');
   title.innerHTML=(S.kind==='theme'? '【'+S.themeName+'】板块龙头交接' : '全市场空间龙头交接')+
-    ' · 交接日 '+fmtDate(e.date)+' <small>旧龙头断板 → 新龙头上位 · '+(HD_MODE==='k'?'蜡烛':'折线')+'叠加</small>';
+    ' · 交接日 '+fmtDate(e.date)+' <small>上=新龙头 · 下=旧龙头 · 真实价格日K · 时间对齐</small>';
   document.getElementById('hd-idx').textContent='第 '+(S.cur+1)+' / '+S.evs.length+' 次（'+fmtDate(e.date)+'）';
   document.getElementById('hdpop-lg').innerHTML='';
-  if(!HD_CHART) HD_CHART=echarts.init(document.getElementById('hdpop-c'),null,{renderer:'canvas'});
-  HD_CHART.showLoading('default',{text:'加载日K…'});
+  document.getElementById('hdpop-note').textContent='加载龙头日K…';
   const di=dates.indexOf(e.date);
   const PRE=8, POST=6;
   const lo=Math.max(0,di-PRE), hi=Math.min(dates.length-1,di+POST);
   const winDates=dates.slice(lo,hi+1);
-  const olds=e.old||[], news=e.new||[];
-  const all=[...olds.map(x=>({...x,grp:'old'})),...news.map(x=>({...x,grp:'new'}))];
-  // 异步取每只龙头完整日K（按组内序号分配唯一颜色）
-  const series=[], legendItems=[], labels=[];
-  await Promise.all(all.map(async (stk,idx)=>{
-    const isNew=stk.grp==='new';
-    const gi = isNew ? news.indexOf(stk) : olds.indexOf(stk);  // 组内序号
-    const pal = isNew ? HD_COLORS_NEW : HD_COLORS_OLD;
-    const col = pal[(gi<0?idx:gi)%pal.length];
+  const HI=di-lo;                       // 交接日在窗口内的索引
+  const news=e.new||[], olds=e.old||[];
+  // 异步取每只龙头完整日K（新旧各按组内序号取唯一标识色）
+  const fetched=[];
+  await Promise.all([
+    ...news.map((x,gi)=>({x,gi,grp:'new'})),
+    ...olds.map((x,gi)=>({x,gi,grp:'old'}))
+  ].map(async o=>{
     let bars=[];
-    try{ bars=await stockKBars(stk.code, stk.date||e.breakDate); }catch(err){ bars=[]; }
+    try{ bars=await stockKBars(o.x.code); }catch(err){ bars=[]; }   // 取全量最新日K，覆盖交接日之后窗口
     const bmap={}; (bars||[]).forEach(b=>{ if(b&&b[0]) bmap[b[0]]=b; });
-    let base=null;
-    for(const wd of winDates){ if(bmap[wd]&&bmap[wd][2]){ base=bmap[wd][2]; break; } }
-    if(!base) return;
-    const nrm=v=>+((v/base-1)*100).toFixed(2);   // 归一成相对窗口首日收盘的涨幅%
-    const nm=(isNew?'🆕':'🔻')+stk.name+'('+stk.boards+'板)';
-    let ser;
-    if(HD_MODE==='l'){
-      const pts=winDates.map((wd,j)=>{ const b=bmap[wd]; return [j, b&&b[2]?nrm(b[2]):null]; });
-      ser={name:nm,type:'line',data:pts,symbol:'circle',symbolSize:3,connectNulls:true,
-           lineStyle:{color:col,width:isNew?2.4:1.8,type:isNew?'solid':'dashed',opacity:.95},
-           itemStyle:{color:col},emphasis:{focus:'series'}};
-    }else{
-      // candlestick 数据格式：[idx, 开, 收, 低, 高]（全部归一成涨幅%）
-      const cd=winDates.map((wd,j)=>{ const b=bmap[wd];
-        return b&&b[2] ? [j, nrm(b[1]), nrm(b[2]), nrm(b[3]), nrm(b[4])] : [j, null,null,null,null]; });
-      ser={name:nm,type:'candlestick',data:cd,
-           itemStyle:{color:col,color0:col,borderColor:col,borderColor0:col,opacity:.9},
-           emphasis:{focus:'series'}};
-    }
-    // 末端标注：在最后一个有效涨幅点标个股名
-    let lastJ=-1,lastV=null;
-    winDates.forEach((wd,j)=>{ const b=bmap[wd]; if(b&&b[2]){ lastJ=j; lastV=nrm(b[2]); } });
-    if(lastJ>=0){
-      ser.markPoint={symbol:'roundRect',symbolSize:[0,0],data:[{
-        coord:[lastJ,lastV],value:stk.name,
-        label:{show:true,position:'right',distance:5,color:col,fontSize:10,fontWeight:700,
-          formatter:stk.name,backgroundColor:'rgba(10,15,28,.78)',borderColor:col,borderWidth:1,
-          borderRadius:3,padding:[2,4]}
-      }]};
-    }
-    series.push(ser);
-    legendItems.push('<span class="hdleg" data-code="'+stk.code+'" data-name="'+stk.name+
-      '" data-d="'+(stk.lastDate||e.date)+'" title="点看 '+stk.name+' 完整日K">'+
-      '<i class="sw" style="background:'+col+'"></i>'+
-      (isNew?'新':'旧')+' '+stk.name+' <span class="bd">'+stk.boards+'板</span>'+
-      '<span class="bx">↗</span></span>');
+    o.bmap=bmap;
+    o.row=winDates.map(wd=>{ const b=bmap[wd];
+      return b&&b[2] ? [b[1],b[2],b[3],b[4]] : ['-','-','-','-']; });  // 缺日用'-'占位(null会破坏candlestick初始化)
+    fetched.push(o);
   }));
-  HD_CHART.hideLoading();
-  document.getElementById('hdpop-lg').innerHTML=
-    '<span class="hd-grp"><b>🆕 新龙头(上位)：</b>'+(news.length?news.map(x=>x.name+' '+x.boards+'板').join('、'):'—')+
-    '　<b style="margin-left:10px">🔻 旧龙头(断板)：</b>'+(olds.length?olds.map(x=>x.name+' '+x.boards+'板·'+fmtDate(x.lastDate)+'断').join('、'):'—')+
-    '　<span style="color:#ffd24a">点色块看该股完整日K</span></span>'+legendItems.join('');
-  document.querySelectorAll('#hdpop-lg .hdleg').forEach(el=>{
-    el.onclick=()=>showK(el.dataset.code,el.dataset.name,null,el.dataset.d);
+  // 上排新龙头、下排旧龙头（保持原顺序；无日K的跳过）
+  const ordered=[...news.map(x=>fetched.find(o=>o.x===x)).filter(Boolean),
+                 ...olds.map(x=>fetched.find(o=>o.x===x)).filter(Boolean)];
+  const nG=ordered.length;
+  const c=document.getElementById('hdpop-c');
+  if(!HD_CHART) HD_CHART=echarts.init(c,null,{renderer:'canvas'});
+  HD_CHART.clear();
+  // 清掉旧的自定义标题层
+  c.querySelectorAll('.hdhead').forEach(el=>el.remove());
+  if(!nG){
+    document.getElementById('hdpop-note').textContent='该次交接的龙头日K数据不可用（历史K线源缺失）';
+    return;
+  }
+  const GH=128, TOPPAD=18, AXH=24;      // 每小图高 / 标题条高 / 底部日期轴高
+  c.style.height=(nG*GH+AXH)+'px';
+  HD_CHART.resize();
+  const grids=[],xAxes=[],yAxes=[],series=[];
+  ordered.forEach((o,i)=>{
+    const last=i===nG-1;
+    const pal=o.grp==='new'?HD_COLORS_NEW:HD_COLORS_OLD;
+    const col=pal[o.gi%pal.length];
+    o.col=col;
+    grids.push({left:64,right:16,top:i*GH+TOPPAD,height:GH-TOPPAD-6});
+    xAxes.push({type:'category',gridIndex:i,data:winDates,boundaryGap:true,
+      axisLabel:{show:last,color:'#9aa7bd',fontSize:9.5,formatter:v=>v.slice(4,6)+'-'+v.slice(6)},
+      axisLine:{lineStyle:{color:'#2b3a56'}},axisTick:{show:false}});
+    yAxes.push({type:'value',gridIndex:i,scale:true,
+      axisLabel:{color:'#9aa7bd',fontSize:9,formatter:v=>v>=10000?(v/10000).toFixed(1)+'万':(v>=1000?(v/1000).toFixed(1)+'k':v)},
+      splitLine:{lineStyle:{color:'#1c2436'}},axisLine:{show:false}});
+    const ser={name:o.x.name,type:'candlestick',data:o.row,barMaxWidth:9,
+      xAxisIndex:i,yAxisIndex:i,               // v57修复：绑定各自网格（否则全部画进第0格）
+      itemStyle:{color:'#f5455c',color0:'#2ebd85',borderColor:'#f5455c',borderColor0:'#2ebd85'},
+      markLine:{silent:true,symbol:'none',animation:false,
+        data:[{xAxis:HI}],lineStyle:{color:'#f0b90b',type:'dashed',width:1.2},
+        label:{show:i===0,formatter:'交接日',color:'#f0b90b',fontSize:9.5,position:'insideEndTop'}}};
+    series.push(ser);
+    // 每小图上方的个股标题层（HTML，点击弹完整日K）
+    const hd=document.createElement('div');
+    hd.className='hdhead';
+    hd.style.top=(i*GH+2)+'px';
+    hd.style.width='calc(100% - 84px)';
+    hd.title='点看 '+o.x.name+' 完整日K';
+    hd.innerHTML='<i class="sw" style="width:9px;height:9px;border-radius:2px;display:inline-block;background:'+col+'"></i>'+
+      (o.grp==='new'?'🆕':'🔻')+'<b style="color:'+col+'">'+o.x.name+'</b>'+
+      '<span class="bd">'+o.x.boards+'板</span>'+
+      (o.grp==='old'&&o.x.lastDate? '<span class="brk">'+fmtDate(o.x.lastDate)+'断板</span>':'')+
+      '<span class="brk">'+(o.x.date?' '+fmtDate(o.x.date):'')+'</span>';
+    hd.onclick=()=>showK(o.x.code,o.x.name,null,o.grp==='old'?(o.x.lastDate||e.date):e.date);
+    c.appendChild(hd);
   });
-  const xlabels=winDates.map((wd,j)=> j-PRE);
   HD_CHART.setOption({
     animation:false,
-    tooltip:{trigger:'axis',axisPointer:{type:'cross'},confine:true,formatter:ps=>{
+    axisPointer:{link:[{xAxisIndex:'all'}]},          // 上下时间轴联动十字线
+    tooltip:{trigger:'axis',confine:true,formatter:ps=>{
       if(!ps||!ps.length) return '';
-      const j=ps[0].dataIndex, rel=j-PRE, dd=winDates[j]||'';
-      let s='相对交接日 '+(rel>0?'+':'')+rel+' 日（'+fmtDate(dd)+'）<br/>';
-      ps.forEach(p=>{
-        let v=null;
-        if(HD_MODE==='k'){                       // candlestick: p.data=[idx,开,收,低,高]
-          const a=p.data; if(a&&a[2]!=null) v=a[2];
-        }else if(p.value!=null && !Array.isArray(p.value)){
-          v=p.value;
-        }
-        if(v!=null) s+=p.marker+p.seriesName+' <b style="color:'+(v>=0?'#f5455c':'#2ebd85')+'">'+
-          (v>0?'+':'')+v+'%</b><br/>';
-      });
-      return s;
+      const p=ps.find(z=>z.seriesType==='candlestick'); if(!p) return '';
+      const o=ordered[p.seriesIndex]; if(!o) return '';
+      const j=p.dataIndex, wd=winDates[j];
+      const d=p.data&&p.data.length? p.data : null;   // [idx,开,收,低,高]
+      if(!d||d[1]==='-'||d[1]==null) return fmtDate(wd)+'（'+o.x.name+'）<br/>当日无K线数据';
+      const wdIdx=dates.indexOf(wd);
+      const prev=wdIdx>0? (o.bmap[dates[wdIdx-1]]||[])[2] : null;
+      const chg=prev? (d[2]/prev-1)*100 : null;
+      return '<b>'+o.x.name+'</b> '+fmtDate(wd)+'<br/>'+
+        '开 '+d[1]+'　收 <b style="color:'+(d[2]>=d[1]?'#f5455c':'#2ebd85')+'">'+d[2]+'</b><br/>'+
+        '低 '+d[3]+'　高 '+d[4]+
+        (chg!=null? '<br/>涨跌 <b style="color:'+(chg>=0?'#f5455c':'#2ebd85')+'">'+(chg>=0?'+':'')+chg.toFixed(2)+'%</b>':'');
     }},
     legend:{show:false},
-    grid:{left:46,right:56,top:14,bottom:26},
-    xAxis:{type:'category',data:xlabels,axisLabel:{color:'#78849a',fontSize:10,
-      formatter:v=>(v>0?'+':'')+v},axisLine:{lineStyle:{color:'#2b3a56'}}},
-    yAxis:{type:'value',axisLabel:{color:'#78849a',fontSize:10,formatter:v=>(v>0?'+':'')+v+'%'},
-      splitLine:{lineStyle:{color:'#1f2937'}},axisLine:{lineStyle:{color:'#2b3a56'}}},
+    grid:grids,
+    xAxis:xAxes,
+    yAxis:yAxes,
     series:series
   },true);
-  document.getElementById('hdpop-note').textContent='数据源：本地日K分片 · '+series.length+
-    ' 只龙头叠加（'+(HD_MODE==='k'?'蜡烛':'折线')+'）· 以窗口首日收盘为0% · 交接日=0 · 点色块看完整日K';
+  // 底部说明 + 新旧龙头名（可点弹完整日K）
+  document.getElementById('hdpop-lg').innerHTML=
+    '<span class="hd-grp"><b>🆕 新龙头(上位)：</b>'+
+    (news.length?news.map((x,gi)=>'<a data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+e.date+
+      '" style="color:'+(HD_COLORS_NEW[gi%HD_COLORS_NEW.length])+'">'+x.name+' '+x.boards+'板</a>').join('、'):'—')+
+    '　｜　<b>🔻 旧龙头(断板)：</b>'+
+    (olds.length?olds.map((x,gi)=>'<a data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+(x.lastDate||e.date)+
+      '" style="color:'+(HD_COLORS_OLD[gi%HD_COLORS_OLD.length])+'">'+x.name+' '+x.boards+'板</a>').join('、'):'—')+
+    '</span>';
+  document.querySelectorAll('#hdpop-lg a[data-c]').forEach(a=>{
+    a.onclick=()=>showK(a.dataset.c,a.dataset.n,null,a.dataset.d);
+  });
+  document.getElementById('hdpop-note').textContent='横轴=真实交易日（底部），上下小图时间对齐；'+
+    '黄虚线=交接日 '+fmtDate(e.date)+'；K线为真实价格（红涨绿跌）；窗口 前'+PRE+'/后'+POST+' 交易日；点个股名看完整日K';
 }
 /* 日K实时化：LIVE_K=下次打开强制拉最新；lastK=当前打开的K图（半小时自动刷新它） */
 let LIVE_K=false, lastK=null, KVER=0;
@@ -2138,7 +2157,9 @@ function wnAgg(evs){
         stocks:ga.map(x=>[x.name,x.code,x.d,x.b,x.s1])};
     }).sort((a,b)=>b.maxB-a.maxB||b.cnt-a.cnt||a.theme.localeCompare(b.theme));
     return {k:p,n:arr.length,pct:total?+(arr.length/total*100).toFixed(1):0,
-      avg:+(arr.reduce((s,x)=>s+x.chg,0)/arr.length).toFixed(2), groups};
+      avg:+(arr.reduce((s,x)=>s+x.chg,0)/arr.length).toFixed(2), groups,
+      ex:arr.filter(x=>x.b0<3&&x.kind!=='龙头首阴').length,
+      last:arr.map(x=>x.d).sort().pop()};
   }).filter(Boolean);
   cats.sort((a,b)=>b.pct-a.pct||b.n-a.n||a.k.localeCompare(b.k));
   const caps=['大盘','中盘','小盘','未知'].map(c=>{
@@ -2201,9 +2222,23 @@ function renderWinners(){
   ].filter(Boolean);
   document.getElementById('wn-read').innerHTML = read.map(t=>
     '<div class="sub" style="padding:3px 0;font-size:12px">• '+t+'</div>').join('');
-  // 分类汇总卡：占比降序；同类按题材分组，同一题材一行（题材+连板高度+个股列表）
-  document.getElementById('wn-cats').innerHTML = cats.map(c=>
-    '<div class="wn-cat"><div class="t"><span>'+c.k+'</span>'+
+  // v57：形态总览表（每类一行 · 点行筛选该类明细）+ 分类汇总卡（豁免例外标注）
+  const exTotal = evs0.filter(e=>e.b0<3&&e.kind!=='龙头首阴').length;
+  const ovHtml = '<div class="sub" style="margin:8px 0 4px">形态总览（每类一行 · 点行筛选该类明细 · '+
+    '<span class="exbad">豁免</span>=N字反包/断板反包例外，不受前一日≥3板门槛限制 · 共 '+exTotal+' 例豁免）</div>'+
+    '<table class="wn-ov"><thead><tr><th class="l">形态</th><th>笔数</th><th>占比</th>'+
+    '<th>均价(今日)</th><th>豁免例</th><th>最近日期</th></tr></thead><tbody>'+
+    cats.map(c=>{
+      const hit = WN_FILTER===c.k;
+      return '<tr class="ovrow'+(hit?' on':'')+'" data-f="'+c.k+'" title="点行筛选该类明细">'+
+        '<td class="l">'+c.k+(c.ex?' <span class="exbad" title="该类含 '+c.ex+' 例 N字反包/断板反包豁免样本">豁免'+c.ex+'</span>':'')+'</td>'+
+        '<td><b>'+c.n+'</b></td><td>'+c.pct+'%</td>'+
+        '<td style="color:'+(c.avg>=0?C.up:C.down)+';font-weight:700">'+(c.avg>0?'+':'')+c.avg+'%</td>'+
+        '<td>'+(c.ex||'—')+'</td><td>'+(c.last?fmtDate(c.last):'—')+'</td></tr>';
+    }).join('')+'</tbody></table>';
+  document.getElementById('wn-cats').innerHTML = ovHtml + cats.map(c=>
+    '<div class="wn-cat"><div class="t"><span>'+c.k+
+    (c.ex?' <span class="exbad" title="该类含 '+c.ex+' 例 N字反包/断板反包豁免样本（前一日<3板）">豁免'+c.ex+'</span>':'')+'</span>'+
     '<span class="n">'+c.n+' 例 · 占比 <b style="color:'+C.gold+'">'+c.pct+'%</b> · 均价 <b style="color:'+(c.avg>=0?C.up:C.down)+'">'+
     (c.avg>0?'+':'')+c.avg+'%</b></span></div>'+
     c.groups.map(g=>'<div class="stkg"><span class="gt">['+g.theme+']'+
@@ -2212,9 +2247,16 @@ function renderWinners(){
         'style="cursor:pointer;color:'+C.blue+'" title="点看 '+s[0]+' 日K">'+s[0]+'</b>'+
         '<span class="sbd">'+(s[3]?s[3]+'板':'—')+'</span>').join('、')+
       '</div>').join('')+'</div>').join('');
-  // v53：分类汇总卡的个股可点开日K
+  // v53：分类汇总卡的个股可点开日K；v57 总览表点行筛选该类明细
   document.querySelectorAll('#wn-cats .wn-kstk').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
+  });
+  document.querySelectorAll('#wn-cats .ovrow').forEach(tr=>{
+    tr.onclick = ()=>{
+      WN_FILTER = WN_FILTER===tr.dataset.f ? '' : tr.dataset.f;
+      renderWinners();
+      setTimeout(()=>{ const el=document.getElementById('wn-list'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); },60);
+    };
   });
   const allTags = ['', ...WN_PRI];
   const filt = document.getElementById('wn-filter');
@@ -2260,7 +2302,8 @@ function renderWinners(){
       '<td class="l wn-thcell" data-th="'+(e.theme||'')+'" data-d="'+e.d+'"'+
       ' title="'+(e.theme?'点看 '+fmtDate(e.d)+' 当日梯队':'该股当日无复盘题材归类')+'">'+
       (e.theme||'—')+'</td>'+
-      '<td style="color:'+(e.b0>=3?C.gold:C.dim2)+';font-weight:700">'+e.b0+'板</td>'+
+      '<td style="color:'+(e.b0>=3?C.gold:C.dim2)+';font-weight:700">'+e.b0+'板'+
+      (e.b0<3&&e.kind!=='龙头首阴'?'<span class="exbad" style="margin-left:3px" title="N字反包/断板反包例外：豁免前一日≥3板门槛">豁</span>':'')+'</td>'+
       '<td><b style="color:'+C.gold+'">'+(e.b?e.b+'板':'—')+'</b></td>'+
       '<td class="l">'+e.s0+'</td><td class="l">'+e.s1+'</td>'+ modeTds +
       '<td style="color:'+(e.open>=0?C.up:C.down)+'">'+(e.open>0?'+':'')+e.open+'</td>'+
@@ -2346,8 +2389,20 @@ function renderLosers(){
       stocks:gm[t].slice().sort((a,b)=>a.loss-b.loss).map(x=>[x.name,x.code,x.d,x.b0,x.loss])}))
       .sort((a,b)=>b.stocks.length-a.stocks.length);
     return {k:m[0],label:m[1],n:arr.length,pct:total?+(arr.length/total*100).toFixed(1):0,
-      avg:+(arr.reduce((s,x)=>s+x.loss,0)/arr.length).toFixed(2),groups};
+      avg:+(arr.reduce((s,x)=>s+x.loss,0)/arr.length).toFixed(2),groups,
+      last:arr.map(x=>x.d).sort().pop()};
   }).filter(Boolean).sort((a,b)=>b.pct-a.pct||b.n-a.n);
+  // v57：形态总览表（每类一行 · 点行筛选该类明细）
+  const ovHtml='<div class="sub" style="margin:8px 0 4px">形态总览（每类一行 · 点行筛选该类明细）</div>'+
+    '<table class="wn-ov"><thead><tr><th class="l">形态</th><th>笔数</th><th>占比</th>'+
+    '<th>笔均亏损</th><th>最近日期</th></tr></thead><tbody>'+
+    cats.map(c=>{
+      const hit=LS_FILTER===c.k;
+      return '<tr class="ovrow'+(hit?' on':'')+'" data-f="'+c.k+'" title="点行筛选该类明细">'+
+        '<td class="l">'+c.label+'（'+c.k+'）</td><td><b>'+c.n+'</b></td><td>'+c.pct+'%</td>'+
+        '<td style="color:'+C.down+';font-weight:700">'+c.avg+'%</td>'+
+        '<td>'+(c.last?fmtDate(c.last):'—')+'</td></tr>';
+    }).join('')+'</tbody></table>';
   document.getElementById('ls-sum').innerHTML='<div class="wn-sum">'+
     '<div class="wn-kpi"><span class="k">亏钱效应样本</span><span class="v" style="color:'+C.down+'">'+total+'</span></div>'+
     '<div class="wn-kpi"><span class="k">形态分类</span><span class="v">'+cats.length+'</span></div>'+
@@ -2355,7 +2410,7 @@ function renderLosers(){
       cats.slice().sort((a,b)=>a.avg-b.avg)[0].avg+'%</span></div>':'')+'</div>';
   document.getElementById('ls-read').innerHTML=(ML.read||[]).map(t=>
     '<div class="sub" style="padding:3px 0;font-size:12px">• '+t+'</div>').join('');
-  document.getElementById('ls-cats').innerHTML=cats.map(c=>
+  document.getElementById('ls-cats').innerHTML=ovHtml+cats.map(c=>
     '<div class="wn-cat"><div class="t"><span>'+c.label+'（'+c.k+'）</span>'+
     '<span class="n">'+c.n+' 例 · 占比 <b style="color:'+C.gold+'">'+c.pct+'%</b> · 笔均亏损 <b style="color:'+C.down+'">'+
     c.avg+'%</b></span></div>'+
@@ -2365,6 +2420,10 @@ function renderLosers(){
         '<span class="sbd" style="color:'+C.down+'">'+s[4]+'%</span>').join('、')+'</div>').join('')+'</div>').join('');
   document.querySelectorAll('#ls-cats .wn-kstk').forEach(el=>{
     el.onclick=ev=>{ev.stopPropagation();showK(el.dataset.c,el.dataset.n,ev,el.dataset.d);};
+  });
+  document.querySelectorAll('#ls-cats .ovrow').forEach(tr=>{
+    tr.onclick=()=>{ LS_FILTER = LS_FILTER===tr.dataset.f ? '' : tr.dataset.f; renderLosers();
+      setTimeout(()=>{ const el=document.getElementById('ls-list'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); },60); };
   });
   const allTags=['',...LS_MODES.map(m=>m[0])];
   const filt=document.getElementById('ls-filter');
@@ -3603,6 +3662,30 @@ async function showK(code, name, e, atDate, trade){
       style:{text:fmtDate(h.d)+' '+(RV_MSHORT[h.m]||h.m)+'｜'+(h.why||'符合买入条件'),
              fill:'rgba(255,255,255,.42)', font:'11px sans-serif'}}))
   }] : [];
+  /* v57：赚亏效应日K标记——👛=买入日(前一日)、💵=赚钱效应日、📉=亏钱效应日。
+     数据来自赚亏效应全量事件池（moneyWinners/moneyLosers eventsAll），按 code 建索引。 */
+  const WN_EV = (window.__WNEVMAP || (window.__WNEVMAP = (()=>{
+    const m = {}, R = window.REVIEW||{};
+    const add=(arr,kind)=>(arr||[]).forEach(ev=>{
+      if(!ev||!ev.code) return;
+      (m[ev.code] = m[ev.code]||[]).push({d0:ev.d0, d:ev.d, kind});
+    });
+    add((R.moneyWinners||{}).eventsAll,'win');
+    add((R.moneyLosers||{}).eventsAll,'loss');
+    return m;
+  })()))[code] || [];
+  const WN_SEEN = {};
+  WN_EV.forEach(ev=>{
+    [[ev.d0,'👛',ev.kind],[ev.d, ev.kind==='win'?'💵':'📉',ev.kind]].forEach(([dt,ic,kd])=>{
+      if(!dt || WN_SEEN[dt+ic]) return;
+      const bi = dates.indexOf(dt);
+      if(bi<0) return;
+      WN_SEEN[dt+ic]=1;
+      kMarks.push({coord:[dt, K[bi][3]], symbol:'circle', symbolSize:4.5,
+        itemStyle:{color: kd==='win'?'rgba(240,185,11,.85)':'rgba(46,189,133,.85)'},
+        label:{show:true, formatter:ic, position:'bottom', distance:5, fontSize:12}});
+    });
+  });
   const TIPOFF = kChart.__tipOff || (kChart.__tipOff = {x:0, y:0});
   kChart.setOption({
     backgroundColor:'transparent',
