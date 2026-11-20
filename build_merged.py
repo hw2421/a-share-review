@@ -486,9 +486,14 @@ def _load_kbars():
     以最后加载的 .stock_kline_cache 为准。
     """
     kb, fixed = {}, 0
-    for fn in (".kline_cache.json", ".sup_kline_cache.json",
-               ".stock_kline_cache.json"):          # 越靠后越权威
-        p = os.path.join(OUT, fn)
+    # v55 根治缓存漂移：把 klines/ 分片也纳入合并（与 verify_space 同源）。
+    # 后台定时刷新会重写 .stock_kline_cache（新浪近1800根）而丢弃 2017-2020 历史 bar，
+    # 分片「只增不减」保有全量历史；纳入分片后 build(缓存) 与 verify(分片) 永远一致。
+    import glob as _glob
+    sources = [os.path.join(OUT, fn) for fn in
+               (".kline_cache.json", ".sup_kline_cache.json", ".stock_kline_cache.json")]
+    sources += sorted(_glob.glob(os.path.join(OUT, "klines", "klines_*.json")))
+    for p in sources:                                 # 越靠后越权威
         if not os.path.exists(p):
             continue
         try:
@@ -505,9 +510,9 @@ def _load_kbars():
                         continue
                     rec[b[0]] = b
         except Exception as e:
-            print("日K缓存读取失败 %s：%s" % (fn, e))
+            print("日K缓存读取失败 %s：%s" % (p, e))
     if fixed:
-        print("日K缓存去重：丢弃 %d 条盘中快照（保留收盘完整日）" % fixed)
+        print("日K缓存去重：丢弃 %d 条盘中快照/漂移（保留收盘完整日）" % fixed)
     return kb
 
 KBARS = _load_kbars()
@@ -772,15 +777,26 @@ kMarks = S["kMarks"]
 # ---- 5.6.26 v48 个股级赚钱效应（昨日换手涨停→今日换手涨停，最近两周） ----
 # 独立模块 money_winners.compute，口径与 verify_space 同源复用。
 import money_winners as MW
+_NAME_ALL = {s["code"]: s["name"] for d in dates for s in pools[d]}
 MONEY_WINNERS = MW.compute(dates, pools, fd.yizi_map(pools), KBARS, theme_at,
-                           ladders=ladders, ALL_N=140,
-                           NAME={s["code"]: s["name"] for d in dates for s in pools[d]})
-print("个股赚钱效应（最近 %d 交易日）：%d 个换手涨停接力样本，%d 类形态，结论 %d 条；"
-      "全量事件池 %d 笔 / %s，剔除平淡晋级 %d 笔"
+                           ladders=ladders, ALL_N=140, NAME=_NAME_ALL)
+print("个股赚钱效应（最近 %d 交易日）：%d 个接力样本，%d 类形态；全量池 %d 笔，" 
+      "按 v55 口径剔除 %d 笔（前一日<3板 / 非高开 / 下破0%%线）"
       % (MONEY_WINNERS["n"], MONEY_WINNERS["total"],
-         len(MONEY_WINNERS["cats"]), len(MONEY_WINNERS["read"]),
-         len(MONEY_WINNERS["eventsAll"]), MONEY_WINNERS["allRange"],
-         len(MONEY_WINNERS["droppedEvents"])))
+         len(MONEY_WINNERS["cats"]),
+         len(MONEY_WINNERS["eventsAll"]), len(MONEY_WINNERS["droppedEvents"])))
+# ---- 5.6.27 v55 个股级亏钱效应（前一日≥3板高位股 → 亏钱日剧烈亏钱，四类形态） ----
+import money_losers as ML
+MONEY_LOSERS = ML.compute(dates, pools, KBARS, theme_at, NAME=_NAME_ALL, ALL_N=140)
+print("个股亏钱效应（v55，最近 %d 交易日）：%d 个剧烈亏钱样本，%d 类形态；全量池 %d 笔"
+      % (MONEY_LOSERS["n"], MONEY_LOSERS["total"],
+         len(MONEY_LOSERS["cats"]), len(MONEY_LOSERS["eventsAll"])))
+# ---- 5.6.28 v55 新旧龙头交接事件序列（空间 + 题材） ----
+import handover as HO
+HANDOVER = HO.compute(dates, days, ladder_full, NAME=_NAME_ALL, limit=40)
+print("新旧龙头交接（v55）：空间 %d 次 / 题材 %d 个题材共 %d 次"
+      % (len(HANDOVER["space"]), len(HANDOVER["theme"]),
+         sum(len(x) for x in HANDOVER["theme"].values())))
 excludedConsecYizi = S.get("excludedConsecYizi", [])   # v18：连续一字开盘、不属于战法标的
 v23stat = S.get("v23stat", {})          # 战法 T日复盘→T+1 参与 的触发统计
 
@@ -1129,7 +1145,9 @@ data = {
     "moneyDays": dates,             # 全期均有本地行情口径（区分"有行情"与"当日无达标题材"）
     "review": review,               # 三战法逐笔（前端按自定义时间段筛选）
     "reviewStat": reviewStat,       # v45：买入逻辑共性（市场阶段 / 题材 / 形态 / 涨停时机）
-    "moneyWinners": MONEY_WINNERS,  # v48：个股赚钱效应（昨日换手涨停→今日换手涨停，最近两周）
+    "moneyWinners": MONEY_WINNERS,  # v48/v55：个股赚钱效应（v55 收紧：前一日≥3板+高开+不下0线+回封涨停）
+    "moneyLosers": MONEY_LOSERS,    # v55：个股亏钱效应（前一日≥3板 → 亏钱日剧烈亏钱，四类形态）
+    "handover": HANDOVER,          # v55：新旧龙头交接事件序列（空间 + 题材，含同身位备选）
     "nextRecs": NEXT_RECS,         # v51：明日交易机会推荐（复盘前一日前置条件画像 + 决策日匹配）
     "chances": chances,            # v17：当日机会池（全量符合买点候选，含一字/炸板）
     "reviewMeta": reviewMeta,      # 各战法买入 / 卖出逻辑说明

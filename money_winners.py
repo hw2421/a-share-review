@@ -279,15 +279,42 @@ def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None,
             ev["prim"] = next((p for p in PRI_PRIM if p in tags), tags[0])
             raw.append(ev)
 
-    # v49 过滤：单纯首板连板晋级默认剔除（例外：近10日涨停≥5 / N字形态）
+    # v55 口径收紧（用户定稿）：
+    #   ① 板位门槛：昨日（买入日）板位 b0>=3 才计为赚钱效应股；
+    #   ② 赚钱效应日（今日 d）三条件须同时满足：
+    #      高开 = 开盘价 > 昨收（open_pct>0）；
+    #      全天无下 0% 线 = 全天最低价 >= 昨收（low_pct>=0）；
+    #      炸板最后回封 = 收盘价达到涨停（由 shape(s1) 非空保证，见上方 s1 校验）。
+    #   例外：N字反包次日涨停 / 断板反包再连板 —— 不受板位与高开/全天红门槛限制，
+    #        但仍须「昨日、今日均换手涨停且收盘涨停」（s0/s1 非空、非一字，已保证）。
+    def qualifies_v55(e):
+        # 赚钱效应日三条件对所有样本均为硬门槛：
+        if e["open"] <= 0:          # 高开：开盘 > 昨收
+            return False
+        if e["low"] < 0:            # 全天最低价不得低于昨收（0% 线）
+            return False
+        # 收盘涨停由 shape(s1) 保证（raw 阶段已过滤）
+        tags = e["tags"]
+        # 板位门槛：昨日≥3板；N字反包/断板反包仅豁免板位，不豁免上述三条件
+        if ("N字反包次日涨停" in tags) or ("断板反包再连板" in tags):
+            return True
+        return e["b0"] >= 3
+
     events_all = []
     dropped_all = []
     for e in raw:
-        if e["prim"] == "普通换手连板晋级" and not (
-                e["zt10"] >= 5 or "N字反包次日涨停" in e["tags"]):
-            dropped_all.append({"d": e["d"], "code": e["code"], "name": e["name"]})
-        else:
+        if qualifies_v55(e):
             events_all.append(e)
+        else:
+            why = []
+            if e["b0"] < 3:
+                why.append("昨日%d板<3" % e["b0"])
+            if e["open"] <= 0:
+                why.append("非高开%.2f%%" % e["open"])
+            if e["low"] < 0:
+                why.append("下破0%%线%.2f%%" % e["low"])
+            dropped_all.append({"d": e["d"], "code": e["code"],
+                                "name": e["name"], "why": "、".join(why) or "不满足赚钱效应日条件"})
 
     def th_strength(d, th):
         g = (ladders.get(d) or {}).get(th) or {}
@@ -323,8 +350,9 @@ def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None,
                          "avg": round(sum(x["chg"] for x in arr) / len(arr), 2)})
         read = []
         if evs:
-            read.append("最近 %d 个交易日共 %d 个「昨日换手涨停→今日换手涨停」的赚钱效应样本"
-                        "（已剔除 %d 例平淡的单纯首板连板晋级）；一字板当日买不进，昨日与今日均排除一字。"
+            read.append("最近 %d 个交易日共 %d 个赚钱效应样本（前一日买入日≥3板 + 赚钱效应日高开、"
+                        "全天不下0%%线、炸板回封收涨停；N字/断板反包例外）；已按新口径剔除 %d 例。"
+                        "一字板当日买不进，昨日与今日均排除一字。"
                         % (n_label, total, dropped_n))
             if cats:
                 top = max(cats, key=lambda x: x["n"])
@@ -356,9 +384,9 @@ def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None,
         "droppedEvents": dropped_all,
         "allRange": [all_start, end],
         "windows": WINDOWS,
-        "rule": ("赚钱效应=昨日换手涨停股今日再次换手涨停；单纯首板连板晋级（平淡晋级、"
-                 "无特殊形态）不算，除非该股近 10 交易日涨停≥5 次或带 N 字涨停形态；"
-                 "一字板当日买不进，昨日/今日均排除一字。题材当日抓不到则沿用昨日复盘归类；"
-                 "流通市值=成交额÷换手率估算，仅用于大小盘分组。可按结束日期+一周/两周/一个月"
-                 "动态切分；分类按占比降序，同类形态个股按题材排列。"),
+        "rule": ("赚钱效应=前一日(买入日👛)板位≥3 的换手涨停股，今日(赚钱效应日💵)高开、"
+                 "全天最低价不低于昨收(不下0%线)、炸板后回封收于涨停；N字反包/断板反包为例外"
+                 "(不受板位与高开/全天红门槛限制，但仍须两日换手涨停)。一字买不进，两日均排一字。"
+                 "题材当日抓不到则沿用昨日复盘；市值=成交额÷换手率估算仅作规模分组；"
+                 "可按结束日+一周/两周/一月动态切分，分类按占比降序、同类按题材。"),
     }

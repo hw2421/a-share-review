@@ -1082,11 +1082,16 @@ def main():
         if e.get("zt10") != zt10_48(code, d):
             err("v49 %s %s(%s) zt10=%s ≠ 复算 %d"
                 % (d, e["name"], code, e.get("zt10"), zt10_48(code, d))); n_v48 += 1
-        # v49②：单纯「普通换手连板晋级」必须满足例外（近10日涨停≥5 或 N字形态），否则不应保留
-        if e.get("prim") == "普通换手连板晋级":
-            if not (e.get("zt10", 0) >= 5 or "N字反包次日涨停" in (e.get("tags") or [])):
-                err("v49 %s %s(%s) 平淡首板连板晋级不应计入赚钱效应(zt10=%s)"
-                    % (d, e["name"], code, e.get("zt10"))); n_v48 += 1
+        # v55：赚钱效应日三条件（高开>0 / 全天最低>=昨收 / 收盘涨停已由 chg 校验保证）对所有样本硬门槛
+        if (e.get("open", 0) <= 0):
+            err("v55 %s %s(%s) 非高开 open=%s 不应计入赚钱效应" % (d, e["name"], code, e.get("open"))); n_v48 += 1
+        if (e.get("low", 0) < 0):
+            err("v55 %s %s(%s) 下破0%%线 low=%s 不应计入赚钱效应" % (d, e["name"], code, e.get("low"))); n_v48 += 1
+        # v55：板位门槛——昨日≥3板，N字反包/断板反包例外
+        if not (e.get("b0", 0) >= 3
+                or "N字反包次日涨停" in (e.get("tags") or [])
+                or "断板反包再连板" in (e.get("tags") or [])):
+            err("v55 %s %s(%s) 昨日仅%d板且非N字/反包例外，不应计入" % (d, e["name"], code, e.get("b0", 0))); n_v48 += 1
         # v49③：题材须为当日复盘归类，或当日缺失时沿用昨日（v47 同源）
         # 仅当当日/昨日 ladderFull 有该股归类时才强制（theme_at 另含涨停原因兜底，
         # 清单外的归类属合法兜底，不强求出现在 ladderFull）。
@@ -1143,9 +1148,12 @@ def main():
             err("v50 eventsAll %s %s 今日涨幅异常 %s" % (d, code, e.get("chg"))); n_v48 += 1
         if code in yz48.get(e.get("d0"), ()) or code in yz48.get(d, ()):
             err("v50 eventsAll %s %s 含一字" % (d, code)); n_v48 += 1
-        if e.get("prim") == "普通换手连板晋级" and not (
-                e.get("zt10", 0) >= 5 or "N字反包次日涨停" in (e.get("tags") or [])):
-            err("v50 eventsAll %s %s 平淡晋级未剔除" % (d, code)); n_v48 += 1
+        if e.get("open", 0) <= 0 or e.get("low", 0) < 0:
+            err("v55 eventsAll %s %s 非高开/下破0%%线" % (d, code)); n_v48 += 1
+        if not (e.get("b0", 0) >= 3
+                or "N字反包次日涨停" in (e.get("tags") or [])
+                or "断板反包再连板" in (e.get("tags") or [])):
+            err("v55 eventsAll %s %s 昨日板位<3且非例外" % (d, code)); n_v48 += 1
     for e in DROPALL:
         d, code = e.get("d", ""), str(e.get("code", ""))
         if rngall and not (rngall[0] <= d <= rngall[1]):
@@ -1160,6 +1168,55 @@ def main():
           "规模组 %d，剔除平淡晋级 %d 例，独立复核异常 %d"
           % (len(EV), len(EVALL), len(MW.get("cats") or []), len(MW.get("caps") or []),
              len(DROPALL), n_v48))
+
+    # ---- v55 个股亏钱效应：前一日≥3板 → 当日剧烈亏钱，四类形态独立复核 ----
+    ML = D.get("moneyLosers") or {}
+    LSEV = ML.get("eventsAll") or []
+    n_v55 = 0
+    LS_OK = {"天地板", "连续跌停", "断板次日跌停", "冲高回落跌停大阴线"}
+    for e in LSEV:
+        code, d0, d = str(e.get("code", "")), e.get("d0"), e.get("d")
+        if not code or not d0 or not d:
+            err("v55 亏钱效应事件缺 code/d0/d: %s" % e); n_v55 += 1; continue
+        if e.get("b0", 0) < 3:
+            err("v55 亏钱效应 %s %s 前一日仅%d板(<3)" % (d, code, e.get("b0", 0))); n_v55 += 1
+        if not (e.get("loss", 0) < 0):
+            err("v55 亏钱效应 %s %s 亏损率%s 非负" % (d, code, e.get("loss"))); n_v55 += 1
+        tg = e.get("tags") or []
+        if not tg or any(t not in LS_OK for t in tg):
+            err("v55 亏钱效应 %s %s 标签非法 %s" % (d, code, tg)); n_v55 += 1
+        if e.get("prim") not in tg:
+            err("v55 亏钱效应 %s %s 主标签%s 不在标签内" % (d, code, e.get("prim"))); n_v55 += 1
+        # 断板次日跌停：前一日涨停池、当日不在池
+        if "断板次日跌停" in tg and code in poolmap48.get(d, {}):
+            err("v55 亏钱效应 %s %s 断板次日跌停但当日仍在涨停池" % (d, code)); n_v55 += 1
+    if ML.get("total") != len(ML.get("events") or []):
+        err("v55 亏钱效应 total!=events %d" % len(ML.get("events") or [])); n_v55 += 1
+    print("v55 个股亏钱效应：默认快照 %d 笔 / 全量池 %d 笔，分类 %d，独立复核异常 %d"
+          % (len(ML.get("events") or []), len(LSEV), len(ML.get("cats") or []), n_v55))
+
+    # ---- v55 新旧龙头交接：事件序列结构 + 同身位一致性独立复核 ----
+    HD = D.get("handover") or {}
+    n_hd = 0
+    for kind in ("space",):
+        for e in (HD.get(kind) or []):
+            if not e.get("date") or not e.get("old") or not e.get("new"):
+                err("v55 交接(%s)事件结构缺字段: %s" % (kind, e)); n_hd += 1; continue
+            # old/new 内部须同身位（boards 相同）
+            for grp in ("old", "new"):
+                bs = {x.get("boards") for x in e[grp]}
+                if len(bs) != 1:
+                    err("v55 交接(%s) %s %s 批次非同身位 %s" % (kind, e["date"], grp, bs)); n_hd += 1
+    for th, evs in (HD.get("theme") or {}).items():
+        for e in evs:
+            if not e.get("date") or not e.get("old") or not e.get("new"):
+                err("v55 题材交接「%s」事件结构缺字段" % th); n_hd += 1; continue
+            for grp in ("old", "new"):
+                bs = {x.get("boards") for x in e[grp]}
+                if len(bs) != 1:
+                    err("v55 题材交接「%s」%s %s 批次非同身位 %s" % (th, e["date"], grp, bs)); n_hd += 1
+    print("v55 新旧龙头交接：空间 %d 次 / 题材 %d 个题材，独立复核异常 %d"
+          % (len(HD.get("space") or []), len(HD.get("theme") or {}), n_hd))
 
     # ---- v54：明日交易机会推荐（盈利个股前一日三维特征画像 + 历史实例）独立复核 ----
     NR = D.get("nextRecs") or {}
