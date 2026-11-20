@@ -158,9 +158,11 @@ def _add(idx, key, rec):
     idx[key].append(rec)
 
 
-def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, MONEY=None):
+def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, MONEY=None,
+            CYCLE=None):
     NAME = NAME or {}
     MONEY = MONEY or {}
+    CYCLE = CYCLE or {}   # v60：{date: {score, phase, s1..s4, neg, pct, ...}} 循环仪表盘
     LAD_STAGE = build_ladder_stage(dates, ladder_full)   # v58：题材复盘阶段补算表
     didx = {d: i for i, d in enumerate(dates)}
     SD = {s['date']: s for s in (days or [])}
@@ -338,7 +340,24 @@ def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, M
                 })
         recs.sort(key=lambda z: (-(z['win'] if z['win'] is not None else -1),
                                  -(z['edge'] if z['edge'] is not None else -1), -z['boards']))
-        byDate[d] = {'market': market, 'recs': recs}
+        # v60 循环联动：健康度<4 → 仅防守型机会（展示层缩减至3只）；<6 → 转弱提示。
+        # 推荐数据本身不删（明日交易机会复盘回测口径不变），降级由前端按 cycle.degrade 呈现。
+        _cyc = CYCLE.get(d) or {}
+        _sc = _cyc.get('score')
+        _deg = 'normal'
+        if _sc is not None:
+            if _sc < 4:
+                _deg = 'ice'
+            elif _sc < 6:
+                _deg = 'weak'
+        byDate[d] = {'market': market, 'recs': recs,
+                     'cycle': {'score': _sc, 'phase': _cyc.get('phase'),
+                               'pct': _cyc.get('pct'),
+                               's1': _cyc.get('s1'), 's2': _cyc.get('s2'),
+                               's3': _cyc.get('s3'), 's4': _cyc.get('s4'),
+                               'neg': bool(_cyc.get('neg')),
+                               'negNames': _cyc.get('negNames') or [],
+                               'degrade': _deg}}
 
     return {
         'featureProfile': feature_profile, 'byDate': byDate,
@@ -350,5 +369,9 @@ def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, M
                  '给出胜率/盈利笔数/均盈亏与推荐理由，并附历史上同档且真实盈利的买入实例。'
                  '题材阶段口径：优先取题材炒作页/赚钱效应阶段；该题材当日无阶段记录时，'
                  'v58 起用题材复盘自身涨停序列按同一规则补算（启动/加强/反复/转弱），不再出现「未知」。'
-                 '「超额」=匹配画像胜率−全样本胜率；一字买不进已排除。'),
+                 '「超额」=匹配画像胜率−全样本胜率；一字买不进已排除。'
+                 'v60 循环联动：决策日附赚钱效应循环健康度（0-10，四环节等权：买入示范/溢价扩散/'
+                 '梯队接力/高度打开）与生命周期五段（发酵/扩散/高潮/退潮/冰点）；健康度<4 时'
+                 '推荐降级为「仅防守型机会」（展示缩减至3只），4-6 显示循环转弱提示；'
+                 '推荐数据与回测口径不变，降级仅影响展示层。'),
     }

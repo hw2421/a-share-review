@@ -824,6 +824,7 @@
       <button id="dc-today" class="ch-go">今日</button>
       <span id="dc-live" class="sub" style="margin-left:4px"></span>
     </div>
+    <div id="dc-cycle"></div>
     <div id="dc-body"></div>
   </div>
 </section>
@@ -4339,21 +4340,127 @@ function dcBindTheme(root){                 // v54：题材名就地弹「当日
 function dcSec(title, inner){
   return '<div class="card" style="margin-top:12px"><h3>'+title+'</h3>'+inner+'</div>';
 }
+/* ---------- v60 赚钱效应循环仪表盘（决策页顶部嵌入） ---------- */
+const CY_PHASE_COLOR = {'发酵':'#3d8bff','扩散':'#f0b90b','高潮':'#f5455c','退潮':'#ff9d5c','冰点':'#2ebd85'};
+const CY_SCORE_COL = v=> v==null?C.dim2:(v>=6?C.up:(v>=4?C.gold:C.down));
+let CY_CHART = null;
+function paintCyclePanel(dp){
+  const host=document.getElementById('dc-cycle');
+  const CY=window.REVIEW.cycle||{};
+  const days=CY.days||[];
+  if(!days.length){ host.innerHTML=''; return; }
+  const row=days.find(x=>x.date===dp);
+  const scoreCol=CY_SCORE_COL;
+  const seg=(label,v,sub)=> '<div style="flex:1;min-width:130px;background:#152238;border:1px solid #2b3a56;border-radius:8px;padding:6px 10px">'+
+    '<div style="font-size:10px;color:'+C.dim2+'">'+label+'</div>'+
+    '<div style="font-size:17px;font-weight:800;color:'+scoreCol(v)+'">'+(v==null?'—':v.toFixed(1))+
+    '<span style="font-size:9.5px;color:'+C.dim2+';font-weight:400"> /2.5</span></div>'+
+    '<div style="font-size:9.5px;color:'+C.dim2+'">'+(sub||'')+'</div></div>';
+  let banner='';
+  if(row && row.neg){
+    banner='<div style="margin-top:8px;background:rgba(245,69,92,.14);border:1px solid rgba(245,69,92,.45);border-radius:8px;'+
+      'padding:6px 12px;color:'+C.up+';font-weight:700;font-size:12px">⚠ 负反馈起点（'+fmtDate(dp)+'）：昨日≥3板高位股剧烈亏钱'+
+      (row.negNames&&row.negNames.length?('：'+row.negNames.join('、')):'')+' —— 高位接力者被公开处刑，亏钱效应负反馈启动</div>';
+  }
+  const ph=row&&row.phase ? ('<span style="color:'+CY_PHASE_COLOR[row.phase]+';font-weight:800">'+row.phase+'期</span>') : '—';
+  const top='<div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;margin-top:10px">'+
+    '<div style="flex:1;min-width:150px;background:#1a2745;border:1px solid #3d8bff55;border-radius:8px;padding:6px 10px">'+
+      '<div style="font-size:10px;color:'+C.dim2+'">循环健康度（四环节等权）</div>'+
+      '<div style="font-size:22px;font-weight:800;color:'+scoreCol(row&&row.score)+'">'+(row&&row.score!=null?row.score.toFixed(1):'—')+
+      '<span style="font-size:10px;color:'+C.dim2+';font-weight:400"> /10 · 历史分位 '+(row&&row.pct!=null?row.pct+'%':'—')+'</span></div>'+
+      '<div style="font-size:11px">生命周期 '+ph+
+      (row&&row.slope!=null?(' <span style="color:'+C.dim2+';font-size:9.5px">3日斜率 '+(row.slope>0?'+':'')+row.slope+'</span>'):'')+'</div>'+
+    '</div>'+ seg('① 买入示范',row&&row.s1,'昨日≥2板今日不亏钱率 '+(row&&row.r1!=null?(row.r1*100).toFixed(0)+'%':'—')+
+      (row&&row.avg1!=null?' · 均涨'+row.avg1.toFixed(1)+'%':''))+
+    seg('② 溢价扩散',row&&row.s2,'晋级率 '+(row&&row.r2a!=null?(row.r2a*100).toFixed(0)+'%':'—')+
+      ' · 红盘率 '+(row&&row.r2b!=null?(row.r2b*100).toFixed(0)+'%':'—'))+
+    seg('③ 梯队接力',row&&row.s3,'1→2板晋级 '+(row?row.cnt12:'—')+' 只 · ≥2板 '+(row?row.cnt2p:'—')+' 只')+
+    seg('④ 高度打开',row&&row.s4,'高度变化 '+(row?(row.dh>0?'+':'')+row.dh:'—')+' 板 · 涨停变化 '+(row?(row.dz>0?'+':'')+row.dz:'—')+' 家')+
+    '</div>';
+  // 历史曲线：按生命周期分段着色（5 条 series，段内连线，段间断开）
+  const chartId='dc-cycle-chart';
+  const chartHtml='<div style="margin-top:8px"><div class="sub" style="margin:2px 0 2px">全期循环健康度曲线（颜色=生命周期）· 竖线=当前决策日 · 点图例可单独看某一段</div>'+
+    '<div id="'+chartId+'" style="height:210px"></div></div>';
+  // 生命周期 × 山顶洞人 交叉统计（如实呈现）
+  const cross=CY.cross||[];
+  const crossHtml = cross.length ? '<details style="margin-top:8px"><summary class="sub" style="cursor:pointer">生命周期 × 山顶洞人战法 交叉统计（如实呈现，不修饰）</summary>'+
+    '<table class="wn-ov" style="margin-top:6px"><thead><tr><th>生命周期</th><th>逐笔</th><th>胜率</th><th>笔均盈亏</th></tr></thead><tbody>'+
+    cross.map(x=>'<tr><td style="color:'+CY_PHASE_COLOR[x.phase]+';font-weight:700">'+x.phase+'期</td>'+
+      '<td>'+x.n+'</td><td style="color:'+(x.win>=50?C.up:C.down)+'">'+x.win+'%</td>'+
+      '<td style="color:'+(x.avg>=0?C.up:C.down)+'">'+(x.avg>0?'+':'')+x.avg+'%</td></tr>').join('')+
+    '</tbody></table><div class="sub" style="margin-top:4px;color:'+C.dim2+'">口径：山顶洞人逐笔买入日所在日的生命周期；工具如实呈现数据——若某段胜率与直觉不符，以数据为准。</div></details>'
+    : '';
+  host.innerHTML='<details open><summary style="cursor:pointer;font-weight:800;color:#ffd24a">☯ 赚钱效应循环仪表盘 <span class="sub">万变不离其宗：来了能赚 · 赚了还想来 —— 四环节量化 + 五段生命周期</span></summary>'+
+    top + banner + chartHtml + crossHtml +
+    '<div class="sub" style="margin-top:4px;color:'+C.dim2+'">'+(CY.rule||'')+'</div></details>';
+  // ECharts 曲线
+  if(CY_CHART){ CY_CHART.dispose(); CY_CHART=null; }
+  const el=document.getElementById(chartId);
+  if(!el || typeof echarts==='undefined') return;
+  CY_CHART=echarts.init(el);
+  const PH=Object.keys(CY_PHASE_COLOR);
+  const series=PH.map(ph=>({
+    name:ph+'期', type:'line', connectNulls:false, showSymbol:false, lineWidth:1.4,
+    lineStyle:{width:1.4,color:CY_PHASE_COLOR[ph]},
+    itemStyle:{color:CY_PHASE_COLOR[ph]},
+    data:days.map(r=>r.phase===ph?r.score:null),
+  }));
+  CY_CHART.setOption({
+    grid:{left:34,right:14,top:22,bottom:44},
+    legend:{top:0,textStyle:{color:'#9fb0cc',fontSize:10},itemWidth:14},
+    tooltip:{trigger:'axis',formatter:function(ps){
+      let s='';ps.forEach(p=>{ if(p.value!=null){ const r=days[p.dataIndex];
+        s=fmtDate(r.date)+'<br>健康度 <b style="color:'+scoreCol(r.score)+'">'+r.score+'</b> · '+
+        '<span style="color:'+CY_PHASE_COLOR[r.phase]+'">'+(r.phase||'')+'期</span> · 分位 '+r.pct+'%';}});
+      return s;}},
+    xAxis:{type:'category',data:days.map(r=>r.date),axisLabel:{color:'#78849a',fontSize:9,
+      formatter:v=>v.slice(0,4)+'/'+v.slice(4,6)},axisLine:{lineStyle:{color:'#2b3a56'}}},
+    yAxis:{min:0,max:10,axisLabel:{color:'#78849a',fontSize:9},splitLine:{lineStyle:{color:'#202a40'}}},
+    series:series.concat([{
+      name:'决策日',type:'line',data:[],markLine:{silent:true,symbol:'none',
+        lineStyle:{color:'#ffd24a',type:'dashed',width:1.4},
+        data:[{xAxis:days.findIndex(r=>r.date===dp)}]},
+    }]),
+  });
+  window.addEventListener('resize',()=>{ if(CY_CHART) CY_CHART.resize(); });
+}
 function paintDecision(){
   const R=window.REVIEW, body=document.getElementById('dc-body'), d=DC_DATE;
   const D=(R.decision||{})[d]||{};
   const isToday = d===R.today;
+  paintCyclePanel(d);
   const chgTxt=(v, live)=> v==null ? (live? '<span class="c-gold">盘中…</span>' : '-')
                                    : '<span style="color:'+(v>=0?C.up:C.down)+'">'+(v>0?'+':'')+v+'%</span>';
   let html='';
   /* ---------- ⓪ v54：明日交易机会推荐（盈利个股前一日三维特征画像 + 历史实例） ---------- */
   {
     const NR = R.nextRecs||{}, B = (NR.byDate||{})[d]||{};
-    const mk = B.market||{}, recs = B.recs||[], base = NR.base||{}, FP = NR.featureProfile||{};
+    const mk = B.market||{}, base = NR.base||{}, FP = NR.featureProfile||{};
+    /* v60 循环联动：健康度<4 → 仅防守型机会（展示缩减至3只）；<6 → 转弱提示。推荐数据不删。 */
+    const CYC = B.cycle||{};
+    let recs = B.recs||[], degHtml='';
+    if(CYC.degrade==='ice'){
+      recs = recs.slice(0,3);
+      degHtml = '<div style="background:rgba(245,69,92,.14);border:1px solid rgba(245,69,92,.45);border-radius:8px;'+
+        'padding:6px 12px;margin:6px 0;color:'+C.up+';font-weight:700;font-size:12px">❄ 循环接近冰点'+
+        '（健康度 '+(CYC.score!=null?CYC.score.toFixed(1):'—')+'/10 · '+(CYC.phase||'冰点')+'期）—— 买入示范、扩散、接力、高度全线收缩，'+
+        '仅保留防守型机会（原 '+(B.recs||[]).length+' 只 → 前 3 只），建议空仓观望或极轻仓试错</div>';
+    }else if(CYC.degrade==='weak'){
+      degHtml = '<div style="background:rgba(240,185,11,.12);border:1px solid rgba(240,185,11,.4);border-radius:8px;'+
+        'padding:5px 12px;margin:6px 0;color:'+C.gold+';font-size:12px">⚠ 循环转弱'+
+        '（健康度 '+(CYC.score!=null?CYC.score.toFixed(1):'—')+'/10 · '+(CYC.phase||'—')+'期）—— 循环四环节部分收缩，参与宜降低仓位、快进快出</div>';
+    }
+    if(CYC.neg){
+      degHtml += '<div style="background:rgba(245,69,92,.14);border:1px solid rgba(245,69,92,.45);border-radius:8px;'+
+        'padding:5px 12px;margin:6px 0;color:'+C.up+';font-size:12px">⚠ 负反馈起点：昨日≥3板高位股剧烈亏钱'+
+        ((CYC.negNames||[]).length?('（'+CYC.negNames.join('、')+'）'):'')+' —— 高位接力被公开处刑，明日推荐仅供观察、谨慎参与</div>';
+    }
     let inner = '<div class="nr-mkt">'+
       '<span>今日市场阶段 <b>'+(mk.stage||'—')+'</b></span>'+
       '<span>空间压制 <b>'+(mk.suppress? mk.suppress+'板' : '无压制')+'</b>（'+(mk.supp||'—')+'）</span>'+
       '<span>涨停家数 <b>'+(mk.ztCount!=null?mk.ztCount:'—')+'</b></span>'+
+      '<span>循环健康度 <b style="color:'+CY_SCORE_COL(CYC.score)+'">'+(CYC.score!=null?CYC.score.toFixed(1):'—')+'/10</b> '+
+      (CYC.phase?'<span style="color:'+CY_PHASE_COLOR[CYC.phase]+'">· '+CYC.phase+'期</span>':'')+'</span>'+
       '<span>空间高度 <b>'+(mk.spaceTop!=null?mk.spaceTop:'—')+'板</b></span>'+
       '<span>盈利画像 <b style="color:'+C.gold+'">'+(FP.nProfit||0)+'</b> 笔盈利 / '+(base.n||0)+' 笔买入</span>'+
       '<span>全样本胜率 <b>'+(base.win!=null?base.win+'%':'—')+'</b></span>'+
@@ -4369,6 +4476,7 @@ function paintDecision(){
     const fpHtml = frow('市场情绪',FP.sent)+frow('题材阶段',FP.theme)+frow('个股情况',FP.stock);
     if(fpHtml) inner += '<details class="nr-fp"><summary>📈 赚钱特征画像（只取盈利个股 · 前一日三维特征，×为相对全体的放大倍数）</summary>'+
       '<div class="nr-fp-body">'+fpHtml+'</div></details>';
+    inner += degHtml;
     if(recs.length){
       inner += '<div class="scroll" style="max-height:520px;overflow:auto"><table class="nr-tbl"><thead><tr>'+
         '<th class="l">推荐个股</th><th>板数</th><th class="l">题材</th><th>形态/封板</th>'+

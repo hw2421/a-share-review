@@ -1546,6 +1546,82 @@ def main():
              sum(1 for x in recs if x.get("status") == "未涨停"), n_v58))
     n_v48 += n_v58
 
+    # ---- v60：循环仪表盘（cycle）独立复核 ----
+    n_v60 = 0
+    CYV = D.get("cycle") or {}
+    cy_days = CYV.get("days") or []
+    PHASES_V = ("发酵", "扩散", "高潮", "退潮", "冰点")
+    # ① 覆盖：除首个交易日外全期应有记录
+    if len(cy_days) < len(days) - 2:
+        err("v60 cycle 天数 %d < 交易日 %d - 2" % (len(cy_days), len(days))); n_v60 += 1
+    pmapv = {}
+    for r in cy_days:
+        d = r.get("date")
+        if d not in date_set:
+            err("v60 cycle 日期 %s 不在交易日历" % d); n_v60 += 1
+        sc = r.get("score")
+        if sc is not None and not (0 <= sc <= 10):
+            err("v60 %s 健康度超界 %s" % (d, sc)); n_v60 += 1
+        pc = r.get("pct")
+        if pc is not None and not (0 <= pc <= 100):
+            err("v60 %s 分位超界 %s" % (d, pc)); n_v60 += 1
+        ph = r.get("phase")
+        if r.get("score") is not None and ph not in PHASES_V:
+            err("v60 %s 生命周期非法 %s" % (d, ph)); n_v60 += 1
+        for k in ("s1", "s2", "s3", "s4"):
+            if r.get("score") is not None and r.get(k) is None:
+                err("v60 %s 缺环节分 %s" % (d, k)); n_v60 += 1
+        pmapv[d] = r
+    # ② 分位数映射抽样复算：健康度分位 = 分数在全体分数中的相对位置
+    _scs_all = sorted(r["score"] for r in cy_days if r.get("score") is not None)
+    for r in _rnd.sample([x for x in cy_days if x.get("score") is not None],
+                         min(300, len(cy_days))):
+        _p = bisect.bisect_left(_scs_all, r["score"]) / len(_scs_all) * 100
+        if abs(_p - (r.get("pct") or 0)) > 1.5:
+            err("v60 %s 健康度分位复算不符 %s vs %s" % (r["date"], round(_p, 1), r.get("pct")))
+            n_v60 += 1
+    # ③ 四环节原始读数抽样复算（r1 不亏钱率 / r2a 晋级率，按涨停池独立重算）
+    def _closev(code, d):
+        b = _kb58_bucket(code).get(str(code), {}).get(d)
+        return b[2] if (b and len(b) >= 5 and b[2]) else None
+    _cyc_pool = [x for x in cy_days if x.get("r1") is not None]
+    for r in _rnd.sample(_cyc_pool, min(60, len(_cyc_pool))):
+        _ii = DIDXV.get(r["date"])
+        if not _ii:
+            continue
+        _pd = dates[_ii - 1]
+        _hi2 = [s for s in (pools.get(_pd) or [])
+                if (s.get("boards") or 1) >= 2 and _closev(s["code"], _pd) and _closev(s["code"], r["date"])]
+        if not _hi2:
+            continue
+        _r1 = sum(1 for s in _hi2 if _closev(s["code"], r["date"]) >= _closev(s["code"], _pd)) / len(_hi2)
+        if abs(_r1 - r["r1"]) > 0.02:
+            err("v60 %s 不亏钱率复算不符 %.2f vs %.2f" % (r["date"], _r1, r["r1"])); n_v60 += 1
+    # ④ 推荐循环联动自洽：degrade 与分数阈值一致
+    for _d, blk in (NR.get("byDate") or {}).items():
+        _cy = (blk or {}).get("cycle") or {}
+        _sc = _cy.get("score")
+        _deg = _cy.get("degrade")
+        _exp = "normal"
+        if _sc is not None:
+            _exp = "ice" if _sc < 4 else ("weak" if _sc < 6 else "normal")
+        if _deg != _exp:
+            err("v60 %s 推荐降级口径不符 %s（分数 %s，应为 %s）" % (_d, _deg, _sc, _exp)); n_v60 += 1
+        if _cy.get("phase") != (pmapv.get(_d) or {}).get("phase"):
+            err("v60 %s 推荐内嵌生命周期与仪表盘不符" % _d); n_v60 += 1
+    # ⑤ 交叉统计：各段笔数合计 = 有生命周期记录的逐笔数
+    _cross_n = sum(x.get("n") or 0 for x in (CYV.get("cross") or []))
+    _exp_cross_n = sum(1 for t in (D.get("review") or {}).get("summit", [])
+                       if (pmapv.get(t.get("d")) or {}).get("phase"))
+    if _cross_n != _exp_cross_n:
+        err("v60 交叉统计笔数 %d ≠ 逐笔可归段数 %d" % (_cross_n, _exp_cross_n)); n_v60 += 1
+    print("v60 循环仪表盘：%d 天（生命周期 %s），健康度分位/四环节抽样 %d 复核一致，"
+          "交叉统计 %d 笔，异常 %d"
+          % (len(cy_days),
+             {p: sum(1 for r in cy_days if r.get("phase") == p) for p in PHASES_V},
+             min(300, len(cy_days)) + min(60, len(_cyc_pool)), _cross_n, n_v60))
+    n_v48 += n_v60
+
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
     n_main = sum(1 for d in days if d.get("stage") == "主升")

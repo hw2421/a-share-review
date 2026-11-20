@@ -20,12 +20,92 @@ DATALEN = 1800               # 新浪日K拉取根数（约 2019-06 至今，覆
 
 log = lambda m: print("[sup_klines] %s" % m, flush=True)
 
+STOCK_CACHE_F = os.path.join(OUT, ".stock_kline_cache.json")
+
 
 def merge_bars(old, new):
     m = {b[0]: b for b in (old or [])}
     for b in (new or []):
         m[b[0]] = b
     return [m[k] for k in sorted(m)]
+
+
+def _atomic_dump(obj, path):
+    """原子写 JSON：先写临时文件再 os.replace，进程被 SIGKILL 也不会截断正本。"""
+    import tempfile
+    d = os.path.dirname(path) or "."
+    fd_, tmp = tempfile.mkstemp(prefix=".tmp_sup_", dir=d)
+    try:
+        with os.fdopen(fd_, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+        raise
+
+
+def _merge_stock_cache(cache, codes):
+    """v60b：从全量日K缓存（含 THS 历史填充）流式抽取压制股缺失 bar，只补缺不覆盖。
+
+    背景：sup 缓存条目会被新浪重抓/重写，而新浪 1800 根回溯上限 ≈2019-06，
+    更早的断板日（如 002902 20190606）靠 fill_klines 的 THS 历史填充——那份数据
+    在 .stock_kline_cache.json 里。若 sup 条目缩水，本函数每次构建自愈。
+    """
+    if not os.path.exists(STOCK_CACHE_F) or not codes:
+        return 0
+    s = open(STOCK_CACHE_F, encoding="utf-8", errors="ignore").read()
+    dec = json.JSONDecoder()
+    i, n = 0, len(s)
+    while i < n and s[i] != "{":
+        i += 1
+    i += 1
+    fixed = 0
+    while i < n:
+        while i < n and s[i] != '"':
+            if s[i] == "}":
+                i = n
+                break
+            i += 1
+        if i >= n:
+            break
+        try:
+            key, i = dec.raw_decode(s, i)
+        except Exception:
+            break
+        while i < n and s[i] in " \t\n:":
+            i += 1
+        if str(key) not in codes:
+            # 跳过该 value（压制股之外的不关心）
+            try:
+                _, i = dec.raw_decode(s, i)
+            except Exception:
+                nxt = s.find(',"', i)
+                if nxt < 0:
+                    break
+                i = nxt + 1
+            continue
+        try:
+            val, i = dec.raw_decode(s, i)
+            if isinstance(val, list):
+                old = {b[0]: b for b in (cache.get(str(key)) or [])
+                       if isinstance(b, list) and b}
+                add = 0
+                for b in val:
+                    if isinstance(b, list) and len(b) >= 5 and b[0] and b[0] not in old:
+                        old[b[0]] = b
+                        add += 1
+                if add:
+                    cache[str(key)] = [old[k] for k in sorted(old)]
+                    fixed += 1
+        except Exception:
+            nxt = s.find(',"', i)
+            if nxt < 0:
+                break
+            i = nxt + 1
+    return fixed
 
 
 def _bars_cover(bars, break_dates):
@@ -56,6 +136,11 @@ def refresh(dates, days):
             if bd and s.get("code"):
                 pairs.setdefault(s["code"], set()).add(bd)
     log("压制股 %d 只 / %d 个断板点" % (len(pairs), sum(len(v) for v in pairs.values())))
+    # v60b：先从全量缓存自愈缺失 bar（THS 历史填充），再做新浪补抓
+    _fixed = _merge_stock_cache(cache, set(pairs))
+    if _fixed:
+        _atomic_dump(cache, CACHE_F)
+        log("从全量缓存自愈 %d 只缺失 bar" % _fixed)
 
     idx = {d: i for i, d in enumerate(dates)}
     today = dates[-1]
@@ -80,8 +165,7 @@ def refresh(dates, days):
         if i % 60 == 0:
             log("  进度 %d/%d" % (i, len(pairs)))
     if changed:
-        with open(CACHE_F, "w", encoding="utf-8") as f:
-            json.dump(cache, f, ensure_ascii=False)
+        _atomic_dump(cache, CACHE_F)
         log("新抓日K %d 只（缓存 %d 只）" % (changed, len(cache)))
 
     sup = {}

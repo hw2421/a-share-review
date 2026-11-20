@@ -875,11 +875,27 @@ for _day in days:
             _n_sf += 1
 print("空间龙头涨停形态回填：%d 个股票日" % _n_sf)
 
+# ---- v60：赚钱效应循环仪表盘（四环节健康度 + 五段生命周期 + 负反馈起点） ----
+# 放在推荐之前：推荐需要按决策日读取循环分数（低分降级提示）。
+import cycle as CY
+CYCLE_OUT = CY.compute(dates, pools, days, KBARS, summit=review["summit"])
+CYCLE_MAP = {r["date"]: r for r in CYCLE_OUT["days"]}
+_phase_cnt = {}
+for _r in CYCLE_OUT["days"]:
+    if _r.get("phase"):
+        _phase_cnt[_r["phase"]] = _phase_cnt.get(_r["phase"], 0) + 1
+print("v60 循环仪表盘：%d 天，健康度均值 %.1f；生命周期 %s；负反馈起点 %d 天"
+      % (len(CYCLE_OUT["days"]),
+         (sum(r["score"] for r in CYCLE_OUT["days"] if r["score"] is not None) /
+          max(1, sum(1 for r in CYCLE_OUT["days"] if r["score"] is not None))),
+         _phase_cnt,
+         sum(1 for r in CYCLE_OUT["days"] if r.get("neg"))))
+
 # ---- v51：明日交易机会推荐（复盘案例前一日前置条件统计 → 决策日匹配） ----
 # 放在形态回填之后，确保 ladder_full 元素已带「s」形态字段，可正确排除一字（买不进）。
 import next_recs as NR
 NEXT_RECS = NR.compute(dates, days, ladder_full, ladders, review["summit"],
-                       fd.yizi_map(pools), MONEY=money,
+                       fd.yizi_map(pools), MONEY=money, CYCLE=CYCLE_MAP,
                        NAME={s["code"]: s["name"] for dd in dates for s in pools.get(dd, [])})
 _today_recs = NEXT_RECS["byDate"].get(dates[-1], {}).get("recs", [])
 print("v54 明日机会推荐：盈利画像 %d 笔盈利/%d 笔全部，决策日 %d 个，今日推荐 %d 只，今日实例 %d 条"
@@ -1262,6 +1278,7 @@ data = {
     "moneyLosers": MONEY_LOSERS,    # v55：个股亏钱效应（前一日≥3板 → 亏钱日剧烈亏钱，四类形态）
     "handover": HANDOVER,          # v55：新旧龙头交接事件序列（空间 + 题材，含同身位备选）
     "nextRecs": NEXT_RECS,         # v51：明日交易机会推荐（复盘前一日前置条件画像 + 决策日匹配）
+    "cycle": CYCLE_OUT,            # v60：赚钱效应循环仪表盘（健康度/生命周期/负反馈/交叉统计）
     "nextRecsBacktest": NR_BT,     # v58：明日交易机会复盘（推荐个股次日涨停买入模拟逐笔）
     "chances": chances,            # v17：当日机会池（全量符合买点候选，含一字/炸板）
     "reviewMeta": reviewMeta,      # 各战法买入 / 卖出逻辑说明

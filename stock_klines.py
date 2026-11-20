@@ -30,6 +30,23 @@ DATALEN = 1800
 log = lambda m: print("[stock_k] %s" % m, flush=True)
 
 
+def _atomic_dump(obj, path):
+    """原子写 JSON：先写临时文件再 os.replace，进程被 SIGKILL 也不会截断正本。"""
+    import tempfile
+    d = os.path.dirname(path) or "."
+    fd_, tmp = tempfile.mkstemp(prefix=".tmp_cache_", dir=d)
+    try:
+        with os.fdopen(fd_, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+        raise
+
+
 def bucket_of(code):
     return sum(int(c) for c in code if c.isdigit()) % NBUCKET
 
@@ -124,8 +141,15 @@ def refresh(dates, days, theme_detail, pools=None):
         last_need = max((idx[d] for d in ds if d in idx), default=-1)
         stale = bool(tail) and tail < today and last_need >= len(dates) - 20
         # 缺历史需求日（2021-2024）时必须整段重抓 1800 根；只补 15 根尾部不够
-        need_full = (not bars or len(bars[0]) < 6 or
-                     not all(d in bds for d in ds if d in idx))
+        # v60：去掉 len(bars[0])<6 —— THS 补充的历史 bar（2017-2019）无成交量字段，
+        # 而新浪 1800 根只覆盖 2019-06 后，重抓永远补不上，反而每轮重抓 3000+ 只。
+        # 成交量仅用于量能描述/近100日最大量（近期数据新浪 bar 均有），历史无量可接受。
+        # v60b：2019-06 前的缺口日新浪永远补不上（早期覆盖来自 .kline_cache.json /
+        # THS 填充，_load_kbars 合并时自会纳入），重抓纯浪费——只按可覆盖区间的
+        # 缺口决定是否重抓。
+        missing_recent = [d for d in ds if d in idx and d not in bds
+                          and d >= "20190601"]
+        need_full = (not bars or bool(missing_recent))
         if need_full or stale:
             fresh = fd.sina_kline(fd.fix_code(code), DATALEN if need_full else 15)
             if fresh:
@@ -135,13 +159,11 @@ def refresh(dates, days, theme_detail, pools=None):
             time.sleep(0.06)
         if i % 200 == 0:
             log("  抓取进度 %d/%d（新抓 %d）" % (i, len(need), changed))
-            if changed:                 # 分批落盘，中断也不丢已抓数据
-                with open(CACHE_F, "w", encoding="utf-8") as f:
-                    json.dump(cache, f, ensure_ascii=False)
+            if changed:                 # 分批落盘，中断也不丢已抓数据（原子写防截断）
+                _atomic_dump(cache, CACHE_F)
             time.sleep(0.6)
     if changed:
-        with open(CACHE_F, "w", encoding="utf-8") as f:
-            json.dump(cache, f, ensure_ascii=False)
+        _atomic_dump(cache, CACHE_F)
         log("新抓 %d 只（缓存 %d 只）" % (changed, len(cache)))
 
     # ---- 聚簇切窗 + 分桶 ----
