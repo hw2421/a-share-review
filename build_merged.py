@@ -779,7 +779,7 @@ kMarks = S["kMarks"]
 import money_winners as MW
 _NAME_ALL = {s["code"]: s["name"] for d in dates for s in pools[d]}
 MONEY_WINNERS = MW.compute(dates, pools, fd.yizi_map(pools), KBARS, theme_at,
-                           ladders=ladders, ALL_N=140, NAME=_NAME_ALL)
+                           ladders=ladders, ALL_N=140, NAME=_NAME_ALL, stages=days)
 print("个股赚钱效应（最近 %d 交易日）：%d 个接力样本，%d 类形态；全量池 %d 笔，" 
       "按 v55 口径剔除 %d 笔（前一日<3板 / 非高开 / 下破0%%线）"
       % (MONEY_WINNERS["n"], MONEY_WINNERS["total"],

@@ -33,9 +33,13 @@ from collections import Counter, defaultdict
 
 PRI = ["极致高开全天红", "地天板次日涨停", "连续一字后首换手涨停",
        "断板反包再连板", "N字反包次日涨停", "趋势股创新高周涨50%",
-       "题材持续换手连板", "普通换手连板晋级", "强势股"]
+       "题材持续换手连板", "普通换手连板晋级", "强势股", "龙头首阴"]
 # 主模式候选（强势股为叠加标签，不参与 prim 主模式抢占）
 PRI_PRIM = [p for p in PRI if p != "强势股"]
+# v56：龙头首阴为独立事件模型（断板日尾盘买入→次日反包/涨幅≥5%），
+# 与「两日连续涨停」模型字段口径不同（不要求今日涨幅=涨停幅度、不要求高开/不下0线），
+# 校验时须走独立分支。
+KIND_FIRSTYIN = "龙头首阴"
 WINDOWS = {"week": 5, "twoweek": 10, "month": 20}
 
 
@@ -50,14 +54,16 @@ def lim_of(code, name=""):
 
 
 def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None,
-            N=10, ALL_N=140):
+            N=10, ALL_N=140, stages=None):
     """返回赚钱效应模块数据 dict。
 
     N   = 默认两周快照窗口（10 交易日）；ALL_N = 全量事件池覆盖的交易日数。
     eventsAll 覆盖 dates[-ALL_N:]，前端按结束日期+窗口动态切分。
+    stages = build_merged 的 days（含每日 spaceFull），供 v56「龙头首阴」判定。
     """
     NAME = NAME or {}
     ladders = ladders or {}
+    stages = stages or []
     CD = {c: sorted(r) for c, r in KBARS.items()}
 
     def dbar(c, d):
@@ -316,6 +322,66 @@ def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None,
             dropped_all.append({"d": e["d"], "code": e["code"],
                                 "name": e["name"], "why": "、".join(why) or "不满足赚钱效应日条件"})
 
+    # v56「龙头首阴」独立事件模型：
+    #   空间龙头（当日 spaceFull 内 boards>=3，取全市场最高板批次）在断板日尾盘（收盘价）买入；
+    #   断板 = 前一日在该股是空间龙头，今日未晋级（不在涨停池 或 板数未 +1）；
+    #   次日反包涨停（收盘涨幅≥涨停幅度-0.6%）或涨幅≥5% → 记为一次「龙头首阴」赚钱效应。
+    #   与两日涨停模型不同：买入日 d0=断板日（不要求涨停），今日 d=断板次日（不要求两日涨停/高开）。
+    sd = {s["date"]: s for s in stages}
+    FY = []
+    if sd:
+        for i in range(1, len(dates) - 1):
+            pd_ = dates[i - 1]           # 前一日：空间龙头在位日
+            d0 = dates[i]                # 断板日 = 尾盘买入日
+            d1 = dates[i + 1]            # 断板次日 = 反包/涨幅确认日
+            if d0 < all_start or d1 > end:
+                continue
+            prev_space = (sd.get(pd_) or {}).get("spaceFull") or []
+            for sp in prev_space:
+                code = str(sp.get("code") or "")
+                b0 = int(sp.get("boards") or 1)
+                if b0 < 3 or not code:
+                    continue
+                # 今日断板：未在 d0 涨停池，或板数未晋级到 b0+1
+                cur = pmap.get(d0, {}).get(code)
+                if cur and int(cur.get("boards") or 1) == b0 + 1:
+                    continue               # 晋级成功，不算断板
+                bb = dbar(code, d0)        # 断板日（买入日）日K
+                bn = dbar(code, d1)        # 次日日K
+                if not bb or not bn or not bb[2] or not bn[2]:
+                    continue               # 历史无日K，优雅降级
+                chg = round((bn[2] / bb[2] - 1) * 100, 2)
+                nm = NAME.get(code) or sp.get("name") or code
+                lim = lim_of(code, nm) * 100
+                refanbao = chg >= lim - 0.6
+                gain5 = chg >= 5.0
+                if not (refanbao or gain5):
+                    continue
+                # 次日形态：反包涨停用 shape，否则按涨幅记
+                s1 = shape(code, d1, nm) or ("反包" if refanbao else "反抽")
+                # 次日板位（反包时取涨停池板数，否则 0）
+                nxt = pmap.get(d1, {}).get(code)
+                b1 = int(nxt.get("boards") or 1) if nxt else 0
+                th = (theme_at.get(d0, {}).get(code)
+                      or theme_at.get(pd_, {}).get(code) or "")
+                nm2 = nm
+                FY.append({
+                    "d0": d0, "d": d1, "code": code, "name": nm2,
+                    "theme": th, "b0": b0, "b": b1,
+                    "s0": "首阴断板", "s1": s1,
+                    "tags": [KIND_FIRSTYIN], "prim": KIND_FIRSTYIN,
+                    "kind": KIND_FIRSTYIN,
+                    "open": round((bn[1] / bb[2] - 1) * 100, 2),
+                    "low": round((bn[3] / bb[2] - 1) * 100, 2),
+                    "chg": chg, "turnover": None, "cap": "未知", "capv": None,
+                    "why": "空间龙头断板日尾盘买入→次日" + ("反包涨停" if refanbao else "涨幅≥5%"),
+                    "zt10": zt_count_10(code, d1),
+                    "yinDate": d0, "refanbao": bool(refanbao),
+                })
+        # 并入事件池（每个空间龙头断板批次各自计一笔）
+        events_all.extend(FY)
+        # 按声明日期降序无关（前端再排序），此处保持追加即可
+
     def th_strength(d, th):
         g = (ladders.get(d) or {}).get(th) or {}
         return (g.get("maxB") or 0, g.get("count") or 0)
@@ -388,5 +454,8 @@ def compute(dates, pools, yz, KBARS, theme_at, ladders=None, NAME=None,
                  "全天最低价不低于昨收(不下0%线)、炸板后回封收于涨停；N字反包/断板反包为例外"
                  "(不受板位与高开/全天红门槛限制，但仍须两日换手涨停)。一字买不进，两日均排一字。"
                  "题材当日抓不到则沿用昨日复盘；市值=成交额÷换手率估算仅作规模分组；"
-                 "可按结束日+一周/两周/一月动态切分，分类按占比降序、同类按题材。"),
+                 "可按结束日+一周/两周/一月动态切分，分类按占比降序、同类按题材。"
+                 "v56 新增「龙头首阴」：当日空间龙头(≥3板)断板日尾盘收盘价买入，"
+                 "次日反包涨停或涨幅≥5%即计一笔；该形态为独立事件(买入日=断板日，不要求两日涨停/高开)，"
+                 "单独成类，不与上述两日涨停形态混算。"),
     }

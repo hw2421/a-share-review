@@ -1023,7 +1023,7 @@ def main():
     SH_OK48 = {"一字", "赚钱", "赚T", "地天", "普通", "长腿", "低开"}
     TAG_OK48 = {"极致高开全天红", "断板反包再连板", "地天板次日涨停",
                 "连续一字后首换手涨停", "N字反包次日涨停", "趋势股创新高周涨50%",
-                "题材持续换手连板", "普通换手连板晋级", "强势股"}
+                "题材持续换手连板", "普通换手连板晋级", "强势股", "龙头首阴"}
     poolmap48 = {d: {s["code"]: s for s in pools[d]} for d in dates}
     yz48 = fd.yizi_map(pools)
     rng48 = MW.get("range") or []
@@ -1047,6 +1047,42 @@ def main():
 
     for e in EV:
         code, d0, d = str(e["code"]), e["d0"], e["d"]
+        # ---- v56 龙头首阴：独立事件模型，走专属校验（与两日涨停模型口径不同）----
+        if e.get("kind") == "龙头首阴" or e.get("prim") == "龙头首阴":
+            if e.get("kind") != "龙头首阴":
+                err("v56 %s %s(%s) 龙头首阴缺 kind 标记" % (d, e["name"], code)); n_v48 += 1
+            if e.get("s0") != "首阴断板":
+                err("v56 %s %s(%s) 龙头首阴昨日形态应为首阴断板，实为 %s"
+                    % (d, e["name"], code, e.get("s0"))); n_v48 += 1
+            if e.get("b0", 0) < 3:
+                err("v56 %s %s(%s) 龙头首阴断板前仅%d板<3" % (d, e["name"], code, e.get("b0", 0))); n_v48 += 1
+            i0 = didx48.get(d0); i1 = didx48.get(d)
+            if i0 is None or i1 is None or i1 != i0 + 1:
+                err("v56 %s %s(%s) 龙头首阴买入日/次日非相邻交易日 %s→%s"
+                    % (d, e["name"], code, d0, d)); n_v48 += 1
+            # 次日涨幅须≥5% 或反包
+            chg_e = e.get("chg", 0)
+            if not (chg_e >= 5.0 or e.get("refanbao")):
+                err("v56 %s %s(%s) 龙头首阴次日涨幅%不足5%且非反包" % (d, e["name"], code)); n_v48 += 1
+            # 次日在位：若反包则必须在次日涨停池
+            lim56 = 0.05 if "ST" in e["name"] else (0.20 if code.startswith(("30", "688"))
+                     else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
+            if e.get("refanbao") and abs(chg_e - lim56 * 100) > 1.2:
+                err("v56 %s %s(%s) 标记反包但次日涨幅%s≠涨停幅度%.0f%%"
+                    % (d, e["name"], code, chg_e, lim56 * 100)); n_v48 += 1
+            if e.get("prim") != "龙头首阴" or any(t not in TAG_OK48 for t in (e.get("tags") or [])):
+                err("v56 %s %s(%s) 龙头首阴标签/主模式非法 %s / %s"
+                    % (d, e["name"], code, e.get("prim"), e.get("tags"))); n_v48 += 1
+            if rng48 and not (rng48[0] <= d <= rng48[1]):
+                err("v56 %s %s(%s) 超出统计区间 %s" % (d, e["name"], code, rng48)); n_v48 += 1
+            if e.get("zt10") != zt10_48(code, d):
+                err("v56 %s %s(%s) zt10=%s≠复算%d"
+                    % (d, e["name"], code, e.get("zt10"), zt10_48(code, d))); n_v48 += 1
+            th_e = e.get("theme") or ""
+            th_today = _theme_of48(d, code); th_yest = _theme_of48(d0, code)
+            if (th_today or th_yest) and th_e and th_e not in (th_today, th_yest):
+                err("v56 %s %s(%s) 题材「%s」非当日/断板日复盘归类" % (d, e["name"], code, th_e)); n_v48 += 1
+            continue  # 跳过两日涨停模型校验
         # 两日都在涨停池
         if code not in poolmap48.get(d0, {}) or code not in poolmap48.get(d, {}):
             err("v48 %s %s(%s) 非两日连续涨停池个股" % (d, e["name"], code)); n_v48 += 1
@@ -1142,6 +1178,12 @@ def main():
             err("v50 eventsAll 事件缺字段 %s(%s)" % (d, code)); n_v48 += 1
         if rngall and not (rngall[0] <= d <= rngall[1]):
             err("v50 eventsAll %s %s 超出全量区间" % (d, code)); n_v48 += 1
+        # v56 龙头首阴为独立事件模型：买入日=断板日、次日涨幅≥5%或反包，
+        # 不要求两日涨停/一字排除/高开/不下0线，跳过这些两日涨停模型专属校验。
+        if e.get("kind") == "龙头首阴" or e.get("prim") == "龙头首阴":
+            if not (e.get("chg", 0) >= 5.0 or e.get("refanbao")):
+                err("v56 eventsAll %s %s 龙头首阴次日未达反包/涨5%%" % (d, code)); n_v48 += 1
+            continue
         lim = 0.05 if "ST" in e.get("name", "") else (0.20 if code.startswith(("30", "688"))
               else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
         if abs(e.get("chg", 0) - lim * 100) > 1.0:

@@ -155,10 +155,22 @@
                 border-radius:6px;padding:2px 11px;font-size:11.5px;font-weight:700;cursor:pointer}
   #hdpop .hdnav button:hover{background:#3a2a56}
   #hdpop .hdnav span{color:var(--dim2);font-size:11.5px;min-width:120px;text-align:center}
-  #hdpop .hdlegend{position:absolute;top:62px;left:16px;right:16px;z-index:3;
-                   font-size:10.5px;line-height:1.6;color:var(--dim)}
-  #hdpop .hdlegend b{color:var(--text)}
-  #hdpop .hdc{position:absolute;top:96px;left:8px;right:8px;bottom:34px}
+  #hdpop .hdnav .hdmode{margin-left:auto;display:inline-flex;gap:4px;min-width:0}
+  #hdpop .hdnav .hdmode button{padding:2px 9px;font-size:11px;opacity:.6}
+  #hdpop .hdnav .hdmode button.on{opacity:1;border-color:#9d6fd0;background:#3a2a56;box-shadow:0 0 0 1px #9d6fd055}
+  #hdpop .hdlegend{position:absolute;top:60px;left:16px;right:16px;z-index:3;
+                   display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;
+                   font-size:11px;line-height:1.4;color:var(--dim)}
+  #hdpop .hdlegend .hd-grp{width:100%;font-size:10.5px;margin-bottom:1px}
+  #hdpop .hdlegend .hd-grp b{color:var(--text)}
+  #hdpop .hdleg{display:inline-flex;align-items:center;gap:4px;cursor:pointer;
+                border:1px solid #33405c;border-radius:5px;padding:2px 7px;background:#1a2338;
+                font-size:11px;color:var(--text);transition:background .12s}
+  #hdpop .hdleg:hover{background:#2a3654;border-color:#6a4a92}
+  #hdpop .hdleg .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+  #hdpop .hdleg .bd{color:#ffd24a;font-weight:700}
+  #hdpop .hdleg .bx{font-size:9px;color:var(--dim2)}
+  #hdpop .hdc{position:absolute;top:112px;left:8px;right:8px;bottom:34px}
   #hdpop .hdnote{position:absolute;left:14px;bottom:8px;z-index:3;color:var(--dim2);font-size:10px}
   .hd-open{float:right;background:#241b38;border:1px solid #6a4a92;color:#dcc0ff;
            border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-left:8px}
@@ -898,7 +910,8 @@
 <!-- v55 新旧龙头交接叠加图浮层 -->
 <div id="hdpop">
   <div class="hdt" id="hdpop-t"></div><span class="hdx" id="hdpop-x">✕</span>
-  <div class="hdnav"><button id="hd-prev">◀ 上一次</button><span id="hd-idx"></span><button id="hd-next">下一次 ▶</button></div>
+  <div class="hdnav"><button id="hd-prev">◀ 上一次</button><span id="hd-idx"></span><button id="hd-next">下一次 ▶</button>
+    <span class="hdmode"><button id="hd-mode-k" class="on">🕯蜡烛</button><button id="hd-mode-l">📈折线</button></span></div>
   <div class="hdlegend" id="hdpop-lg"></div>
   <div class="hdc" id="hdpop-c"></div>
   <div class="hdnote" id="hdpop-note"></div>
@@ -1819,12 +1832,14 @@ function openThPop(nm, ev, fromD){
   });
 }
 
-/* ================= v55 新旧龙头交接叠加图 =================
+/* ================= v56 新旧龙头交接叠加图 =================
    kind='theme'(题材板块龙头) / 'space'(全市场空间龙头)。
-   按交接日对齐各龙头日K，以窗口首日收盘归一化成涨幅%，多线叠加；可切换上一次/下一次。 */
-let HD_STATE = null, HD_CHART = null;
-const HD_COLORS_NEW = ['#f5455c','#f0b90b','#ff8c42','#ff5fa2','#e04343','#ffa726'];
-const HD_COLORS_OLD = ['#5a7fb5','#7a6fa8','#558b8b','#8a7a5a','#6a6a9a','#4a8a6a'];
+   按交接日对齐各龙头日K，以窗口首日收盘归一化成涨幅%后叠加：
+   默认蜡烛K线(开/高/低/收全归一)，可切折线(仅收盘)；每只个股唯一颜色+末端标注+可点图例看日K。 */
+let HD_STATE = null, HD_CHART = null, HD_MODE = 'k';  // 'k'=蜡烛 'l'=折线
+// 新旧各自独立调色板，按组内序号取色（修复旧龙头负数索引取色 bug），保证同组不重色
+const HD_COLORS_NEW = ['#f5455c','#f0b90b','#ff8c42','#ff5fa2','#e04343','#ffa726','#f76b8a','#ffcf5c'];
+const HD_COLORS_OLD = ['#5a9fe0','#7a6fa8','#4fb3a6','#c9a24a','#8a7ad0','#4aa08a','#6a8fd0','#b08a5a'];
 async function openHandover(kind, themeName, ev, anchorDate){
   const R=window.REVIEW, HO=R.handover||{};
   let evs = kind==='theme' ? ((HO.theme||{})[themeName]||[]) : (HO.space||[]);
@@ -1845,6 +1860,10 @@ async function openHandover(kind, themeName, ev, anchorDate){
   document.getElementById('hdpop-x').onclick=()=>{ pop.style.display='none'; };
   document.getElementById('hd-prev').onclick=()=>{ if(HD_STATE.cur>0){HD_STATE.cur--;renderHandover();} };
   document.getElementById('hd-next').onclick=()=>{ if(HD_STATE.cur<HD_STATE.evs.length-1){HD_STATE.cur++;renderHandover();} };
+  const mk=document.getElementById('hd-mode-k'), ml=document.getElementById('hd-mode-l');
+  mk.classList.toggle('on',HD_MODE==='k'); ml.classList.toggle('on',HD_MODE==='l');
+  mk.onclick=()=>{ HD_MODE='k'; mk.classList.add('on'); ml.classList.remove('on'); renderHandover(); };
+  ml.onclick=()=>{ HD_MODE='l'; ml.classList.add('on'); mk.classList.remove('on'); renderHandover(); };
   // 标题拖动（就地实现，避免依赖）
   const hd=document.getElementById('hdpop-t');
   if(!hd.__drag){ hd.__drag=1;
@@ -1863,72 +1882,101 @@ async function renderHandover(){
   const dates=R.dates||[];
   const title=document.getElementById('hdpop-t');
   title.innerHTML=(S.kind==='theme'? '【'+S.themeName+'】板块龙头交接' : '全市场空间龙头交接')+
-    ' · 交接日 '+fmtDate(e.date)+' <small>旧龙头断板 → 新龙头上位</small>';
+    ' · 交接日 '+fmtDate(e.date)+' <small>旧龙头断板 → 新龙头上位 · '+(HD_MODE==='k'?'蜡烛':'折线')+'叠加</small>';
   document.getElementById('hd-idx').textContent='第 '+(S.cur+1)+' / '+S.evs.length+' 次（'+fmtDate(e.date)+'）';
-  document.getElementById('hdpop-note').textContent='加载龙头日K…'+(R.handover.rule||'');
   document.getElementById('hdpop-lg').innerHTML='';
   if(!HD_CHART) HD_CHART=echarts.init(document.getElementById('hdpop-c'),null,{renderer:'canvas'});
   HD_CHART.showLoading('default',{text:'加载日K…'});
-  // 交接日在全站交易日中的索引
   const di=dates.indexOf(e.date);
   const PRE=8, POST=6;
   const lo=Math.max(0,di-PRE), hi=Math.min(dates.length-1,di+POST);
   const winDates=dates.slice(lo,hi+1);
-  const all=[...(e.old||[]).map(x=>({...x,grp:'old'})),...(e.new||[]).map(x=>({...x,grp:'new'}))];
-  // 异步取每只龙头完整日K
-  const series=[]; let legend='';
+  const olds=e.old||[], news=e.new||[];
+  const all=[...olds.map(x=>({...x,grp:'old'})),...news.map(x=>({...x,grp:'new'}))];
+  // 异步取每只龙头完整日K（按组内序号分配唯一颜色）
+  const series=[], legendItems=[], labels=[];
   await Promise.all(all.map(async (stk,idx)=>{
+    const isNew=stk.grp==='new';
+    const gi = isNew ? news.indexOf(stk) : olds.indexOf(stk);  // 组内序号
+    const pal = isNew ? HD_COLORS_NEW : HD_COLORS_OLD;
+    const col = pal[(gi<0?idx:gi)%pal.length];
     let bars=[];
     try{ bars=await stockKBars(stk.code, stk.date||e.breakDate); }catch(err){ bars=[]; }
     const bmap={}; (bars||[]).forEach(b=>{ if(b&&b[0]) bmap[b[0]]=b; });
-    // 以窗口首日有K线的收盘为基准归一化
     let base=null;
     for(const wd of winDates){ if(bmap[wd]&&bmap[wd][2]){ base=bmap[wd][2]; break; } }
     if(!base) return;
-    const pts=[];
-    winDates.forEach((wd,j)=>{
-      const b=bmap[wd];
-      if(b&&b[2]) pts.push([j, +((b[2]/base-1)*100).toFixed(2)]);
-      else pts.push([j, null]);
-    });
-    const isNew=stk.grp==='new';
-    const col=isNew? HD_COLORS_NEW[idx%HD_COLORS_NEW.length]
-                    : HD_COLORS_OLD[(idx-(e.old||[]).length)%HD_COLORS_OLD.length];
-    series.push({
-      name:(isNew?'🆕':'🔻')+stk.name+'('+stk.boards+'板)', type:'line',
-      data:pts, symbol:'circle', symbolSize:3, connectNulls:true,
-      lineStyle:{color:col,width:isNew?2.2:1.5,type:isNew?'solid':'dashed',opacity:isNew?1:.75},
-      itemStyle:{color:col}, emphasis:{focus:'series'}
-    });
-    legend+='<span style="margin-right:12px;color:'+col+'">'+(isNew?'●新':'○旧')+' '+stk.name+' '+stk.boards+'板</span>';
+    const nrm=v=>+((v/base-1)*100).toFixed(2);   // 归一成相对窗口首日收盘的涨幅%
+    const nm=(isNew?'🆕':'🔻')+stk.name+'('+stk.boards+'板)';
+    let ser;
+    if(HD_MODE==='l'){
+      const pts=winDates.map((wd,j)=>{ const b=bmap[wd]; return [j, b&&b[2]?nrm(b[2]):null]; });
+      ser={name:nm,type:'line',data:pts,symbol:'circle',symbolSize:3,connectNulls:true,
+           lineStyle:{color:col,width:isNew?2.4:1.8,type:isNew?'solid':'dashed',opacity:.95},
+           itemStyle:{color:col},emphasis:{focus:'series'}};
+    }else{
+      // candlestick 数据格式：[idx, 开, 收, 低, 高]（全部归一成涨幅%）
+      const cd=winDates.map((wd,j)=>{ const b=bmap[wd];
+        return b&&b[2] ? [j, nrm(b[1]), nrm(b[2]), nrm(b[3]), nrm(b[4])] : [j, null,null,null,null]; });
+      ser={name:nm,type:'candlestick',data:cd,
+           itemStyle:{color:col,color0:col,borderColor:col,borderColor0:col,opacity:.9},
+           emphasis:{focus:'series'}};
+    }
+    // 末端标注：在最后一个有效涨幅点标个股名
+    let lastJ=-1,lastV=null;
+    winDates.forEach((wd,j)=>{ const b=bmap[wd]; if(b&&b[2]){ lastJ=j; lastV=nrm(b[2]); } });
+    if(lastJ>=0){
+      ser.markPoint={symbol:'roundRect',symbolSize:[0,0],data:[{
+        coord:[lastJ,lastV],value:stk.name,
+        label:{show:true,position:'right',distance:5,color:col,fontSize:10,fontWeight:700,
+          formatter:stk.name,backgroundColor:'rgba(10,15,28,.78)',borderColor:col,borderWidth:1,
+          borderRadius:3,padding:[2,4]}
+      }]};
+    }
+    series.push(ser);
+    legendItems.push('<span class="hdleg" data-code="'+stk.code+'" data-name="'+stk.name+
+      '" data-d="'+(stk.lastDate||e.date)+'" title="点看 '+stk.name+' 完整日K">'+
+      '<i class="sw" style="background:'+col+'"></i>'+
+      (isNew?'新':'旧')+' '+stk.name+' <span class="bd">'+stk.boards+'板</span>'+
+      '<span class="bx">↗</span></span>');
   }));
   HD_CHART.hideLoading();
-  document.getElementById('hdpop-lg').innerHTML='<b>新龙头：</b>'+
-    (e.new||[]).map(x=>x.name+'('+x.boards+'板)').join('、')+'　｜　<b>旧龙头(断板)：</b>'+
-    (e.old||[]).map(x=>x.name+'('+x.boards+'板, '+fmtDate(x.lastDate)+')').join('、')+
-    '<br/>'+legend;
-  // X轴标签：相对交易日 -PRE..+POST，交接日为0
+  document.getElementById('hdpop-lg').innerHTML=
+    '<span class="hd-grp"><b>🆕 新龙头(上位)：</b>'+(news.length?news.map(x=>x.name+' '+x.boards+'板').join('、'):'—')+
+    '　<b style="margin-left:10px">🔻 旧龙头(断板)：</b>'+(olds.length?olds.map(x=>x.name+' '+x.boards+'板·'+fmtDate(x.lastDate)+'断').join('、'):'—')+
+    '　<span style="color:#ffd24a">点色块看该股完整日K</span></span>'+legendItems.join('');
+  document.querySelectorAll('#hdpop-lg .hdleg').forEach(el=>{
+    el.onclick=()=>showK(el.dataset.code,el.dataset.name,null,el.dataset.d);
+  });
   const xlabels=winDates.map((wd,j)=> j-PRE);
   HD_CHART.setOption({
     animation:false,
-    tooltip:{trigger:'axis',confine:true,formatter:ps=>{
+    tooltip:{trigger:'axis',axisPointer:{type:'cross'},confine:true,formatter:ps=>{
       if(!ps||!ps.length) return '';
       const j=ps[0].dataIndex, rel=j-PRE, dd=winDates[j]||'';
       let s='相对交接日 '+(rel>0?'+':'')+rel+' 日（'+fmtDate(dd)+'）<br/>';
-      ps.forEach(p=>{ if(p.value!=null) s+=p.marker+p.seriesName+' <b style="color:'+(p.value>=0?'#f5455c':'#2ebd85')+'">'+
-        (p.value>0?'+':'')+p.value+'%</b><br/>'; });
+      ps.forEach(p=>{
+        let v=null;
+        if(HD_MODE==='k'){                       // candlestick: p.data=[idx,开,收,低,高]
+          const a=p.data; if(a&&a[2]!=null) v=a[2];
+        }else if(p.value!=null && !Array.isArray(p.value)){
+          v=p.value;
+        }
+        if(v!=null) s+=p.marker+p.seriesName+' <b style="color:'+(v>=0?'#f5455c':'#2ebd85')+'">'+
+          (v>0?'+':'')+v+'%</b><br/>';
+      });
       return s;
     }},
     legend:{show:false},
-    grid:{left:44,right:16,top:14,bottom:26},
+    grid:{left:46,right:56,top:14,bottom:26},
     xAxis:{type:'category',data:xlabels,axisLabel:{color:'#78849a',fontSize:10,
       formatter:v=>(v>0?'+':'')+v},axisLine:{lineStyle:{color:'#2b3a56'}}},
-    yAxis:{type:'value',axisLabel:{color:'#78849a',fontSize:10,formatter:v=>v+'%'},
+    yAxis:{type:'value',axisLabel:{color:'#78849a',fontSize:10,formatter:v=>(v>0?'+':'')+v+'%'},
       splitLine:{lineStyle:{color:'#1f2937'}},axisLine:{lineStyle:{color:'#2b3a56'}}},
     series:series
   },true);
-  document.getElementById('hdpop-note').textContent='数据源：本地日K分片 · '+
-    (series.length)+' 条龙头走势叠加 · 窗口 '+(lo?'前'+PRE:'起始')+'/后'+POST+' 交易日';
+  document.getElementById('hdpop-note').textContent='数据源：本地日K分片 · '+series.length+
+    ' 只龙头叠加（'+(HD_MODE==='k'?'蜡烛':'折线')+'）· 以窗口首日收盘为0% · 交接日=0 · 点色块看完整日K';
 }
 /* 日K实时化：LIVE_K=下次打开强制拉最新；lastK=当前打开的K图（半小时自动刷新它） */
 let LIVE_K=false, lastK=null, KVER=0;
@@ -2049,7 +2097,7 @@ const WN_MODES = [
   ['地天板次日涨停','地天次日'],['连续一字后首换手涨停','一字首换'],
   ['N字反包次日涨停','N字反包'],['趋势股创新高周涨50%','趋势新高'],
   ['题材持续换手连板','题材持续'],['普通换手连板晋级','普通晋级'],
-  ['强势股','强势股'],
+  ['强势股','强势股'],['龙头首阴','龙头首阴'],
 ];
 const WN_PRI = WN_MODES.map(x=>x[0]);
 
@@ -2132,7 +2180,7 @@ function renderWinners(){
   const sl = wnSlice(), evs0 = sl.evs;
   const ag = wnAgg(evs0), cats=ag.cats, caps=ag.caps, n=ag.total;
   document.getElementById('wn-range').textContent =
-    '昨日换手涨停股今日再次换手涨停 · '+WN_LABEL[WN_WIN]+'（'+fmtDate(sl.start)+' ~ '+fmtDate(sl.end)+'）';
+    '昨日涨停接力 + 龙头首阴 · '+WN_LABEL[WN_WIN]+'（'+fmtDate(sl.start)+' ~ '+fmtDate(sl.end)+'）';
   let sum = '<div class="wn-sum">'+
     '<div class="wn-kpi"><span class="k">赚钱效应样本</span><span class="v" style="color:'+C.gold+'">'+n+'</span></div>'+
     '<div class="wn-kpi"><span class="k">形态分类</span><span class="v">'+cats.length+'</span></div>'+
@@ -2140,12 +2188,16 @@ function renderWinners(){
       ' <span style="font-size:11px;color:var(--dim2)">'+c.avg+'%</span></span></div>').join('')+
     '</div>';
   document.getElementById('wn-sum').innerHTML = sum;
+  const fyN=evs0.filter(e=>e.kind==='龙头首阴').length;
   const read=[
     fmtDate(sl.start)+' ~ '+fmtDate(sl.end)+'（'+WN_LABEL[WN_WIN]+'）共 '+n+
-      ' 个「昨日换手涨停→今日换手涨停」样本；已剔除 '+sl.dropN+' 例平淡首板连板晋级；一字当日排除。',
+      ' 个赚钱效应样本（涨停接力 '+(n-fyN)+' + 龙头首阴 '+fyN+'）；已剔除 '+sl.dropN+' 例不合口径样本；一字当日排除。',
     cats.length? '占比最高：'+cats[0].k+'（'+cats[0].n+' 例 / '+cats[0].pct+'%）；'+
       '今日溢价最高：'+cats.slice().sort((a,b)=>b.avg-a.avg)[0].k+'（+'+
       cats.slice().sort((a,b)=>b.avg-a.avg)[0].avg+'%）。':'',
+    fyN? '龙头首阴：空间龙头(≥3板)断板日尾盘买入，'+evs0.filter(e=>e.kind==='龙头首阴')
+      .filter(e=>e.refanbao).length+' 例次日反包涨停、'+
+      (fyN-evs0.filter(e=>e.kind==='龙头首阴').filter(e=>e.refanbao).length)+' 例次日涨幅≥5%。':'',
   ].filter(Boolean);
   document.getElementById('wn-read').innerHTML = read.map(t=>
     '<div class="sub" style="padding:3px 0;font-size:12px">• '+t+'</div>').join('');
@@ -2158,7 +2210,7 @@ function renderWinners(){
       (g.maxB?'<span class="gb">'+g.maxB+'板</span>':'')+'</span>'+
       g.stocks.map(s=>'<b class="wn-kstk" data-c="'+s[1]+'" data-n="'+s[0]+'" data-d="'+s[2]+'" '+
         'style="cursor:pointer;color:'+C.blue+'" title="点看 '+s[0]+' 日K">'+s[0]+'</b>'+
-        '<span class="sbd">'+s[3]+'板</span>').join('、')+
+        '<span class="sbd">'+(s[3]?s[3]+'板':'—')+'</span>').join('、')+
       '</div>').join('')+'</div>').join('');
   // v53：分类汇总卡的个股可点开日K
   document.querySelectorAll('#wn-cats .wn-kstk').forEach(el=>{
@@ -2202,12 +2254,14 @@ function renderWinners(){
     }
     row+='<td class="l wn-stk"><b data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+e.d+'" '+
         'style="cursor:pointer;color:'+C.blue+'" title="点看日K（箭头指 '+fmtDate(e.d)+'）">'+e.name+'</b></td>'+
-      '<td title="买入日 '+fmtDate(e.d0)+'"><span class="wn-buy">'+fmtDate(e.d0).slice(5)+'</span></td>'+
+      '<td title="'+(e.kind==='龙头首阴'?'断板日尾盘买入 '+fmtDate(e.d0):'买入日 '+fmtDate(e.d0))+'">'+
+      '<span class="wn-buy">'+fmtDate(e.d0).slice(5)+'</span>'+
+      (e.kind==='龙头首阴'?'<span style="font-size:9px;color:#ff9d5c;margin-left:2px">断板</span>':'')+'</td>'+
       '<td class="l wn-thcell" data-th="'+(e.theme||'')+'" data-d="'+e.d+'"'+
       ' title="'+(e.theme?'点看 '+fmtDate(e.d)+' 当日梯队':'该股当日无复盘题材归类')+'">'+
       (e.theme||'—')+'</td>'+
       '<td style="color:'+(e.b0>=3?C.gold:C.dim2)+';font-weight:700">'+e.b0+'板</td>'+
-      '<td><b style="color:'+C.gold+'">'+e.b+'板</b></td>'+
+      '<td><b style="color:'+C.gold+'">'+(e.b?e.b+'板':'—')+'</b></td>'+
       '<td class="l">'+e.s0+'</td><td class="l">'+e.s1+'</td>'+ modeTds +
       '<td style="color:'+(e.open>=0?C.up:C.down)+'">'+(e.open>0?'+':'')+e.open+'</td>'+
       '<td style="color:'+(e.low>=0?C.up:C.down)+'">'+(e.low>0?'+':'')+e.low+'</td>'+
