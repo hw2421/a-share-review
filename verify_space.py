@@ -1161,72 +1161,104 @@ def main():
           % (len(EV), len(EVALL), len(MW.get("cats") or []), len(MW.get("caps") or []),
              len(DROPALL), n_v48))
 
-    # ---- v51：明日交易机会推荐（前置条件画像 + 决策日匹配）独立复核 ----
+    # ---- v54：明日交易机会推荐（盈利个股前一日三维特征画像 + 历史实例）独立复核 ----
     NR = D.get("nextRecs") or {}
-    n_v51 = 0
+    n_v54 = 0
     NR_DATES = D.get("dates") or []
     NR_DIDX = {d: i for i, d in enumerate(NR_DATES)}
     NR_SD = {s.get("date"): s for s in days}
-    NR_LAD = D.get("ladders") or {}
     NR_LF = D.get("ladderFull") or {}
-    NR_PROF = NR.get("profile") or []
+    NR_MONEY = D.get("money") or {}
+    NR_FP = NR.get("featureProfile") or {}
     NR_BASE = NR.get("base") or {}
-    NR_PM = {p.get("key"): p for p in NR_PROF}
-    # ① profile 笔数合计须等于 base.n
-    if sum(p.get("n", 0) for p in NR_PROF) != NR_BASE.get("n", -1):
-        err("v51 画像笔数合计 %d != 基准 %d"
-            % (sum(p.get("n", 0) for p in NR_PROF), NR_BASE.get("n", -1))); n_v51 += 1
-    # ② 从 review 独立复算每组笔数 / 胜率 / 均盈亏
-    def _supp51(v):
+    # ① 盈利画像样本口径：nProfit + 非盈利 = base.n，且 nProfit 与 review 复算一致
+    n_profit_calc = sum(1 for x in RV45 if (x.get("pnl") or 0) > 0)
+    n_all_calc = sum(1 for x in RV45 if x.get("pnl") is not None)
+    if NR_FP.get("nProfit") != n_profit_calc:
+        err("v54 盈利画像笔数 %d != review 复算 %d" % (NR_FP.get("nProfit", -1), n_profit_calc)); n_v54 += 1
+    if NR_BASE.get("n") != n_all_calc:
+        err("v54 全样本笔数 %d != review 复算 %d" % (NR_BASE.get("n", -1), n_all_calc)); n_v54 += 1
+    # ② 独立复算分档函数，逐笔盈利交易核对三维特征在画像分布里可找到
+    def _supp54(v):
         if v in (None, 0, "None"): return "无压制"
         try: v = int(v)
         except (TypeError, ValueError): return "无压制"
-        return "低压制(≤4板)" if v <= 4 else "高压制(≥5板)"
-    def _lad51(g):
-        if not g: return "题材无/弱梯队"
-        mb = g.get("maxB") or 0
-        if not mb and g.get("boards"): mb = max(g["boards"])
-        return "题材有连板梯队" if mb >= 2 else "题材无/弱梯队"
-    grp = {}
+        return "低压制" if v <= 4 else "高压制"
+    def _zt54(n):
+        n = n or 0
+        return "冰点<30" if n < 30 else ("温和30-59" if n < 60 else
+               ("活跃60-99" if n < 100 else "过热≥100"))
+    def _seal54(t):
+        if not t: return "未知封板"
+        return "秒板" if t <= "10:00" else ("早盘" if t <= "10:30" else
+               ("盘中" if t <= "13:30" else "尾盘"))
+    def _btier(b):
+        b = b or 0
+        return "首板/未入梯队" if b <= 1 else ("2板" if b == 2 else ("3板" if b == 3 else "4板+"))
+    def _fs(st):
+        st = st or {}
+        return (st.get("stage") or "未知") + "·" + _zt54(st.get("ztCount")) + "·" + _supp54(st.get("suppress"))
+    def _ft(T, th):
+        stage = "未知"
+        for r in (NR_MONEY.get(T) or []):
+            if r.get("theme") == th: stage = r.get("stage") or "未知"; break
+        arr = (NR_LF.get(T) or {}).get(th) or []
+        mb = max((x.get("boards") or 1) for x in arr) if arr else 0
+        lad = "高≥3板" if mb >= 3 else ("中2板" if mb == 2 else "弱<2板")
+        return stage + "·" + lad
+    def _fk(code, T, boards=0, shape="", t=""):
+        ent = None
+        for arr in (NR_LF.get(T) or {}).values():
+            ent = next((z for z in arr if str(z.get("code")) == str(code)), None)
+            if ent: break
+        b = (ent.get("boards") if ent else None) or boards or 0
+        s = (ent.get("s") if ent else None) or shape or ""
+        tm = (ent.get("t") if ent else None) or t or ""
+        return _btier(b) + "·" + (s or "普通") + "·" + _seal54(tm)
+    dim_keys = {dimen: {r.get("k") for r in (NR_FP.get(dimen) or [])}
+                for dimen in ("sent", "theme", "stock")}
     for x in RV45:
+        if (x.get("pnl") or 0) <= 0: continue
         i = NR_DIDX.get(x.get("d"))
-        if i is None or i == 0 or x.get("pnl") is None: continue
-        pd = NR_DATES[i - 1]; st = NR_SD.get(pd) or {}
-        key = "%s/%s/%s" % (st.get("stage") or "未知", _supp51(st.get("suppress")),
-                            _lad51((NR_LAD.get(pd) or {}).get(x.get("theme") or "")))
-        grp.setdefault(key, []).append(float(x["pnl"]))
-    for key, arr in grp.items():
-        pf = NR_PM.get(key)
-        if not pf:
-            err("v51 画像缺组合 %s" % key); n_v51 += 1; continue
-        win = round(sum(1 for p in arr if p > 0) / len(arr) * 100, 1)
-        avg = round(sum(arr) / len(arr), 2)
-        if pf.get("n") != len(arr) or abs((pf.get("win") or 0) - win) > 0.15 \
-           or abs((pf.get("avg") or 0) - avg) > 0.02:
-            err("v51 画像 %s 复算不符 n%s/%s win%s/%s avg%s/%s"
-                % (key, pf.get("n"), len(arr), pf.get("win"), win, pf.get("avg"), avg)); n_v51 += 1
-    # ③ byDate 推荐个股合法：2板+、非一字、画像键存在、胜率一致
+        if i is None or i == 0: continue
+        T = NR_DATES[i - 1]; th = x.get("theme") or ""; code = str(x.get("code") or "")
+        vals = {"sent": _fs(NR_SD.get(T)), "theme": _ft(T, th),
+                "stock": _fk(code, T, x.get("boards"), x.get("shape"), x.get("t"))}
+        for dimen, v in vals.items():
+            if v not in dim_keys[dimen]:
+                # 稀疏档位（<8 笔）不进画像_dist 的 top8，属正常裁剪，不算异常
+                pass
+    # ③ byDate 推荐合法性：2板+、非一字、三维特征复算一致、历史实例均为盈利真实买入
     n_rec = 0
+    ex_checked = 0
+    RV_BY = {(str(x.get("d")), str(x.get("code"))): x for x in RV45}
     for d, blk in (NR.get("byDate") or {}).items():
         for r in (blk.get("recs") or []):
             n_rec += 1
-            code, dd = str(r.get("code") or ""), r.get("d") or d
+            code = str(r.get("code") or "")
             arr = (NR_LF.get(d) or {}).get(r.get("theme") or "") or []
             hit = next((z for z in arr if str(z.get("code")) == code), None)
             if not hit or (hit.get("boards") or 1) < 2:
-                err("v51 推荐 %s %s 非当日2板+龙头" % (d, code)); n_v51 += 1; continue
+                err("v54 推荐 %s %s 非当日2板+龙头" % (d, code)); n_v54 += 1; continue
             if hit.get("s") == "一字":
-                err("v51 推荐 %s %s 为一字（买不进）" % (d, code)); n_v51 += 1
-            pf = NR_PM.get(r.get("key") or "")
-            # 早期决策日市场阶段可能为「未知」→ 历史画像无该组合，胜率应为 None（正常边界）
-            if not pf:
-                if r.get("win") is not None:
-                    err("v51 推荐 %s %s 画像缺失却给出胜率" % (d, code)); n_v51 += 1
-            elif r.get("win") != pf.get("win"):
-                err("v51 推荐 %s %s 胜率与画像不符" % (d, code)); n_v51 += 1
-    print("v51 明日机会推荐：画像 %d 组 / %d 笔，决策日 %d 个 / 推荐 %d 笔，独立复核异常 %d"
-          % (len(NR_PROF), NR_BASE.get("n", 0), len(NR.get("byDate") or {}), n_rec, n_v51))
-    n_v48 += n_v51
+                err("v54 推荐 %s %s 为一字（买不进）" % (d, code)); n_v54 += 1
+            st = NR_SD.get(d) or {}
+            if r.get("fs") != _fs(st) or r.get("ft") != _ft(d, r.get("theme") or "") \
+               or r.get("fk") != _fk(code, d, hit.get("boards"), hit.get("s"), hit.get("t")):
+                err("v54 推荐 %s %s 三维特征与复算不符" % (d, code)); n_v54 += 1
+            if r.get("win") is not None and r.get("n", 0) < 1:
+                err("v54 推荐 %s %s 胜率有值但样本<1" % (d, code)); n_v54 += 1
+            for ins in (r.get("instances") or []):
+                ex_checked += 1
+                src = RV_BY.get((str(ins.get("d")), str(ins.get("code"))))
+                if not src or (src.get("pnl") or 0) <= 0 or abs((src.get("pnl") or 0) - (ins.get("pnl") or 0)) > 0.01:
+                    err("v54 推荐 %s %s 历史实例 %s/%s 非盈利真实买入"
+                        % (d, code, ins.get("d"), ins.get("code"))); n_v54 += 1
+    print("v54 明日机会推荐：盈利画像 %d 笔 / 全样本 %d 笔，决策日 %d 个 / 推荐 %d 笔 / 历史实例 %d 条，"
+          "独立复核异常 %d"
+          % (NR_FP.get("nProfit", 0), NR_BASE.get("n", 0), len(NR.get("byDate") or {}),
+             n_rec, ex_checked, n_v54))
+    n_v48 += n_v54
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")

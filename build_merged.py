@@ -857,12 +857,13 @@ print("空间龙头涨停形态回填：%d 个股票日" % _n_sf)
 # 放在形态回填之后，确保 ladder_full 元素已带「s」形态字段，可正确排除一字（买不进）。
 import next_recs as NR
 NEXT_RECS = NR.compute(dates, days, ladder_full, ladders, review["summit"],
-                       fd.yizi_map(pools),
+                       fd.yizi_map(pools), MONEY=money,
                        NAME={s["code"]: s["name"] for dd in dates for s in pools.get(dd, [])})
 _today_recs = NEXT_RECS["byDate"].get(dates[-1], {}).get("recs", [])
-print("v51 明日机会推荐：历史画像 %d 组 / %d 笔，决策日 %d 个，今日推荐 %d 只"
-      % (len(NEXT_RECS["profile"]), NEXT_RECS["base"]["n"],
-         len(NEXT_RECS["byDate"]), len(_today_recs)))
+print("v54 明日机会推荐：盈利画像 %d 笔盈利/%d 笔全部，决策日 %d 个，今日推荐 %d 只，今日实例 %d 条"
+      % (NEXT_RECS["featureProfile"]["nProfit"], NEXT_RECS["base"]["n"],
+         len(NEXT_RECS["byDate"]), len(_today_recs),
+         sum(len(x["instances"]) for x in _today_recs)))
 
 def _mood(entries, d, fresh):
     """空间龙头断板后的情绪三档（v45 用户口径）：
