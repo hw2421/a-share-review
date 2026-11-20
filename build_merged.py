@@ -909,6 +909,59 @@ print("v54 明日机会推荐：盈利画像 %d 笔盈利/%d 笔全部，决策�
          len(NEXT_RECS["byDate"]), len(_today_recs),
          sum(len(x["instances"]) for x in _today_recs)))
 
+# ---- v62：B1 传导路径图数据（昨日梯队分层 → 今日传导效果） ----
+# 口径：对每个「题材有连板」的题材日 (d, theme)，把前一交易日该题材梯队按板位分三层
+# （龙头≥3板 / 2板助攻 / 首板跟风），统计各层今日表现：家数、可算家数、均涨（收盘 vs 昨收）、
+# 红盘率、晋级家数（今日再板）；另计今日新增首板家数（跟风资金是否还在进场）。
+# 回答「钱在板块内传导到第几层断了」——作战页题材卡与题材梯队浮层点「⚡传导」查看。
+_didx_tx = {d: i for i, d in enumerate(dates)}
+
+def _tx_layer(stocks, d):
+    _arr = sorted(stocks, key=lambda x: -(x.get("boards") or 1))
+    chgs, promo, names = [], 0, []
+    for s in _arr:
+        code = str(s.get("code") or "")
+        b0 = s.get("boards") or 1
+        if len(names) < 4:
+            names.append(s.get("name") or code)
+        b1 = (pool_map.get(d) or {}).get(code)
+        if b1 and (b1.get("boards") or 1) > b0:
+            promo += 1
+        pv = _prev_close(code, d)
+        bar = _dbar(code, d)
+        if pv and bar and bar[2]:
+            chgs.append((bar[2] / pv - 1) * 100)
+    return {"n": len(_arr), "cn": len(chgs),
+            "avg": round(sum(chgs) / len(chgs), 1) if chgs else None,
+            "win": round(sum(1 for x in chgs if x >= 0) / len(chgs) * 100) if chgs else None,
+            "pr": promo, "nm": names}
+
+TRANSMIT = {}
+for _td, _ths in ladders_out.items():
+    _ti = _didx_tx.get(_td) or 0
+    if _ti == 0:
+        continue
+    _td0 = dates[_ti - 1]
+    for _tnm in _ths:
+        _yst = (ladder_full.get(_td0) or {}).get(_tnm) or []
+        if not _yst:
+            continue
+        _tdy = (ladder_full.get(_td) or {}).get(_tnm) or []
+        _ycodes = {str(s.get("code")) for s in _yst}
+        _new1 = sum(1 for s in _tdy
+                    if (s.get("boards") or 1) == 1 and str(s.get("code")) not in _ycodes)
+        _srt = sorted(_yst, key=lambda x: -(x.get("boards") or 1))
+        _b_of = lambda s: (s.get("boards") or 1)
+        TRANSMIT.setdefault(_td, {})[_tnm] = {
+            "ladder": _ths[_tnm]["ladder"],
+            "L": [_tx_layer([s for s in _srt if _b_of(s) >= 3], _td),
+                  _tx_layer([s for s in _srt if _b_of(s) == 2], _td),
+                  _tx_layer([s for s in _srt if _b_of(s) == 1], _td)],
+            "n1": _new1,
+        }
+print("v62 传导路径图：%d 个题材日（昨日梯队分层→今日传导）"
+      % sum(len(v) for v in TRANSMIT.values()))
+
 # ---- v58：明日交易机会复盘（推荐个股「次日涨停买入」全量模拟回测） ----
 # 口径：对复盘决策每个决策日的每只推荐股（明日机会推荐 recs），
 #   次日 B=dates[i+1]：
@@ -953,6 +1006,8 @@ for _k, (_di, _d, _r) in enumerate(_NR_RECS):
         "level": _r.get("level") or "", "win": _r.get("win"),
         "status": "", "buy": None, "sell": None, "sellD": "",
         "hold": 0, "reason": "", "pnl": None,
+        # v62 作战页结算屏：买入日收盘涨幅（vs 昨收，与是否涨停无关，纯展示）
+        "chgB": round((b[2] / pv - 1) * 100, 2),
     }
     if not (sealed or touch):
         rec["status"] = "未涨停"
@@ -1286,6 +1341,7 @@ data = {
     "nextRecs": NEXT_RECS,         # v51：明日交易机会推荐（复盘前一日前置条件画像 + 决策日匹配）
     "cycle": CYCLE_OUT,            # v60：赚钱效应循环仪表盘（健康度/生命周期/负反馈/交叉统计）
     "nextRecsBacktest": NR_BT,     # v58：明日交易机会复盘（推荐个股次日涨停买入模拟逐笔）
+    "transmit": TRANSMIT,          # v62：B1 传导路径图（昨日梯队分层→今日传导效果）
     "chances": chances,            # v17：当日机会池（全量符合买点候选，含一字/炸板）
     "reviewMeta": reviewMeta,      # 各战法买入 / 卖出逻辑说明
     "boardEarn": BOARD_EARN_SLIM,  # v29：板块赚钱效应验证（题材日 -> 题材 -> 明细）

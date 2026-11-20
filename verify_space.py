@@ -1709,6 +1709,97 @@ def main():
              n_v61))
     n_v48 += n_v61
 
+    # ---- v62：B1 传导路径图（transmit）+ 回测 chgB 独立复核 ----
+    n_v62 = 0
+    TRV = D.get("transmit") or {}
+    LFV = D.get("ladderFull") or {}
+    _kbcache_v = {}
+    def _kbdict(code):
+        if code not in _kbcache_v:
+            _kbcache_v[code] = _kb58_bucket(code).get(str(code), {})
+        return _kbcache_v[code]
+    def _pc62(code, d0):
+        kd = _kbdict(code)
+        ds = [x for x in kd if x < d0]
+        if not ds:
+            return None
+        b = kd[max(ds)]
+        return b[2] if (b and len(b) >= 5 and b[2]) else None
+    def _cc62(code, d):
+        b = _kbdict(code).get(d)
+        return b[2] if (b and len(b) >= 5 and b[2]) else None
+    # ① 覆盖：transmit ⊆ ladders；ladders 中前一日有梯队的题材日都应有 transmit
+    _lad_v = D.get("ladders") or {}
+    for d, ths in TRV.items():
+        for nm in ths:
+            if nm not in (_lad_v.get(d) or {}):
+                err("v62 transmit %s/%s 不在 ladders" % (d, nm)); n_v62 += 1
+    _n_expect = 0
+    for _i, d in enumerate(dates):
+        if _i == 0:
+            continue
+        d0 = dates[_i - 1]
+        for nm in (_lad_v.get(d) or {}):
+            if (LFV.get(d0) or {}).get(nm):
+                _n_expect += 1
+                if nm not in TRV.get(d, {}):
+                    err("v62 %s/%s ladders 有前日梯队但缺 transmit" % (d, nm)); n_v62 += 1
+    if len(TRV) and sum(len(v) for v in TRV.values()) > sum(len(v) for v in _lad_v.values()):
+        err("v62 transmit 条目数超过 ladders"); n_v62 += 1
+    # ② 抽样 40：分层家数/名单/新增首板/层均涨 逐项独立重算
+    _pool_v62 = {d: {s["code"]: s for s in pools.get(d, [])} for d in dates}
+    _tr_flat = [(d, nm) for d, ths in TRV.items() for nm in ths]
+    for d, nm in _rnd.sample(_tr_flat, min(40, len(_tr_flat))):
+        _i = DIDXV.get(d)
+        if not _i:
+            continue
+        d0 = dates[_i - 1]
+        yst = (LFV.get(d0) or {}).get(nm) or []
+        t = TRV[d][nm]
+        exp_n = [sum(1 for s in yst if (s.get("boards") or 1) >= 3),
+                 sum(1 for s in yst if (s.get("boards") or 1) == 2),
+                 sum(1 for s in yst if (s.get("boards") or 1) == 1)]
+        got_n = [x.get("n") for x in t.get("L") or []]
+        if got_n != exp_n:
+            err("v62 %s/%s 分层家数不符 %s vs %s" % (d, nm, got_n, exp_n)); n_v62 += 1
+            continue
+        # 层均涨/晋级重算
+        for li, lo, hi in ((0, 3, 99), (1, 2, 2), (2, 1, 1)):
+            stocks = [s for s in yst if lo <= (s.get("boards") or 1) <= hi]
+            chgs, pr = [], 0
+            for s in stocks:
+                code = str(s.get("code") or "")
+                b0 = s.get("boards") or 1
+                b1 = (_pool_v62.get(d) or {}).get(code)
+                if b1 and (b1.get("boards") or 1) > b0:
+                    pr += 1
+                pv, cc = _pc62(code, d), _cc62(code, d)
+                if pv and cc:
+                    chgs.append((cc / pv - 1) * 100)
+            g = (t.get("L") or [])[li]
+            if (g.get("cn") or 0) != len(chgs) or (g.get("pr") or 0) != pr:
+                err("v62 %s/%s 层%d 可算数/晋级不符" % (d, nm, li)); n_v62 += 1
+            elif chgs and abs(g.get("avg") - sum(chgs) / len(chgs)) > 0.11:
+                err("v62 %s/%s 层%d 均涨不符" % (d, nm, li)); n_v62 += 1
+        _yc = {str(s.get("code")) for s in yst}
+        _exp_n1 = sum(1 for s in ((LFV.get(d) or {}).get(nm) or [])
+                      if (s.get("boards") or 1) == 1 and str(s.get("code")) not in _yc)
+        if t.get("n1") != _exp_n1:
+            err("v62 %s/%s 新增首板不符" % (d, nm)); n_v62 += 1
+    # ③ 回测 chgB 抽样 60：买入日收盘涨幅独立重算
+    _bt_v = (D.get("nextRecsBacktest") or {}).get("records") or []
+    _bt_chg = [r for r in _bt_v if r.get("chgB") is not None]
+    for r in _rnd.sample(_bt_chg, min(60, len(_bt_chg))):
+        pv, cc = _pc62(r["code"], r["B"]), _cc62(r["code"], r["B"])
+        if pv and cc:
+            _e = round((cc / pv - 1) * 100, 2)
+            if abs(_e - r["chgB"]) > 0.02:
+                err("v62 %s %s chgB 复算不符 %s vs %s" % (r["B"], r["name"], _e, r["chgB"])); n_v62 += 1
+    print("v62 传导路径图：%d 个题材日（覆盖核对 %d），抽样 %d 复核 + chgB %d 笔抽样，异常 %d"
+          % (sum(len(v) for v in TRV.values()), _n_expect,
+             min(40, len(_tr_flat)), min(60, len(_bt_chg)), n_v62))
+    n_v48 += n_v62
+
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
     n_main = sum(1 for d in days if d.get("stage") == "主升")
