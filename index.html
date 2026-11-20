@@ -852,6 +852,17 @@
       <button class="ep-w" data-w="60">近 60 日</button>
       <span class="sub" id="ep-range" style="margin-left:10px"></span>
     </div>
+    <div class="ep-guide" style="background:#1a2745;border:1px solid #3d8bff55;border-radius:8px;padding:8px 12px;margin:10px 0;line-height:1.8;font-size:12px">
+      <b style="color:#ffd24a">怎么用这三页找机会（收盘后 5 分钟流程）：</b><br>
+      <b style="color:#78b0ff">第 1 步 · 看环境</b>：<b>循环健康度</b>＝「昨天买涨停的人，今天赚不赚钱」的打分（0-10）。
+      来了能赚、赚了还想来，接力资金才敢进。≥5 市场可参与，&lt;3 普亏慎接力，四大环节哪项低就弱在哪。<br>
+      <b style="color:#78b0ff">第 2 步 · 找画像</b>：本页看近 10/20/60 日「什么特征涨停后第二天最赚钱」（板位/封板时间/题材地位…），
+      最赚钱的 5 个特征就是当前市场的赚钱画像；最坑的 5 个是雷区。<br>
+      <b style="color:#78b0ff">第 3 步 · 列名单</b>：拉到底部「◎ 明日待验证」——今日涨停股里命中赚钱画像的名单（个股名点击看日K）。
+      <b>明天盘中验证</b>：竞价不强开、板块有助攻、健康度没跳水 → 延续确认才参与；高开秒杀或板块哑火 → 放弃。
+      命中画像≠买入信号，次日盘中确认才是买入依据。
+    </div>
+    <div id="ep-cycle"></div>
     <div id="ep-root"></div>
   </div>
 </section>
@@ -3374,6 +3385,9 @@ function skBucket(code){ let s=0; for(const c of code){ const n=+c; if(!isNaN(n)
 function stockKBars(code, atDate){
   if(SK_BARS[code] && SK_BARS[code].__frag) return Promise.resolve(SK_BARS[code]);
   const local = (window.REVIEW.klines||{})[code] || [];
+  /* v65：主包已内嵌近 60 日活跃股尾部 130 根 —— 非空直接用，点击秒开。
+     20MB 分片仅在本地无数据时才去拉（此前即便有内嵌数据也会先等分片下载完）。 */
+  if(local.length){ SK_BARS[code] = local; return Promise.resolve(local); }
   const b = skBucket(code);
   const take = o=>{
     const frag = o && o[code];
@@ -4472,6 +4486,40 @@ function paintEarn(){
     el.style.cursor='pointer';
     el.onclick=ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, null, pk.to); };
   });
+  paintEpCycle();   // v65：循环健康度紧凑条（v64 清空旧决策页时容器被删，现挂回赚钱效应页）
+}
+/* v65：循环健康度＝「昨天买涨停的人，今天赚不赚钱」四环节打分。紧凑显示最新交易日。 */
+function paintEpCycle(){
+  const host = document.getElementById('ep-cycle');
+  if(!host) return;
+  const days = ((window.REVIEW||{}).cycle||{}).days || [];
+  const row = days.length ? days[days.length-1] : null;
+  if(!row){ host.innerHTML=''; return; }
+  const col = CY_SCORE_COL;
+  const cell = (no, name, v, sub) => '<div style="flex:1;min-width:118px;background:#152238;border:1px solid #2b3a56;border-radius:8px;padding:5px 9px">'+
+    '<div style="font-size:10px;color:'+C.dim2+'">'+no+' '+name+'</div>'+
+    '<div style="font-size:16px;font-weight:800;color:'+col(v)+'">'+(v==null?'—':v.toFixed(1))+
+    '<span style="font-size:9px;color:'+C.dim2+';font-weight:400"> /2.5</span></div>'+
+    '<div style="font-size:9.5px;color:'+C.dim2+'">'+sub+'</div></div>';
+  const dstr = fmtDate(row.date);
+  let banner='';
+  if(row.neg) banner='<div style="margin-top:6px;background:rgba(245,69,92,.14);border:1px solid rgba(245,69,92,.45);border-radius:8px;'+
+    'padding:5px 10px;color:'+C.up+';font-weight:700;font-size:11.5px">⚠ 负反馈起点：昨日≥3板高位股剧烈亏钱'+
+    (row.negNames&&row.negNames.length?('：'+row.negNames.join('、')):'')+' —— 高位接力先回避</div>';
+  host.innerHTML = '<div style="margin-top:10px"><h4 style="margin:0 0 6px;font-size:13px">☯ 循环健康度 <span class="sub">赚钱效应的「环境温度」：昨天买涨停的人今天赚不赚钱，四环节各打 0-2.5 分（合计 0-10）</span></h4>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<div style="flex:1;min-width:140px;background:#1a2745;border:1px solid #3d8bff55;border-radius:8px;padding:5px 9px">'+
+        '<div style="font-size:10px;color:'+C.dim2+'">总健康度 · '+dstr+'</div>'+
+        '<div style="font-size:20px;font-weight:800;color:'+col(row.score)+'">'+(row.score==null?'—':row.score.toFixed(1))+
+        '<span style="font-size:10px;color:'+C.dim2+';font-weight:400"> /10</span></div>'+
+        '<div style="font-size:9.5px;color:'+C.dim2+'">'+(row.score>=5?'环境可参与':(row.score>=3?'偏弱谨慎':'普亏期慎接力'))+'</div>'+
+      '</div>'+
+      cell('①','买入示范',row.s1,'昨日≥2板今日不亏钱率 '+(row.r1!=null?(row.r1*100).toFixed(0)+'%':'—'))+
+      cell('②','溢价扩散',row.s2,'晋级 '+(row.r2a!=null?(row.r2a*100).toFixed(0)+'%':'—')+' · 红盘 '+(row.r2b!=null?(row.r2b*100).toFixed(0)+'%':'—'))+
+      cell('③','梯队接力',row.s3,'1→2板 '+(row.cnt12!=null?row.cnt12:'—')+' 只 · ≥2板 '+(row.cnt2p!=null?row.cnt2p:'—')+' 只')+
+      cell('④','高度打开',row.s4,'高度'+(row.dh>0?'+':'')+row.dh+'板 · 涨停'+(row.dz>0?'+':'')+row.dz+'家')+
+    '</div>'+banner+
+    '<div class="sub" style="font-size:10.5px;margin-top:4px">①②低＝昨天买涨停的人今天亏钱（接力谨慎） ③低＝首板不晋二级（梯队断档） ④低＝没人给高度（不追高位）</div></div>';
 }
 document.querySelectorAll('.ep-w').forEach(b=>{
   b.onclick = ()=>{ EP_W = +b.dataset.w; paintEarn(); };
