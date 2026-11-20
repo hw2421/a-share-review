@@ -881,6 +881,113 @@ print("v54 明日机会推荐：盈利画像 %d 笔盈利/%d 笔全部，决策�
          len(NEXT_RECS["byDate"]), len(_today_recs),
          sum(len(x["instances"]) for x in _today_recs)))
 
+# ---- v58：明日交易机会复盘（推荐个股「次日涨停买入」全量模拟回测） ----
+# 口径：对复盘决策每个决策日的每只推荐股（明日机会推荐 recs），
+#   次日 B=dates[i+1]：
+#     · B 未涨停（未封且未盘中触板）→ 「未涨停」买不进，不计盈亏；
+#     · B 一字涨停开盘封死 → 「一字买不进」；
+#     · 其余 → 按涨停价买入（封住=收盘价；盘中触板未封=涨停价，炸板前已成交）。
+#   卖出与山顶洞人完全同规则：次日继续涨停封住则持有；盘中破 -7% 止损；
+#   未涨停尾盘收盘价卖出；一字跌停顺延；期末仍涨停按最后收盘价估值。
+#   产出 nextRecsBacktest.records，前端交易复盘页按时间段筛选统计均盈亏。
+STOP_PCT_NR = 0.07
+
+def _nr_oneword(code, d, up=True):
+    b, pv = _dbar(code, d), _prev_close(code, d)
+    if not b or len(b) < 5 or not pv:
+        return False
+    lim = _lim_of(code)
+    if b[1] != b[2] or b[2] != b[3] or b[3] != b[4]:
+        return False
+    chg = b[2] / pv - 1
+    return chg >= (lim - .006) if up else chg <= -(lim - .006)
+
+_NR_RECS = []
+for _di, _d in enumerate(dates):
+    for _r in (NEXT_RECS.get("byDate") or {}).get(_d, {}).get("recs", []):
+        _NR_RECS.append((_di, _d, _r))
+
+_NR_OUT = []
+for _k, (_di, _d, _r) in enumerate(_NR_RECS):
+    if _di + 1 >= len(dates):
+        continue
+    code, B = str(_r["code"]), dates[_di + 1]
+    b, pv = _dbar(code, B), _prev_close(code, B)
+    if not b or len(b) < 5 or not pv:
+        continue
+    lim = _lim_of(code)
+    sealed = b[2] / pv - 1 >= lim - .006
+    touch = b[4] / pv - 1 >= lim - .006
+    rec = {
+        "d": _d, "B": B, "code": code,
+        "name": _r.get("name") or _NAME_ALL.get(code, code),
+        "theme": _r.get("theme") or "", "boards": _r.get("boards") or 0,
+        "level": _r.get("level") or "", "win": _r.get("win"),
+        "status": "", "buy": None, "sell": None, "sellD": "",
+        "hold": 0, "reason": "", "pnl": None,
+    }
+    if not (sealed or touch):
+        rec["status"] = "未涨停"
+    elif _nr_oneword(code, B, True):
+        rec["status"] = "一字买不进"
+    else:
+        buy = b[2] if sealed else round(pv * (1 + lim), 2)
+        rec.update({"status": "成交", "buy": round(buy, 2)})
+        # ---- 卖出模拟（与 strategies.simulate_exit 同规则） ----
+        _ki = _di + 1
+        deferred, out = 0, None
+        for j in range(_ki + 1, len(dates)):
+            t = dates[j]
+            tb, tpv = _dbar(code, t), _prev_close(code, t)
+            if not tb or len(tb) < 5 or not tpv:
+                continue
+            if _nr_oneword(code, t, False):
+                deferred += 1
+                continue
+            tag = ("（一字跌停顺延%d日）" % deferred) if deferred else ""
+            if tb[3] and tb[3] <= tpv * (1 - STOP_PCT_NR):
+                out = (round(tpv * (1 - STOP_PCT_NR), 2), t, "盘中-7%止损" + tag, j - _ki)
+                break
+            if code in pool_map.get(t, {}):
+                continue                      # 次日涨停（封住）→ 持仓
+            out = (tb[2], t, "尾盘未涨停" + tag, j - _ki)
+            break
+        if out is None:
+            _kb = KBARS.get(code) or {}
+            tail = [(x, _kb[x][2]) for x in sorted(_kb)
+                    if x > B and isinstance(_kb.get(x), list) and len(_kb[x]) >= 3 and _kb[x][2]]
+            if not tail:
+                rec["status"] = "无卖出数据"
+            else:
+                out = (tail[-1][1], tail[-1][0], "期末仍涨停·按末收盘", len(tail))
+        if out:
+            sell, sell_d, reason, hold = out
+            rec.update({"sell": sell, "sellD": sell_d, "hold": hold,
+                        "reason": reason,
+                        "pnl": round((sell - buy) / buy * 100, 2)})
+    _NR_OUT.append(rec)
+    if _k % 5000 == 0 and _k:
+        print("  机会回测进度 %d/%d" % (_k, len(_NR_RECS)))
+
+NR_BT = {
+    "records": _NR_OUT,
+    "rule": ("统计口径：对复盘决策「明日交易机会推荐」的全部推荐个股，模拟次日涨停买入"
+             "（封住=收盘价买入、盘中触板=涨停价买入、一字买不进、未涨停不计），"
+             "卖出与山顶洞人战法完全同规则：继续涨停封住则持有、盘中破-7%止损、"
+             "未涨停尾盘收盘卖出、一字跌停顺延、期末仍涨停按末收盘估值。"
+             "盈亏=(卖出价−买入价)/买入价。支持自定义起止时间段筛选。"),
+}
+print("v58 明日交易机会复盘：推荐 %d 笔 → 成交 %d / 一字买不进 %d / 未涨停 %d；"
+      "成交均盈亏 %s%%"
+      % (len(_NR_OUT),
+         sum(1 for x in _NR_OUT if x["status"] == "成交"),
+         sum(1 for x in _NR_OUT if x["status"] == "一字买不进"),
+         sum(1 for x in _NR_OUT if x["status"] == "未涨停"),
+         (round(sum(x["pnl"] for x in _NR_OUT if x["pnl"] is not None) /
+                max(1, sum(1 for x in _NR_OUT if x["pnl"] is not None)), 2)
+          if any(x["pnl"] is not None for x in _NR_OUT) else "—")))
+
+
 def _mood(entries, d, fresh):
     """空间龙头断板后的情绪三档（v45 用户口径）：
 
@@ -1149,6 +1256,7 @@ data = {
     "moneyLosers": MONEY_LOSERS,    # v55：个股亏钱效应（前一日≥3板 → 亏钱日剧烈亏钱，四类形态）
     "handover": HANDOVER,          # v55：新旧龙头交接事件序列（空间 + 题材，含同身位备选）
     "nextRecs": NEXT_RECS,         # v51：明日交易机会推荐（复盘前一日前置条件画像 + 决策日匹配）
+    "nextRecsBacktest": NR_BT,     # v58：明日交易机会复盘（推荐个股次日涨停买入模拟逐笔）
     "chances": chances,            # v17：当日机会池（全量符合买点候选，含一字/炸板）
     "reviewMeta": reviewMeta,      # 各战法买入 / 卖出逻辑说明
     "boardEarn": BOARD_EARN_SLIM,  # v29：板块赚钱效应验证（题材日 -> 题材 -> 明细）

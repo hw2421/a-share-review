@@ -75,19 +75,59 @@ def feat_sent(st):
     return (st.get('stage') or '未知') + '·' + zt_bucket(st.get('ztCount')) + '·' + supp_cat(st.get('suppress'))
 
 
-def feat_theme(T, th, money, LF):
-    """题材阶段特征（某日）：money 阶段 + 该题材梯队高度档。"""
+def feat_theme(T, th, money, LF, lad_stage=None):
+    """题材阶段特征（某日）：money 阶段 + 该题材梯队高度档。
+
+    v58：money 表（赚钱效应口径，需 ≥3 板且 ≥3 只涨停）没有的题材不再是
+    「未知」——回退用题材复盘自身数据（ladderFull 该题材的涨停家数序列）
+    按同一套规则补算 启动/加强/反复/转弱（lad_stage 由 compute() 预计算）。"""
     th = th or ''
     m = None
     for r in (money.get(T) or []):
         if r.get('theme') == th:
             m = r
             break
-    stage = (m.get('stage') if m else None) or '未知'
+    stage = (m.get('stage') if m else None) or ''
+    if not stage and lad_stage:
+        stage = (lad_stage.get(th) or {}).get(T) or ''
+    if not stage:
+        stage = '未知'
     arr = (LF.get(T) or {}).get(th) or []
     mb = max((x.get('boards') or 1) for x in arr) if arr else 0
     lad = '高≥3板' if mb >= 3 else ('中2板' if mb == 2 else '弱<2板')
     return stage + '·' + lad
+
+
+def build_ladder_stage(dates, LF):
+    """题材复盘阶段补算：每个题材按「在 ladderFull 出现的交易日序列」推阶段
+    （与 build_merged 赚钱效应补全同一套规则）：
+      首次出现 / 距上次≥5个交易日 → 启动；
+      距上次 2~4 个交易日 → 反复；
+      相邻交易日 → 涨停家数增加=加强、减少=转弱、持平=反复。"""
+    didx = {d: i for i, d in enumerate(dates)}
+    seq = defaultdict(list)
+    for d in dates:
+        for th, arr in (LF.get(d) or {}).items():
+            if arr:
+                seq[th].append((d, len(arr)))
+    out = {}
+    for th, arr in seq.items():
+        arr.sort()
+        st = {}
+        for k, (d, c) in enumerate(arr):
+            if k == 0:
+                st[d] = '启动'
+                continue
+            gap = didx[d] - didx[arr[k - 1][0]]
+            if gap >= 5:
+                st[d] = '启动'
+            elif gap >= 2:
+                st[d] = '反复'
+            else:
+                pc = arr[k - 1][1]
+                st[d] = '加强' if c > pc else ('转弱' if c < pc else '反复')
+        out[th] = st
+    return out
 
 
 def find_lad_entry(code, dayarr):
@@ -121,6 +161,7 @@ def _add(idx, key, rec):
 def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, MONEY=None):
     NAME = NAME or {}
     MONEY = MONEY or {}
+    LAD_STAGE = build_ladder_stage(dates, ladder_full)   # v58：题材复盘阶段补算表
     didx = {d: i for i, d in enumerate(dates)}
     SD = {s['date']: s for s in (days or [])}
 
@@ -143,7 +184,7 @@ def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, M
             'theme': th, 'boards': x.get('boards') or 0, 'pnl': float(pnl),
         }
         rec['fs'] = feat_sent(SD.get(T))
-        rec['ft'] = feat_theme(T, th, MONEY, ladder_full)
+        rec['ft'] = feat_theme(T, th, MONEY, ladder_full, LAD_STAGE)
         rec['fk'] = feat_stock(code, T, ladder_full, x.get('boards'), x.get('shape'), x.get('t'))
         rec['key3'] = (rec['fs'], rec['ft'], rec['fk'])
         trades.append(rec)
@@ -258,7 +299,7 @@ def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, M
                 if x.get('s') == '一字' or code in (yizi.get(d) or set()):
                     continue
                 seen.add(code)
-                ft = feat_theme(d, th, MONEY, ladder_full)
+                ft = feat_theme(d, th, MONEY, ladder_full, LAD_STAGE)
                 fk = feat_stock(code, d, ladder_full, x.get('boards'), x.get('s'), x.get('t'))
                 matched, level, desc = match(fs_day, ft, fk)
                 s = stat(matched)
@@ -307,5 +348,7 @@ def compute(dates, days, ladder_full, ladders, review_summit, yizi, NAME=None, M
                  '（板位档+涨停形态+首封时间档）三维特征；对决策日当日候选（2板及以上、非一字的'
                  '赚钱效应题材龙头）按同样三维逐级匹配历史画像（三维→二维→一维→全样本），'
                  '给出胜率/盈利笔数/均盈亏与推荐理由，并附历史上同档且真实盈利的买入实例。'
+                 '题材阶段口径：优先取题材炒作页/赚钱效应阶段；该题材当日无阶段记录时，'
+                 'v58 起用题材复盘自身涨停序列按同一规则补算（启动/加强/反复/转弱），不再出现「未知」。'
                  '「超额」=匹配画像胜率−全样本胜率；一字买不进已排除。'),
     }

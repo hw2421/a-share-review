@@ -93,9 +93,79 @@ def main():
 
     # 次新股（上市不足 60 个交易日）：build_merged 用 .stock_kline_cache 判定，
     # 校验脚本必须同口径豁免，否则 2021 年新上市的连板股会被误报「更高换手连板」。
-    _kcv = json.load(open(os.path.join(OUT, ".stock_kline_cache.json"), encoding="utf-8"))
+    # v58：流式解析日K缓存，只保留 {code: (首根日期, 根数)}——全量 json.load 峰值
+    # ~3GB 会顶爆 8GB 沙箱 cgroup（v58 缓存已含全量历史）。后续判定只需要这两项。
+    def _kcv_compact():
+        import json as _j
+        out = {}
+        fp = os.path.join(OUT, ".stock_kline_cache.json")
+        if not os.path.exists(fp):
+            return out
+        s = open(fp, encoding="utf-8", errors="ignore").read()
+        dec = _j.JSONDecoder()
+        i, n = 0, len(s)
+        while i < n and s[i] != "{":
+            i += 1
+        i += 1
+        while i < n:
+            while i < n and s[i] != '"':
+                if s[i] == "}":
+                    i = n
+                    break
+                i += 1
+            if i >= n:
+                break
+            try:
+                key, i = dec.raw_decode(s, i)
+            except Exception:
+                break
+            while i < n and s[i] in " \t\n:":
+                i += 1
+            try:
+                val, i = dec.raw_decode(s, i)
+                if isinstance(val, list) and val:
+                    out[str(key)] = (str(val[0][0]) if isinstance(val[0], list) else "",
+                                     len(val))
+            except Exception:
+                nxt = s.find(',"', i)
+                if nxt < 0:
+                    break
+                i = nxt + 1
+        return out
+    _kcv = _kcv_compact()          # {code: (first_date, n_bars)}
+
+    class _KcvView(dict):
+        """兼容 fd.new_stock_start 的最小视图：按需把 (first,n) 伪造成 bar 列表。"""
+        def __getitem__(self, c):
+            v = super().__getitem__(str(c))
+            return v
+        def get(self, c, default=None):
+            v = super().get(str(c))
+            return v
+    _kcv_view = _kcv_compact()
     # v52：与 build_merged 共用同一判定（历史早期新股reason兜底），杜绝口径漂移
-    _ipo = fd.new_stock_start(pools, dates, _kcv)
+    def _new_stock_start_compact(pools, dates):
+        idx = {d: i for i, d in enumerate(dates)}
+        starts = {}
+        for d in dates:
+            if d >= "20210101":
+                break
+            for s in pools.get(d, []):
+                r = str(s.get("reason") or "")
+                if "新股" not in r and "次新" not in r:
+                    continue
+                v = _kcv_view.get(s["code"])
+                if v and v[0] and v[0] <= d:
+                    continue
+                if s["code"] not in starts:
+                    starts[s["code"]] = idx[d]
+        for c, v in _kcv_view.items():
+            if v and 100 <= v[1] < 500 and v[0] in idx:
+                i = idx[v[0]]
+                if c not in starts or i < starts[c]:
+                    starts[c] = i
+        return starts
+    _ipo = _new_stock_start_compact(pools, dates)
 
     def _is_new(code, i):
         ii = _ipo.get(str(code))
@@ -298,7 +368,7 @@ def main():
     # v52：历史老股可能在完整日K缓存里有数据、但未进按需分片（需求日全在 2019-06 前
     # 被裁掉）→ 数据实际可用，不算缺失。仅缓存与分片都没有才算真缺。
     miss = {c for c in (clickable - allk)
-            if not (_kcv.get(str(c)) and len(_kcv[str(c)]) >= 5)}
+            if not (_kcv.get(str(c)) and _kcv[str(c)][1] >= 5)}
     if miss:
         err("个股日K缺失 %d 只：%s" % (len(miss), ",".join(sorted(miss)[:10])))
     sk = D.get("supKlines") or {}
@@ -310,7 +380,7 @@ def main():
         if d < KLINE_START:
             return True
         b = _kcv.get(str(code))
-        return not (b and b[0][0] <= d)
+        return not (b and b[0] and b[0] <= d)
     for day in days:
         for s in day.get("suppressStocks") or []:
             if sk.get(s["code"] + "_" + s["breakDate"]):
@@ -1298,13 +1368,42 @@ def main():
         st = st or {}
         return (st.get("stage") or "未知") + "·" + _zt54(st.get("ztCount")) + "·" + _supp54(st.get("suppress"))
     def _ft(T, th):
-        stage = "未知"
+        stage = ""
         for r in (NR_MONEY.get(T) or []):
-            if r.get("theme") == th: stage = r.get("stage") or "未知"; break
+            if r.get("theme") == th:
+                stage = r.get("stage") or ""
+                break
+        # v58：money 表无该题材时，用题材复盘自身 ladderFull 序列补算（与 next_recs 同规则）
+        if not stage:
+            stage = _lad_stage(th).get(T) or "未知"
         arr = (NR_LF.get(T) or {}).get(th) or []
         mb = max((x.get("boards") or 1) for x in arr) if arr else 0
         lad = "高≥3板" if mb >= 3 else ("中2板" if mb == 2 else "弱<2板")
         return stage + "·" + lad
+    # v58：题材复盘阶段补算表（启动/加强/反复/转弱）
+    _LS_CACHE = {}
+    def _lad_stage(th):
+        if th in _LS_CACHE:
+            return _LS_CACHE[th]
+        seq = []
+        for d in NR_DATES:
+            arr = (NR_LF.get(d) or {}).get(th) or []
+            if arr:
+                seq.append((d, len(arr)))
+        st = {}
+        for k, (d, c) in enumerate(seq):
+            if k == 0:
+                st[d] = "启动"; continue
+            gap = NR_DIDX[d] - NR_DIDX[seq[k - 1][0]]
+            if gap >= 5:
+                st[d] = "启动"
+            elif gap >= 2:
+                st[d] = "反复"
+            else:
+                pc = seq[k - 1][1]
+                st[d] = "加强" if c > pc else ("转弱" if c < pc else "反复")
+        _LS_CACHE[th] = st
+        return st
     def _fk(code, T, boards=0, shape="", t=""):
         ent = None
         for arr in (NR_LF.get(T) or {}).values():
@@ -1358,6 +1457,61 @@ def main():
           % (NR_FP.get("nProfit", 0), NR_BASE.get("n", 0), len(NR.get("byDate") or {}),
              n_rec, ex_checked, n_v54))
     n_v48 += n_v54
+
+    # ---- v58：明日交易机会复盘回测（nextRecsBacktest）独立复核 ----
+    NRB = D.get("nextRecsBacktest") or {}
+    n_v58 = 0
+    recs = NRB.get("records") or []
+    n_rec_total = sum(len((blk or {}).get("recs") or [])
+                      for blk in (NR.get("byDate") or {}).values())
+    # ① 推荐笔数对账（无次日/无K线的会被跳过，因此 records ≤ 推荐数）
+    if len(recs) > n_rec_total:
+        err("v58 回测记录 %d > 推荐笔数 %d" % (len(recs), n_rec_total)); n_v58 += 1
+    # ② 状态自洽 + pnl 复算（抽样 800 笔成交；分片按桶惰性加载防 OOM）
+    import random as _rnd
+    _KB58_BUCKETS = {}
+    def _kb58_bucket(code):
+        bkt = sum(int(ch) for ch in str(code) if ch.isdigit()) % 8
+        if bkt not in _KB58_BUCKETS:
+            fp = os.path.join(OUT, "klines", "klines_%d.json" % bkt)
+            try:
+                raw = json.load(open(fp, encoding="utf-8"))
+            except Exception:
+                raw = {}
+            _KB58_BUCKETS[bkt] = {str(c): {b[0]: b for b in bars if b}
+                                  for c, bars in raw.items()}
+        return _KB58_BUCKETS[bkt]
+    _rnd.seed(58)
+    deals = [x for x in recs if x.get("status") == "成交"]
+    # ① pnl 与买卖价算术自洽（止损/一字顺延的卖价不等于收盘价，逐笔语义复算只做抽样容差）
+    for x in recs:
+        if x.get("status") == "成交" and x.get("pnl") is None:
+            err("v58 成交无pnl: %s %s" % (x.get("d"), x.get("code"))); n_v58 += 1
+        if x.get("status") != "成交" and x.get("pnl") is not None:
+            err("v58 非成交却有pnl: %s %s" % (x.get("d"), x.get("code"))); n_v58 += 1
+        if x.get("pnl") is not None and x.get("buy"):
+            calc = (x["sell"] - x["buy"]) / x["buy"] * 100
+            if abs(calc - x["pnl"]) > 0.02:
+                err("v58 pnl 算术不自洽 %s %s: %s vs %s" % (x.get("d"), x.get("code"),
+                    round(calc, 2), x.get("pnl"))); n_v58 += 1
+    # ② 抽样：仅「尾盘未涨停/期末仍涨停（无顺延）」的卖价应≈卖出日收盘（分片 bar 容差 1%）
+    _tail = [x for x in deals
+             if (x.get("reason") or "").startswith("尾盘未涨停") or
+                ((x.get("reason") or "").startswith("期末仍涨停") and "顺延" not in (x.get("reason") or ""))]
+    for x in _rnd.sample(_tail, min(600, len(_tail))):
+        b = _kb58_bucket(x.get("code")).get(str(x.get("code"))) or {}
+        sb = b.get(x.get("sellD"))
+        if not sb:
+            continue
+        if abs((sb[2] - x["sell"]) / max(1e-9, x["sell"])) > 0.01:
+            err("v58 卖出价与分片收盘不符 %s %s: %s vs %s" % (x.get("d"), x.get("code"),
+                x.get("sell"), sb[2])); n_v58 += 1
+    print("v58 明日交易机会复盘：推荐 %d → 回测记录 %d（成交 %d / 一字买不进 %d / 未涨停 %d），"
+          "独立复核异常 %d"
+          % (n_rec_total, len(recs), len(deals),
+             sum(1 for x in recs if x.get("status") == "一字买不进"),
+             sum(1 for x in recs if x.get("status") == "未涨停"), n_v58))
+    n_v48 += n_v58
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")

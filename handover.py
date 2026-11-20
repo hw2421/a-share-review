@@ -72,10 +72,15 @@ def compute(dates, stages, ladder_full, NAME=None, limit=40):
     space_events = _chain(sp_seq, limit)
 
     # ---- 题材维度：每个题材的板块龙头批次 ----
+    # v58：板块交接不再展示首板批次 —— 龙头批次最高板 <2（纯首板）不入序列，
+    # 避免题材内刚起势的首板轮动被当成「新旧龙头交接」刷屏。
     theme_map = defaultdict(list)
     for d in dates:
         for th, arr in (ladder_full.get(d) or {}).items():
-            b = _top_batch(arr)
+            full = [x for x in arr if int(x.get("boards") or 1) >= 2]
+            if not full:
+                continue
+            b = _top_batch(full)
             if b:
                 theme_map[th].append((d, b))
     theme_events = {}
