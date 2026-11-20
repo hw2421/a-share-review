@@ -890,6 +890,23 @@ print("v63 循环仪表盘：%d 天，健康度均值 %.1f；负反馈起点 %d 
           max(1, sum(1 for r in CYCLE_OUT["days"] if r["score"] is not None))),
          sum(1 for r in CYCLE_OUT["days"] if r.get("neg"))))
 
+# ---- v64：赚钱效应复盘（决策页重建）----
+# 把近期全部涨停股平铺成「T 日涨停 → T+1 日验证」的样本，按 9 个特征维度分组算赚亏：
+# 板位 / 封板时间 / 开板次数 / 换手率 / 题材家数 / 题材地位 / 四阶段 / 涨停家数 / 健康度。
+# 三个结果口径：昨收买入→今收（主）、今开买入→今收、次日是否再涨停。
+import earn_profile as EP
+_YIZI_ALL = fd.yizi_map(pools)
+EP_OUT = EP.compute(dates, pools, ladder_full, days, CYCLE_MAP, KBARS,
+                    _YIZI_ALL, STOCK_THEME=carry)
+for _wk in EP_OUT["windows"]:
+    _p = EP_OUT["packs"][_wk]
+    _b = _p["base"]
+    print("v64 赚钱效应复盘 %s：%s~%s 样本 %d 笔，赚钱率 %.1f%%，昨收买 %+.2f%%，"
+          "今开买 %+.2f%%，晋级 %.1f%%；个股榜 %d 只，候选 %d 只"
+          % (_wk, _p["from"], _p["to"], _b["n"], _b["win"], _b["rc"],
+             (_b["ri"] if _b["ri"] is not None else 0), _b["zt"],
+             _p["stocks"]["total"], len(_p["cand"])))
+
 # ---- v51：明日交易机会推荐（复盘案例前一日前置条件统计 → 决策日匹配） ----
 # 放在形态回填之后，确保 ladder_full 元素已带「s」形态字段，可正确排除一字（买不进）。
 import next_recs as NR
@@ -1322,6 +1339,7 @@ data = {
     "ladders": ladders_out,          # 日期 -> 题材 -> {count,boards,ladder,maxB}（明细表/赚钱效应统一口径）
     "ladderFull": ladder_full,       # 日期 -> 题材 -> 当日梯队完整涨停个股（题材卡点梯队浮层）
     "stockTheme": carry,            # 个股 -> 最近一次归属题材（刷新时补当天题材用）
+    "earnProfile": EP_OUT,          # v64 赚钱效应复盘：特征归因 + 个股赚亏榜 + 明日待验证
     "lb": lb,                       # 日期 -> 当日连板股（2板+，含题材）
     "themeSource": {d: theme_source.get(d, "tgb") for d in theme_dates},
     "money": money,                 # 赚钱效应：板块当日有 ≥3 板个股再涨停的题材

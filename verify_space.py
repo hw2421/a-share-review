@@ -1580,12 +1580,6 @@ def main():
         _pd = dates[_ii - 1]
         _hi2 = [s for s in (pools.get(_pd) or [])
                 if (s.get("boards") or 1) >= 2 and _closev(s["code"], _pd) and _closev(s["code"], r["date"])]
-        if r["date"] == "20190402":
-            import sys as _s
-            print("DBG 20190402 hi2:", [(s.get("name"), s["code"], s.get("boards"),
-                                        _closev(s["code"], _pd), _closev(s["code"], r["date"])) for s in _hi2],
-                  "r1=%.2f" % (sum(1 for s in _hi2 if _closev(s["code"], r["date"]) >= _closev(s["code"], _pd)) / len(_hi2)),
-                  file=_s.stderr)
         if not _hi2:
             continue
         _r1 = sum(1 for s in _hi2 if _closev(s["code"], r["date"]) >= _closev(s["code"], _pd)) / len(_hi2)
@@ -1693,6 +1687,123 @@ def main():
           % (sum(len(v) for v in TRV.values()), _n_expect,
              min(40, len(_tr_flat)), min(60, len(_bt_chg)), n_v62))
     n_v48 += n_v62
+
+    # ---- v64：赚钱效应复盘（earnProfile 独立复核）----
+    n_v64 = 0
+    EPV = D.get("earnProfile") or {}
+    _packs = EPV.get("packs") or {}
+    if not _packs:
+        err("v64 缺 earnProfile.packs"); n_v64 += 1
+    else:
+        # ① 窗口边界：截止日必须是最新交易日，起点按窗口回推
+        for _wk, _w in (("w10", 10), ("w20", 20), ("w60", 60)):
+            _pk = _packs.get(_wk)
+            if not _pk:
+                err("v64 缺窗口 %s" % _wk); n_v64 += 1; continue
+            if _pk.get("to") != dates[-1]:
+                err("v64 %s 截止日非最新交易日" % _wk); n_v64 += 1
+            _expf = dates[-_w] if len(dates) >= _w else dates[0]
+            if _pk.get("from") != _expf:
+                err("v64 %s 起始日不符 %s vs %s" % (_wk, _pk.get("from"), _expf)); n_v64 += 1
+            if not ((_pk.get("base") or {}).get("n")):
+                err("v64 %s 样本为空" % _wk); n_v64 += 1
+
+        # ② 独立重建近 61 日样本（同口径但独立实现），复算 w20
+        _lfmap = {}
+        for _d0, _m in (D.get("ladderFull") or {}).items():
+            for _nm, _v in _m.items():
+                _arr = _v.get("stocks") if isinstance(_v, dict) else _v
+                for _s0 in (_arr or []):
+                    _lfmap[(_d0, str(_s0.get("code")))] = _nm
+        _carry = D.get("stockTheme") or {}
+        _stgm = {r["date"]: r for r in days}
+        _smp = []
+        for _i in range(max(0, len(dates) - 61), len(dates) - 1):
+            _d, _d1 = dates[_i], dates[_i + 1]
+            _yzd = {str(x) for x in (yz.get(_d) or set())}
+            _nxt = {str(s.get("code")) for s in (pools.get(_d1) or [])}
+            _pl = pools.get(_d) or []
+            _tm = {str(s.get("code")): (_lfmap.get((_d, str(s.get("code"))))
+                                        or _carry.get(str(s.get("code"))) or "") for s in _pl}
+            _thn, _thm = {}, {}
+            for _s0 in _pl:
+                _t0 = _tm[str(_s0.get("code"))]
+                if _t0:
+                    _thn[_t0] = _thn.get(_t0, 0) + 1
+                    _thm[_t0] = max(_thm.get(_t0, 0), _s0.get("boards") or 1)
+            for _s0 in _pl:
+                _c0 = str(_s0.get("code"))
+                if _c0 in _yzd:
+                    continue
+                _kb = _kb58_bucket(_c0).get(_c0) or {}
+                _bT, _b1 = _kb.get(_d), _kb.get(_d1)
+                if not _bT or not _b1 or not _bT[2] or not _b1[1]:
+                    continue
+                _t0 = _tm.get(_c0) or ""
+                _smp.append({
+                    "d": _d, "code": _c0, "boards": _s0.get("boards") or 1,
+                    "rc": (_b1[2] / _bT[2] - 1) * 100,
+                    "ri": (_b1[2] / _b1[1] - 1) * 100,
+                    "zt": 1 if _c0 in _nxt else 0,
+                    "stage": (_stgm.get(_d) or {}).get("stage") or "未知",
+                })
+        _wd = set(dates[-20:])
+        _ss = [x for x in _smp if x["d"] in _wd]
+        _p20 = _packs.get("w20") or {}
+        _b20 = _p20.get("base") or {}
+        if len(_ss) != _b20.get("n"):
+            err("v64 w20 样本数复算不符 %d vs %s" % (len(_ss), _b20.get("n"))); n_v64 += 1
+        elif _ss:
+            _calc = {
+                "win": sum(1 for x in _ss if x["rc"] > 0) / len(_ss) * 100,
+                "rc": sum(x["rc"] for x in _ss) / len(_ss),
+                "ri": sum(x["ri"] for x in _ss) / len(_ss),
+                "zt": sum(x["zt"] for x in _ss) / len(_ss) * 100,
+            }
+            for _k, _tol in (("win", .15), ("rc", .03), ("ri", .03), ("zt", .15)):
+                _gv = _b20.get(_k)
+                if _gv is None or abs(_gv - _calc[_k]) > _tol:
+                    err("v64 w20 %s 复算不符 %s vs %.3f" % (_k, _gv, _calc[_k])); n_v64 += 1
+        # ③ 板位 / 四阶段两个维度逐档复算（样本数 + 赚钱率）
+        def _bk64(b):
+            b = b or 1
+            return "1板" if b <= 1 else ("2板" if b == 2 else ("3板" if b == 3 else "4板+"))
+        for _key, _fn in (("boards", lambda x: _bk64(x["boards"])),
+                          ("stage", lambda x: x["stage"])):
+            _dm = next((x for x in (_p20.get("dims") or []) if x.get("key") == _key), None)
+            if not _dm:
+                err("v64 缺维度 %s" % _key); n_v64 += 1; continue
+            _g64 = {}
+            for _x in _ss:
+                _g64.setdefault(_fn(_x), []).append(_x)
+            _tot = 0
+            for _it in (_dm.get("items") or []):
+                _g = _g64.get(_it["k"]) or []
+                _tot += _it["n"]
+                if len(_g) != _it["n"]:
+                    err("v64 %s·%s 样本数不符 %d vs %d" % (_key, _it["k"], len(_g), _it["n"])); n_v64 += 1
+                elif _g:
+                    _w2 = sum(1 for x in _g if x["rc"] > 0) / len(_g) * 100
+                    if abs(_w2 - _it["win"]) > .15:
+                        err("v64 %s·%s 赚钱率不符 %.2f vs %.2f" % (_key, _it["k"], _w2, _it["win"])); n_v64 += 1
+            if _tot != len(_ss):
+                err("v64 %s 各档样本合计 %d ≠ 样本总数 %d" % (_key, _tot, len(_ss))); n_v64 += 1
+        # ④ 个股榜抽样：按 code 独立聚合，对账次数与笔均
+        for _r in (((_p20.get("stocks") or {}).get("up") or [])[:5] +
+                   ((_p20.get("stocks") or {}).get("down") or [])[:5]):
+            _g = [x for x in _ss if x["code"] == str(_r.get("code"))]
+            if len(_g) != _r.get("n"):
+                err("v64 个股榜 %s 次数不符 %d vs %s" % (_r.get("name"), len(_g), _r.get("n"))); n_v64 += 1
+            elif _g and abs(sum(x["rc"] for x in _g) / len(_g) - _r["rc"]) > .02:
+                err("v64 个股榜 %s 笔均不符" % _r.get("name")); n_v64 += 1
+        # ⑤ 明日待验证：今日涨停（非一字）家数与候选池覆盖
+        _tz = {str(x) for x in (yz.get(dates[-1]) or set())}
+        _tn = len([s for s in (pools.get(dates[-1]) or []) if str(s.get("code")) not in _tz])
+        if len((_p20.get("cand") or [])) > _tn:
+            err("v64 候选 %d > 今日可参与涨停 %d" % (len(_p20.get("cand") or []), _tn)); n_v64 += 1
+        print("v64 赚钱效应复盘：窗口 %s，w20 样本 %d 笔独立复算（基准/板位/四阶段/个股榜/候选），异常 %d"
+              % ("/".join(sorted(_packs)), len(_ss), n_v64))
+    n_v48 += n_v64
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")

@@ -746,6 +746,34 @@
     .scroll{max-height:none!important;overflow:visible}
     #kpop{width:96vw;height:min(680px,90vh)}
   }
+
+  /* ---------- v64 赚钱效应复盘 ---------- */
+  .ep-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+  .ep-lb{color:var(--dim2);font-size:11px}
+  .ep-w{background:#152238;color:#9fb0cc;border:1px solid #2b3a56;border-radius:6px;
+        padding:3px 10px;font-size:12px;cursor:pointer}
+  .ep-w:hover{border-color:#3d8bff}
+  .ep-w.on{background:#1b4a90;color:#fff;border-color:#78b0ff;font-weight:700}
+  .ep-sum{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .ep-k{flex:1;min-width:118px;background:#152238;border:1px solid #2b3a56;border-radius:8px;padding:8px 12px}
+  .ep-k .t{font-size:10.5px;color:var(--dim2)}
+  .ep-k .v{font-size:21px;font-weight:800;line-height:1.25}
+  .ep-k .s{font-size:10px;color:var(--dim2)}
+  .ep-note{margin-top:10px;background:#152238;border-left:3px solid #3d8bff;border-radius:6px;
+           padding:8px 12px;font-size:12.5px;line-height:1.75}
+  .ep-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .ep-card{background:#152238;border:1px solid #2b3a56;border-radius:8px;padding:8px 10px}
+  .ep-card h5{margin:0 0 6px;font-size:12px}
+  .ep-row{display:flex;justify-content:space-between;gap:8px;font-size:12px;
+          padding:3px 0;border-bottom:1px dashed #202a40}
+  .ep-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+  .ep-tbl th{background:#152238;color:#8fa0bd;font-weight:600;font-size:11px;
+             padding:4px 6px;text-align:right}
+  .ep-tbl th:first-child,.ep-tbl td:first-child{text-align:left}
+  .ep-tbl td{padding:3px 6px;text-align:right;border-bottom:1px solid #1b2438}
+  .ep-dim h5{margin:12px 0 2px;font-size:12px;color:#ffd24a}
+  .ep-few{opacity:.42}
+  @media(max-width:860px){.ep-2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -756,8 +784,8 @@
       <button data-t="market" class="on">空间情绪</button>
       <button data-t="theme">题材炒作</button>
       <button data-t="ladder">连板梯队</button>
-      <button data-t="decision">复盘决策</button>
-      <button data-t="winners">赚亏效应</button>
+      <button data-t="decision">赚钱效应</button>
+      <button data-t="winners">当日赚亏</button>
       <button data-t="review">交易复盘</button>
     </nav>
     <span class="upd" id="upd">--</span>
@@ -816,16 +844,15 @@
 
 <section class="page" id="page-decision">
   <div class="card">
-    <h3>复盘决策 <span class="sub">今日市场阶段 · 空间龙头断板表现与断板后日K（今日断板取最新、晋级取上一批） · 赚钱效应题材梯队（只列连板股） · 昨日涨停今日赚钱效应（人气板块） · 活跃股池</span></h3>
-    <div class="ch-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button id="dc-prev" class="ch-go">◀ 上一交易日</button>
-      <select id="dc-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
-      <button id="dc-next" class="ch-go">下一交易日 ▶</button>
-      <button id="dc-today" class="ch-go">今日</button>
-      <span id="dc-live" class="sub" style="margin-left:4px"></span>
+    <h3>赚钱效应复盘 <span class="sub" id="ep-hd">近 20 个交易日 · 全部涨停股的次日验证 —— 谁在赚钱、谁在亏钱、凭什么赚钱</span></h3>
+    <div class="ep-bar">
+      <span class="ep-lb">统计窗口</span>
+      <button class="ep-w" data-w="10">近 10 日</button>
+      <button class="ep-w on" data-w="20">近 20 日</button>
+      <button class="ep-w" data-w="60">近 60 日</button>
+      <span class="sub" id="ep-range" style="margin-left:10px"></span>
     </div>
-    <div id="dc-cycle"></div>
-    <div id="dc-body"></div>
+    <div id="ep-root"></div>
   </div>
 </section>
 
@@ -4313,6 +4340,143 @@ function initHistNav(){
    ③（v41/v42）昨日涨停 → 今日赚钱效应：只列有具体题材的板块，每组给个股明细
       （今日连板高度 / 涨停时间 / 涨跌幅，可点日K），识别人气板块；
    ④（v42）活跃股池：近 10 日涨停 ≥5 次、近两日无跌停，按题材分组排列。 */
+/* ================= v64 赚钱效应复盘（决策页重建） ================= */
+let EP_W = 20;
+const EP_COL = v => v==null ? C.dim2 : (v>0 ? C.up : C.down);
+const EP_SGN = (v,d) => v==null ? '—' : (v>0?'+':'')+v.toFixed(d==null?2:d)+'%';
+
+function paintEarn(){
+  const root = document.getElementById('ep-root');
+  if(!root) return;
+  const E = (window.REVIEW||{}).earnProfile || {};
+  const pk = (E.packs||{})['w'+EP_W];
+  document.querySelectorAll('.ep-w').forEach(b=>b.classList.toggle('on', +b.dataset.w===EP_W));
+  if(!pk){ root.innerHTML='<div class="sub" style="padding:12px">暂无赚钱效应数据（需重新生成数据）</div>'; return; }
+  const b = pk.base || {};
+  const hd = document.getElementById('ep-hd'), rg = document.getElementById('ep-range');
+  if(hd) hd.textContent = '近 '+EP_W+' 个交易日 · 全部涨停股的次日验证 —— 谁在赚钱、谁在亏钱、凭什么赚钱';
+  if(rg) rg.textContent = fmtDate(pk.from)+' ~ '+fmtDate(pk.to)+' · 共 '+(b.n||0)+' 笔样本（剔除一字板）';
+
+  const top = pk.top||[], bot = pk.bottom||[];
+
+  /* ① 结论条 */
+  let h = '<div class="ep-sum">';
+  h += '<div class="ep-k"><div class="t">赚钱率（今收 &gt; 昨收）</div>'+
+       '<div class="v" style="color:'+EP_COL((b.win==null?null:b.win-50))+'">'+(b.win==null?'—':b.win.toFixed(1)+'%')+'</div>'+
+       '<div class="s">'+(b.n||0)+' 笔样本 · 亏钱占 '+(b.win==null?'—':(100-b.win).toFixed(1)+'%')+'</div></div>';
+  h += '<div class="ep-k"><div class="t">昨收买入 → 今收</div><div class="v" style="color:'+EP_COL(b.rc)+'">'+EP_SGN(b.rc)+'</div><div class="s">持筹者笔均（主口径）</div></div>';
+  h += '<div class="ep-k"><div class="t">今开买入 → 今收</div><div class="v" style="color:'+EP_COL(b.ri)+'">'+EP_SGN(b.ri)+'</div><div class="s">接力者笔均（剔除跳空）</div></div>';
+  h += '<div class="ep-k"><div class="t">次日再涨停（晋级）</div><div class="v" style="color:'+C.gold+'">'+(b.zt==null?'—':b.zt.toFixed(1)+'%')+'</div><div class="s">连板晋级率</div></div>';
+  h += '</div>';
+
+  /* ② 一句话结论 */
+  const f = x => x.dim+'·<b>'+x.k+'</b>';
+  let concl = '这段时间涨停股次日整体' + ((b.rc||0)>0 ? '<b style="color:'+C.up+'">微赚</b>' : '<b style="color:'+C.down+'">亏钱</b>') +
+    '（笔均 '+EP_SGN(b.rc)+'，赚钱率 '+(b.win==null?'—':b.win.toFixed(0)+'%')+'）。';
+  if(top.length) concl += '最赚钱的特征是 <b style="color:'+C.up+'">'+f(top[0])+'</b>（'+top[0].n+' 笔，赚钱率 '+top[0].win.toFixed(0)+'%，笔均 '+EP_SGN(top[0].rc)+'）';
+  if(top.length>1) concl += '、<b style="color:'+C.up+'">'+f(top[1])+'</b>（'+EP_SGN(top[1].rc)+'）';
+  concl += '；';
+  if(bot.length) concl += '最坑的是 <b style="color:'+C.down+'">'+f(bot[0])+'</b>（'+bot[0].n+' 笔，赚钱率 '+bot[0].win.toFixed(0)+'%，笔均 '+EP_SGN(bot[0].rc)+'）。';
+  h += '<div class="ep-note">'+concl+'</div>';
+
+  /* ③ 最强 / 最弱 */
+  const card = (title, arr, up) => {
+    let s = '<div class="ep-card"><h5 style="color:'+(up?C.up:C.down)+'">'+title+'</h5>';
+    arr.forEach((x,i)=>{
+      s += '<div class="ep-row"><div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+           '<span style="color:'+C.dim2+';font-size:10px">'+(i+1)+'</span> '+x.dim+' · <b>'+x.k+'</b></div>'+
+           '<div style="width:52px;text-align:right;color:'+C.dim2+';font-size:11px">'+x.n+' 笔</div>'+
+           '<div style="width:52px;text-align:right;color:'+(x.win>=50?C.up:C.down)+';font-size:11px">'+x.win.toFixed(0)+'%</div>'+
+           '<div style="width:64px;text-align:right;color:'+EP_COL(x.rc)+';font-weight:700">'+EP_SGN(x.rc)+'</div></div>';
+    });
+    return s+'</div>';
+  };
+  h += '<div class="ep-2">'+card('▲ 最赚钱的 5 个特征', top, true)+card('▼ 相对最弱的 5 个特征（超额最低）', bot, false)+'</div>';
+
+  /* ④ 个股榜（谁在赚 / 谁在亏） */
+  const st = pk.stocks||{up:[],down:[]};
+  const slist = arr => arr.length ? arr.map(r=>'<div class="ep-row">'+
+      '<div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+        '<span class="nr-stk" data-c="'+r.code+'" data-n="'+r.name+'" title="点击看日K">'+r.name+'</span>'+
+        ' <span style="color:var(--dim2);font-size:10px">'+r.code+'</span>'+
+        (r.theme?' <span style="color:#8fa0bd;font-size:10px">'+r.theme+'</span>':'')+'</div>'+
+      '<div style="width:64px;text-align:right;color:'+EP_COL(r.rc)+';font-weight:700">'+EP_SGN(r.rc)+'</div>'+
+      '<div style="width:88px;text-align:right;color:var(--dim2);font-size:10.5px">'+r.n+'次 · 胜'+r.win.toFixed(0)+'%</div></div>').join('')
+    : '<div class="sub" style="padding:6px">无</div>';
+  h += '<div class="ep-2" style="margin-top:16px">'+
+    '<div class="ep-card"><h5 style="color:'+C.up+'">▲ 近期持续赚钱的个股</h5>'+
+      '<div class="sub" style="font-size:10.5px;margin-bottom:4px">按「涨停后次日」笔均收益排序，出现 ≥2 次</div>'+slist(st.up)+'</div>'+
+    '<div class="ep-card"><h5 style="color:'+C.down+'">▼ 近期持续亏钱的个股</h5>'+
+      '<div class="sub" style="font-size:10.5px;margin-bottom:4px">同样口径排在末尾的</div>'+slist(st.down)+'</div>'+
+    '</div>';
+
+  /* ⑤ 特征归因 */
+  h += '<div style="margin-top:16px"><h4 style="margin:0 0 2px;font-size:13px">特征归因 · 逐维度对照</h4>'+
+       '<div class="sub" style="font-size:11px">超额＝该档笔均 − 同窗口全样本笔均。只有样本 ≥30 的档参与最强/最弱排序，样本少的整行变暗。</div>';
+  (pk.dims||[]).forEach(dm=>{
+    let t = '<div><h5 style="margin:12px 0 2px;font-size:12px;color:#ffd24a">'+dm.name+'</h5>'+
+      '<table class="ep-tbl"><thead><tr><th>'+dm.name+'</th><th>样本</th><th>赚钱率</th><th>昨收买</th><th>今开买</th><th>晋级</th><th>超额</th></tr></thead><tbody>';
+    dm.items.forEach(it=>{
+      t += '<tr class="'+(it.few?'ep-few':'')+'"><td>'+it.k+'</td><td>'+it.n+'</td>'+
+        '<td style="color:'+(it.win>=50?C.up:C.down)+'">'+it.win.toFixed(0)+'%</td>'+
+        '<td style="color:'+EP_COL(it.rc)+'">'+EP_SGN(it.rc)+'</td>'+
+        '<td style="color:'+EP_COL(it.ri)+'">'+EP_SGN(it.ri)+'</td>'+
+        '<td style="color:'+C.dim2+'">'+it.zt.toFixed(0)+'%</td>'+
+        '<td style="color:'+EP_COL(it.ex)+';font-weight:700">'+(it.ex==null?'—':(it.ex>0?'+':'')+it.ex.toFixed(2))+'</td></tr>';
+    });
+    h += t+'</tbody></table></div>';
+  });
+  h += '</div>';
+
+  /* ⑥ 交叉 */
+  const crosses = (pk.cross||[]).filter(c=>c.cells&&c.cells.length);
+  if(crosses.length){
+    h += '<details style="margin-top:14px"><summary style="cursor:pointer;font-size:12.5px;color:#ffd24a">⇄ 两个维度交叉看（哪些组合最能赚、哪些最能亏）</summary>';
+    crosses.forEach(c=>{
+      let t = '<div><h5 style="margin:12px 0 2px;font-size:12px;color:#ffd24a">'+c.name+'</h5>'+
+        '<table class="ep-tbl"><thead><tr><th>组合</th><th>样本</th><th>赚钱率</th><th>昨收买</th><th>晋级</th></tr></thead><tbody>';
+      c.cells.forEach(x=>{
+        t += '<tr><td>'+x.a+' × '+x.b+'</td><td>'+x.n+'</td>'+
+             '<td style="color:'+(x.win>=50?C.up:C.down)+'">'+x.win.toFixed(0)+'%</td>'+
+             '<td style="color:'+EP_COL(x.rc)+';font-weight:700">'+EP_SGN(x.rc)+'</td>'+
+             '<td style="color:'+C.dim2+'">'+x.zt.toFixed(0)+'%</td></tr>';
+      });
+      h += t+'</tbody></table></div>';
+    });
+    h += '</details>';
+  }
+
+  /* ⑦ 明日待验证 */
+  const cd = pk.cand||[];
+  if(cd.length){
+    h += '<div style="margin-top:16px"><h4 style="margin:0 0 2px;font-size:13px">◎ 明日待验证 · 今日涨停股按赚钱特征匹配</h4>'+
+         '<div class="sub" style="font-size:11px">特征分＝命中的强特征超额之和（正=符合赚钱画像，负=踩中亏钱特征）。命中不等于买入信号，明日竞价与板块助攻才是验证。</div>'+
+         '<table class="ep-tbl"><thead><tr><th>个股</th><th style="text-align:left">题材</th><th>板位</th><th>特征分</th><th style="text-align:left">命中 / 踩雷</th></tr></thead><tbody>';
+    cd.forEach(x=>{
+      const hits = (x.hits||[]).slice(0,4).map(y=>'<span style="color:'+C.up+';background:rgba(245,69,92,.12);border-radius:4px;padding:0 4px;margin-right:3px;font-size:10.5px">'+y.dim+'·'+y.k+'</span>').join('');
+      const miss = (x.miss||[]).slice(0,2).map(y=>'<span style="color:'+C.down+';background:rgba(46,189,133,.12);border-radius:4px;padding:0 4px;margin-right:3px;font-size:10.5px">'+y.dim+'·'+y.k+'</span>').join('');
+      h += '<tr><td><span class="nr-stk" data-c="'+x.code+'" data-n="'+x.name+'" title="点击看日K">'+x.name+'</span> '+
+           '<span style="color:var(--dim2);font-size:10px">'+x.code+'</span></td>'+
+           '<td style="text-align:left">'+x.theme+'</td><td>'+x.boards+' 板</td>'+
+           '<td style="color:'+EP_COL(x.score)+';font-weight:800">'+(x.score==null?'—':(x.score>0?'+':'')+x.score.toFixed(2))+'</td>'+
+           '<td style="text-align:left">'+hits+' '+miss+'</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+
+  /* ⑧ 口径 */
+  h += '<div class="sub" style="margin-top:12px;color:var(--dim2);line-height:1.7;font-size:11px">'+(E.rule||'')+'</div>';
+
+  root.innerHTML = h;
+  root.querySelectorAll('[data-c]').forEach(el=>{
+    el.style.cursor='pointer';
+    el.onclick=ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, null, pk.to); };
+  });
+}
+document.querySelectorAll('.ep-w').forEach(b=>{
+  b.onclick = ()=>{ EP_W = +b.dataset.w; paintEarn(); };
+});
+
 let DC_DATE=null;
 const _pct=v=> v==null? '-' :
   '<span style="color:'+(v>=0?C.up:C.down)+'">'+(v>0?'+':'')+v.toFixed(2)+'%</span>';
@@ -4784,11 +4948,7 @@ function dcStep(n){
   document.getElementById('dc-date').value=DC_DATE;
   paintDecision();
 }
-/* 日期导航事件 */
-document.getElementById('dc-date').onchange=e=>{ DC_DATE=e.target.value; paintDecision(); };
-document.getElementById('dc-prev').onclick=()=>dcStep(-1);
-document.getElementById('dc-next').onclick=()=>dcStep(1);
-document.getElementById('dc-today').onclick=()=>{ DC_DATE=window.REVIEW.today; document.getElementById('dc-date').value=DC_DATE; paintDecision(); };
+/* 日期导航事件（v64：决策页已重建为赚钱效应复盘，旧的逐日决策页与事件绑定一并下线） */
 
 /* 连板梯队日期导航（v48：与复盘决策同形式） */
 function ldStep(n){
@@ -4869,7 +5029,7 @@ function switchTab(t){
   const tlist = document.getElementById('theme-list');
   if(tlist) tlist.scrollTop = 0;              // 题材按时间降序，最新在最上
   if(t==='ladder') renderLadder(LADDER_DATE);
-  if(t==='decision') renderDecision();
+  if(t==='decision') paintEarn();
   if(t==='winners') renderWinners();
   if(t==='review') setTimeout(rvFreezeCols, 20);   // 页面可见后再量「买入日」列宽（隐藏时宽度为 0）
   if(t==='market' && mktChart) setTimeout(()=>mktChart.resize(), 30);

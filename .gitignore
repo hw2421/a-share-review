@@ -28,3 +28,6 @@ __pycache__/
 .gh_token
 .playwright-cli/
 .stock_kline_cache.json.corrupt
+
+# ---- build 中断残留的临时缓存 ----
+.tmp_cache_*

@@ -3955,5 +3955,117 @@
   "src": "https://sina.cn/news/detail/5367025914609979.html",
   "via": "weibo",
   "postTime": "2026-11-19 17:55"
+ },
+ "20261120": {
+  "themes": [
+   {
+    "name": "PCB",
+    "count": 6,
+    "amount": 56.0,
+    "stocks": [
+     {
+      "code": "002579",
+      "name": "中京电子",
+      "boards": 2,
+      "reason": "PCB+先进封装",
+      "time": "9:36",
+      "hunan": true
+     },
+     {
+      "code": "002741",
+      "name": "光华科技",
+      "boards": 1,
+      "reason": "PCB+光刻胶",
+      "time": "9:36",
+      "hunan": true
+     },
+     {
+      "code": "000823",
+      "name": "超声电子",
+      "boards": 1,
+      "reason": "PCB",
+      "time": "10:00",
+      "hunan": true
+     },
+     {
+      "code": "605058",
+      "name": "澳弘电子",
+      "boards": 1,
+      "reason": "PCB",
+      "time": "10:04",
+      "hunan": true
+     },
+     {
+      "code": "301132",
+      "name": "满坤科技",
+      "boards": 1,
+      "reason": "PCB",
+      "time": "11:20",
+      "hunan": true
+     },
+     {
+      "code": "603386",
+      "name": "骏亚科技",
+      "boards": 1,
+      "reason": "PCB",
+      "time": "11:20",
+      "hunan": true
+     }
+    ],
+    "maxB": 2
+   },
+   {
+    "name": "半导体",
+    "count": 5,
+    "amount": 27.0,
+    "stocks": [
+     {
+      "code": "603324",
+      "name": "盛剑科技",
+      "boards": 4,
+      "reason": "光刻胶",
+      "time": "14:07",
+      "hunan": true
+     },
+     {
+      "code": "603004",
+      "name": "鼎龙科技",
+      "boards": 1,
+      "reason": "光刻胶",
+      "time": "10:30",
+      "hunan": true
+     },
+     {
+      "code": "603948",
+      "name": "建业股份",
+      "boards": 1,
+      "reason": "半导体材料",
+      "time": "11:17",
+      "hunan": true
+     },
+     {
+      "code": "300812",
+      "name": "易天股份",
+      "boards": 1,
+      "reason": "先进封装",
+      "time": "13:11",
+      "hunan": true
+     },
+     {
+      "code": "600360",
+      "name": "华微电子",
+      "boards": 1,
+      "reason": "功率半导体",
+      "time": "14:49",
+      "hunan": true
+     }
+    ],
+    "maxB": 4
+   }
+  ],
+  "src": "https://www.tgb.cn/a/2wSH7MteLrz",
+  "via": "tgb",
+  "postTime": "11.20湖南人消息汇总+晚间消息汇总",
+  "boards": 30
  }
 }
