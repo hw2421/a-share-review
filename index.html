@@ -1022,7 +1022,7 @@
 
 <section class="page" id="page-decision">
   <div class="card">
-    <h3>赚钱效应 <span id="dp-stg-decision"></span><span class="sub" id="ep-hd">近 1 个交易日 · 连续两日换手赚钱机会个股（3板或以上）</span></h3>
+    <h3>赚钱效应 <span id="dp-stg-decision"></span><span class="sub" id="ep-hd">近 1 个交易日 · 赚钱效应股：3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日最高价（昨日买入者全部获利）</span></h3>
     <div class="ep-bar">
       <span class="ep-lb">统计窗口</span>
       <button class="ep-w on" data-w="1">近 1 日</button>
@@ -1051,7 +1051,7 @@
 <!-- ============ 历史复盘（v73：赚钱效应股断板跟踪 + 空间龙头叠加） ============ -->
 <section class="page" id="page-hist">
   <div class="card">
-    <h3>历史复盘 <span class="sub">历史全部赚钱效应股（连续两天可换手买入且涨停的 3 板或以上）· 按日期排列（日期带市场阶段与空间高度）· 同日按题材、题材内按高度排列 ·
+    <h3>历史复盘 <span class="sub">历史全部赚钱效应股（3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日最高价，昨日买入者全部获利）· 按日期排列（日期带市场阶段与空间高度）· 同日按题材、题材内按高度排列 ·
       个股涨停日与断板日逐日展示，断板后持续展示三日（断板日+后两个交易日），三日均未涨停第四日起不再展示，期间再涨停则继续 · 叠加当日空间龙头与上一个断板空间龙头辅助判断 · 点题材看当日梯队 · 点个股看日K ·
       个股标记涨停形态（<b style="color:#f5455c">缺口</b>＝当日最低价＞昨日最高价 / <b style="color:#9fb0cc">长腿</b>）</span></h3>
     <div class="ep-bar">
@@ -4214,7 +4214,7 @@ function paintEarn(){
   epFillDates(end);
   document.querySelectorAll('.ep-w').forEach(b=>b.classList.toggle('on', +b.dataset.w===EP_W));
   const hd = document.getElementById('ep-hd'), rg = document.getElementById('ep-range');
-  if(hd) hd.textContent = '近 '+EP_W+' 个交易日 · 连续两日换手赚钱机会个股（3板或以上）'+
+  if(hd) hd.textContent = '近 '+EP_W+' 个交易日 · 赚钱效应股：3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日最高价（昨日买入者全部获利）'+
     (end && end!==last ? ' · 回看 '+fmtDate(end) : '');
   if(rg) rg.textContent = fmtDate(start)+' ~ '+fmtDate(end)+(end!==last ? '（历史回看）' : '');
   /* v74：今日复盘显示市场阶段（点击跳空间情绪明细表） */

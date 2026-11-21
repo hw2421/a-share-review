@@ -1470,7 +1470,7 @@ def main():
              min(40, len(_tr_flat)), min(60, len(_bt_chg)), n_v62))
     n_v48 += n_v62
 
-    # ---- v67：赚钱效应统计（earnStreak：连续两日换手赚钱机会个股，3板+）独立复核 ----
+    # ---- v67：赚钱效应统计（earnStreak：3板+ · 连续两日换手涨停 · 当日最低价＞昨日最高价）独立复核 ----
     n_v67 = 0
     ESV = D.get("earnStreak") or {}
     ES_EV = ESV.get("eventsAll") or []
@@ -1495,6 +1495,13 @@ def main():
         # 两日非一字
         if code in (yz.get(d) or ()) or code in (yz.get(d1) or ()):
             err("v67 %s %s 含一字板" % (d, code)); n_v67 += 1
+        # v77 底层逻辑：t 日最低价 > t-1 日最高价（昨日买入者全部获利）
+        _kb_e = _kb58_bucket(code).get(code) or {}
+        _b_e1, _b_et = _kb_e.get(d1), _kb_e.get(d)
+        if _b_e1 and _b_et and len(_b_e1) >= 5 and len(_b_et) >= 5:
+            if not (_b_et[3] > _b_e1[4]):
+                err("v67 %s %s 无跳空缺口（t最低 %s ≤ t-1最高 %s）"
+                    % (d, code, _b_et[3], _b_e1[4])); n_v67 += 1
         # 今日涨幅 ≈ 涨停幅度
         lim = 0.05 if "ST" in e.get("name", "") else (0.20 if code.startswith(("30", "688"))
               else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
@@ -1509,7 +1516,8 @@ def main():
                 _exp_gap = 1 if (_b1[4] and _bt_[1] > _b1[4]) else 0
                 if e.get("gapT") != _exp_gap:
                     err("v67 %s %s gapT 标记不符 %s vs %s" % (d, code, e.get("gapT"), _exp_gap)); n_v67 += 1
-    # 全量池完整性：窗口内每个「t-1/t 连续换手涨停且 t 板位≥3」的个股都应在池中（反向抽样）
+    # 全量池完整性：窗口内每个「t-1/t 连续换手涨停且 t 板位≥3 且 t日最低>t-1日最高」的个股
+    # 都应在池中（反向复算；日K缺失豁免，与 build 同口径）
     _es_set = {(str(e.get("code")), e.get("d")) for e in ES_EV}
     _n_es_expect = 0
     for _i in range(max(1, len(dates) - 6), len(dates)):
@@ -1521,10 +1529,15 @@ def main():
             _s1 = (_pm_es.get(_t1) or {}).get(_c0)
             if not _s1 or (_s1.get("boards") or 1) != (_s0.get("boards") or 1) - 1:
                 continue
+            _kb_r = _kb58_bucket(_c0).get(_c0) or {}
+            _br_t, _br_1 = _kb_r.get(_t), _kb_r.get(_t1)
+            if _br_t and _br_1 and len(_br_t) >= 5 and len(_br_1) >= 5 \
+                    and not (_br_t[3] > _br_1[4]):
+                continue                     # 无缺口，不该入池
             _n_es_expect += 1
             if (_c0, _t) not in _es_set:
-                err("v67 %s %s 满足连续两日换手连板(≥3板)但不在事件池" % (_t, _c0)); n_v67 += 1
-    print("v67 赚钱效应统计：全量池 %d 笔（近5交易日应达标 %d），独立复核异常 %d"
+                err("v67 %s %s 满足两日换手连板+缺口(≥3板)但不在事件池" % (_t, _c0)); n_v67 += 1
+    print("v67 赚钱效应统计：全量池 %d 笔（近5交易日缺口口径应达标 %d），独立复核异常 %d"
           % (len(ES_EV), _n_es_expect, n_v67))
     n_v48 += n_v67
 
