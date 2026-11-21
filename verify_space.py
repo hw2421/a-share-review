@@ -1697,6 +1697,23 @@ def main():
           % (len(RF_DAYS), n_tl))
     n_v48 += n_tl
 
+    # ---- v72：炸板股题材映射（zbTheme，题材涨停时间表炸板列）独立复核 ----
+    # 口径：zbTheme 个股必须在当日炸板池；其题材必须属于当日梯队（ladderFull）题材集。
+    n_zbt = 0
+    ZBTM = D.get("zbTheme") or {}
+    for _d, _m in ZBTM.items():
+        if _d not in ZB:
+            err("v72 zbTheme %s 不在 dayZB 日期集" % _d); n_zbt += 1; continue
+        _lfth = set((D.get("ladderFull") or {}).get(_d) or {})
+        for _c, _th in _m.items():
+            if _c not in ZB[_d]:
+                err("v72 zbTheme %s %s 不在当日炸板池" % (_d, _c)); n_zbt += 1
+            if _th not in _lfth:
+                err("v72 zbTheme %s %s 题材 %s 不在当日梯队题材集" % (_d, _c, _th)); n_zbt += 1
+    print("v72 炸板股题材映射（zbTheme）：%d 天 / %d 个炸板股票日，独立复核异常 %d"
+          % (len(ZBTM), sum(len(v) for v in ZBTM.values()), n_zbt))
+    n_v48 += n_zbt
+
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
     n_main = sum(1 for d in days if d.get("stage") == "主升")

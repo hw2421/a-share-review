@@ -343,12 +343,13 @@
   .trow{display:flex;gap:6px;padding:0;border-bottom:1px solid #151c29;align-items:center}
   .trow:hover{background:rgba(61,139,255,.05)}
   .tdate{flex:0 0 44px;color:var(--dim);font-size:9.5px;text-align:center;line-height:1.15}
+  .tdate .dstg{display:block;font-size:8.5px;font-weight:700;line-height:1.3}
   .tdate .src-ths{display:block;font-size:8.5px}
   .tcards{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;flex:1 1 auto;padding:1px 0}
   .tcards::-webkit-scrollbar{height:3px}
   .tcards::-webkit-scrollbar-thumb{background:#26314a;border-radius:2px}
   .tcard{display:inline-flex;flex-direction:column;align-items:flex-start;
-         border-radius:4px;padding:1px 4px;max-width:64px;cursor:pointer;
+         border-radius:4px;padding:1px 4px;max-width:100px;cursor:pointer;
          border:1px solid rgba(255,255,255,.14);
          font-size:8.5px;line-height:1.2;color:#151a21;
          transition:opacity .15s}
@@ -357,7 +358,8 @@
   .tcard .r2,.tcard .r3,.tcard .r4{margin-top:0}
   /* 题材名下划线：极细半透明细线贴合文字宽度（overflow:hidden 会裁掉 text-decoration），
      弱化存在感、hover 时才提亮，保持高端克制的观感 */
-  .tcard .nm{font-weight:700;font-size:9px;max-width:56px;overflow:hidden;
+  /* v72：题材名完整展示为主（hover 才截断），放宽卡片宽度 */
+  .tcard .nm{font-weight:700;font-size:9px;max-width:92px;overflow:hidden;
              text-overflow:ellipsis;white-space:nowrap;line-height:1.4;
              letter-spacing:.2px;
              border-bottom:1px solid rgba(21,26,33,.26);padding-bottom:1px;cursor:pointer}
@@ -367,14 +369,8 @@
               padding:0 3px;font-size:7.5px;white-space:nowrap}
   .tcard .brkt{display:inline-block;background:rgba(46,189,133,.9);color:#06281c;border-radius:3px;
               padding:0 3px;font-size:7.5px;font-weight:800;white-space:nowrap;margin-left:2px}
-  /* v68/v71：只有断板、当日无涨停梯队的题材卡——虚线框 + 降透明度 + 缩小一号，与主流题材区分 */
-  .tcard.brkonly{opacity:.78;border:1px dashed rgba(255,255,255,.5);
-                 padding:0 3px;max-width:50px}
-  .tcard.brkonly .nm{font-size:8px;max-width:42px}
-  .tcard.brkonly .ct,.tcard.brkonly .brkt{font-size:7px}
-  .tcard.brkonly .ld{font-size:7.5px;max-width:42px}
-  .tcard.brkonly .lad{font-size:7px}
-  .tcard .ld{font-weight:800;font-size:8px;max-width:56px;overflow:hidden;
+  /* v72：断板后无梯队的题材卡不再展示（brkonly 已删除）；断板数仍在主流题材卡上以「断N」标注 */
+  .tcard .ld{font-weight:800;font-size:8px;max-width:92px;overflow:hidden;
              text-overflow:ellipsis;white-space:nowrap}
   .tcard .ld em{font-style:normal;font-weight:500;font-size:7.5px;opacity:.75;margin-left:1px}
   .tcard .lad{font-variant-numeric:tabular-nums;font-weight:700;font-size:7.5px;opacity:.75;white-space:nowrap}
@@ -820,8 +816,8 @@
   .fbR{flex:0 0 300px;max-width:44%;border-left:1px dashed #2b3a56;padding-left:9px}
   .fbR-hd{font-size:10px;color:var(--dim2);margin:1px 0 4px;font-weight:700}
   .fbR .ladrow{display:flex;align-items:flex-start;gap:4px;margin:3px 0;flex-wrap:wrap}
-  .fbR .ladb{flex:0 0 34px;font-size:9.5px;font-weight:800;color:#ffd24a}
-  .fbR .ladst{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+  .fbR .ladb{flex:0 0 34px;font-size:9px;font-weight:800;color:#ffd24a}
+  .fbR .ladst{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-width:0;align-items:stretch}
   .fbhd{display:flex;align-items:baseline;gap:8px;margin-bottom:5px;border-bottom:1px solid #22304a;padding-bottom:4px}
   .fbhd b{font-size:12.5px;color:#dcbafb}
   .fbhd .sub{font-size:10.5px;color:var(--dim2)}
@@ -834,17 +830,20 @@
   .fbrole.r1{background:#7f8ea6}
   .fbb{flex:0 0 auto;font-size:10px;color:var(--gold);font-weight:700}
   .fbstat{flex:0 0 auto;font-size:10px;color:var(--dim2);margin-right:2px}
-  .fbsts{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:4px;min-width:0}
-  .fbst{display:inline-flex;align-items:center;gap:3px;background:#1b2740;border:1px solid #33456a;
-        border-radius:5px;padding:1px 5px;font-size:11px;cursor:pointer}
+  /* v72：梯队反馈个股一行一条（缩小字体） */
+  .fbsts{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-width:0;align-items:stretch}
+  .fbst{display:flex;align-items:center;gap:3px;background:#1b2740;border:1px solid #33456a;
+        border-radius:5px;padding:1px 6px;font-size:9.5px;cursor:pointer;white-space:nowrap;
+        overflow:hidden;text-overflow:ellipsis}
   .fbst:hover{border-color:#3d8bff;background:#233b60}
-  .fbst em{font-style:normal;font-size:9.5px}
+  .fbst em{font-style:normal;font-size:8.5px}
   .fbst em.y{color:var(--dim2)}
   .fbst em.c{font-weight:700}
-  .fbst i.ok{font-style:normal;font-size:8.5px;color:#06281c;background:#2ebd85;border-radius:3px;padding:0 3px;font-weight:800}
-  .fbst i.no{font-style:normal;font-size:8.5px;color:#8ce3bf;background:rgba(46,189,133,.12);
+  .fbst i.ok{font-style:normal;font-size:8px;color:#06281c;background:#2ebd85;border-radius:3px;padding:0 3px;font-weight:800}
+  .fbst i.no{font-style:normal;font-size:8px;color:#8ce3bf;background:rgba(46,189,133,.12);
              border:1px solid #2b5548;border-radius:3px;padding:0 3px}
-  .fbst i.na{font-style:normal;font-size:8.5px;color:var(--dim2)}
+  .fbst i.na{font-style:normal;font-size:8px;color:var(--dim2)}
+  .fbst .stk-zt,.fbst .stk-zb{font-size:8px}
   /* v69 跨题材归类 */
   .cross-hd{font-size:11px;color:var(--dim2);margin:6px 0 4px}
   .cross-row{display:flex;gap:8px;align-items:flex-start;margin:4px 0;flex-wrap:wrap}
@@ -853,38 +852,30 @@
   .cross-row .cst{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:4px;min-width:0}
   .cross-row .cst i{font-style:normal;font-size:11px;color:#cfe0ff;background:#1b2740;
                     border:1px solid #33456a;border-radius:4px;padding:1px 5px}
-  /* v70 首封时间图（纯 CSS 时间轨道）——左对齐 + 比例缩放 + 拖动平移 */
-  .seal-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 6px;font-size:11px}
-  .seal-bar .ep-lb{color:var(--dim);white-space:nowrap}
-  .seal-z,.seal-z2{background:#1c2740;border:1px solid #2b3a56;color:var(--text);border-radius:5px;
-                   padding:1px 9px;font-size:12px;cursor:pointer;line-height:1.6}
-  .seal-z:hover,.seal-z2:hover{border-color:#3d8bff;color:#fff}
-  .seal-z2{font-size:11px}
-  .seal-zt{min-width:44px;text-align:center;color:#ffd24a;font-weight:700;font-variant-numeric:tabular-nums}
-  .seal-scroll{overflow-x:auto;overflow-y:hidden;cursor:grab;padding-bottom:4px}
-  .seal-scroll.dragging{cursor:grabbing;user-select:none}
-  .seal-wrap{min-width:100%}
-  .seal-axis{position:relative;height:18px;margin:0 0 2px 92px;font-size:9px;color:var(--dim2)}
-  .seal-axis .tick{position:absolute;transform:translateX(-50%);top:0}
-  .seal-axis .tick.maj{color:#cfe0ff;font-weight:700}
-  .seal-row{display:flex;align-items:stretch;gap:0;margin:5px 0}
-  .seal-th{flex:0 0 92px;text-align:left;font-size:11px;font-weight:700;white-space:nowrap;
-           overflow:hidden;text-overflow:ellipsis;align-self:center;padding-right:8px}
-  .seal-th em{font-style:normal;font-size:9px;color:var(--dim2);margin-left:3px;font-weight:400}
-  .seal-track{flex:1 1 auto;position:relative;background:#131c30;border:1px solid #22304a;
-              border-radius:6px;min-height:20px;padding:2px 0}
-  .seal-lane{position:relative;height:30px;margin:1px 0}
-  /* v71：chip 两行——上行＝个股名 + 连板高度，下行＝涨停时间 */
-  .seal-chip{position:absolute;transform:translateX(-50%);display:inline-flex;flex-direction:column;
-             align-items:center;gap:0;line-height:1.15;
-             background:#1c2740;border:1px solid #2b3a56;border-radius:4px;padding:1px 5px;
-             font-size:10px;white-space:nowrap;cursor:pointer;z-index:2}
-  .seal-chip:hover{border-color:#fff;z-index:3}
-  .seal-chip .l1{display:inline-flex;align-items:center;gap:3px}
-  .seal-chip b{color:#e6eefc;font-weight:600}
-  .seal-chip i{font-style:normal;font-size:8.5px;color:#ffd24a;font-weight:700}
-  .seal-chip .l2{font-size:8.5px;color:rgba(255,255,255,.78);font-weight:600;
-                 font-variant-numeric:tabular-nums}
+  /* v72 题材涨停时间表（当日赚钱效应题材，表格化）：龙头金 / 助攻紫 / 跟风蓝 / 炸板绿 */
+  .sl-tbl-wrap{overflow-x:auto;padding-bottom:4px}
+  .sl-tbl{border-collapse:separate;border-spacing:3px;font-size:10px;width:max-content;max-width:100%}
+  .sl-tbl .sl-th{color:var(--dim2);font-size:9.5px;font-weight:400;text-align:left;
+                 padding:0 6px 0 0;white-space:nowrap}
+  .sl-tbl .sl-rh{color:#9fb0cc;font-size:11px;font-weight:700;text-align:left;padding:0 8px 0 0;
+                 white-space:nowrap;max-width:118px;overflow:hidden;text-overflow:ellipsis}
+  .sl-tbl .sl-rh i{font-style:normal;font-size:8.5px;color:var(--dim2);font-weight:400;margin-left:3px}
+  .sl-tbl td{vertical-align:top;padding:1px 0}
+  .sl-cell{min-width:150px}
+  .sl-stk{display:inline-flex;align-items:center;gap:3px;background:#1b2740;border:1px solid #33456a;
+          border-radius:4px;padding:1px 5px;margin:1px 3px 1px 0;font-size:10px;white-space:nowrap;
+          cursor:pointer}
+  .sl-stk:hover{border-color:#3d8bff;background:#233b60}
+  .sl-stk em{font-style:normal;font-size:8.5px;color:#ffd24a;font-weight:700}
+  .sl-stk .t{font-style:normal;font-size:9px;color:#cfe0ff;font-weight:700;
+             font-variant-numeric:tabular-nums}
+  .sl-stk.rk-ld{border-color:rgba(240,185,11,.65);background:rgba(240,185,11,.10)}
+  .sl-stk.rk-zg{border-color:rgba(165,94,234,.65);background:rgba(165,94,234,.10)}
+  .sl-stk.rk-gf{border-color:rgba(61,139,255,.65);background:rgba(61,139,255,.10)}
+  .sl-stk.rk-zb{border-color:rgba(46,189,133,.65);background:rgba(46,189,133,.10)}
+  .sl-stk.rk-zb em{color:#8ce3bf}
+  .sl-new{font-style:normal;font-size:8.5px;color:#06281c;background:#2ebd85;border-radius:3px;
+          padding:0 3px;font-weight:800;margin-left:3px;vertical-align:1px}
   .seal-note{margin-top:6px;font-size:10px;color:var(--dim2);line-height:1.6}
   /* v70 多题材热力表（行＝题材，列＝交易日，格内＝涨停家数 + 梯队） */
   .ht-tbl-wrap{overflow-x:auto;padding-bottom:4px}
@@ -893,6 +884,7 @@
   .ht-tbl th{font-weight:700}
   .ht-tbl .ht-th{color:var(--dim2);font-size:9.5px;text-align:left;padding:0 6px 0 0;white-space:nowrap}
   .ht-tbl .ht-ch{color:#8b9bb5;font-size:9px;text-align:center;font-weight:400;width:52px}
+  .ht-tbl .ht-ch i{display:block;font-style:normal;font-size:8px;font-weight:700;line-height:1.3}
   .ht-tbl .ht-rh{color:#9fb0cc;font-size:10.5px;text-align:left;padding-right:8px;white-space:nowrap;
                  max-width:96px;overflow:hidden;text-overflow:ellipsis}
   .ht-tbl .ht-cell{width:52px;height:26px;border-radius:3px;background:#131c30;color:#0b1220;
@@ -997,15 +989,7 @@
     <div id="es-root"></div>
     <h4 class="ep-h" id="ep-fb-h">昨日梯队 → 今日反馈</h4>
     <div id="ep-fb"></div>
-    <h4 class="ep-h">题材首封时间图 <span class="sub">横轴＝首次封板时间 · 可缩放 / 拖动看全（仅此图）</span></h4>
-    <div class="seal-bar">
-      <span class="ep-lb">显示比例</span>
-      <button class="seal-z" data-z="-1" title="缩小时间轴">－</button>
-      <span id="seal-zt" class="seal-zt">100%</span>
-      <button class="seal-z" data-z="1" title="放大时间轴">＋</button>
-      <button id="seal-fit" class="seal-z2">适应宽度</button>
-      <span class="sub">按住图内拖动可左右平移</span>
-    </div>
+    <h4 class="ep-h">题材涨停时间表 <span class="sub">当日赚钱效应题材 · 龙头（金）/ 助攻（紫）/ 跟风（蓝）/ 炸板（绿）· 格内为首次涨停时间</span></h4>
     <div id="ep-seal" class="ep-chart"></div>
     <h4 class="ep-h">多题材热力表 <span class="sub">仅统计窗口内出现 ≥3 次的题材（当日板块有连板且涨停 ≥3 家）· 格内＝当日涨停家数与梯队</span></h4>
     <div id="ep-heat" class="ep-chart"></div>
@@ -1716,10 +1700,13 @@ function renderTheme(){
 
   let html = '';
   const idxOf = {}; all.forEach((d,i)=>idxOf[d]=i);
+  const STG = stageMap();                       // v72：日期旁当日市场阶段
   dts.slice().reverse().forEach(d=>{          // 按时间降序：最新日期排最上
     const di = idxOf[d];
     const themes = (TD[d]||[]).slice().sort((a,b)=>b.count-a.count);
     html += '<div class="trow" data-d="'+d+'"><div class="tdate num">'+fmtDate(d)+
+      (STG[d]? '<span class="dstg" style="color:'+STAGE_SOLID[STG[d]]+
+        '" title="当日市场阶段（空间龙头四阶段）">'+STG[d]+'</span>':'')+
       (srcMap[d]==='ths'?'<span class="src-ths">※同花顺</span>':'')+'</div><div class="tcards">';
     if(!themes.length){
       // v70：用户口径「没有符合的题材，显示一个『无』字就行」
@@ -1770,22 +1757,8 @@ function renderTheme(){
               (full?'★':'')+lad+'</span></span>':'')+
         '</div>';
     });
-    // v68：当日无涨停梯队、但有「昨日 ≥3 板断板」的题材——补一张断板卡，点开即看断板跟踪
-    const shownTh = {};
-    themes.forEach(b=>{ shownTh[tName(b.name)] = 1; });
-    const brkDay = brkIndex()[d] || {};
-    Object.keys(brkDay).forEach(nm2=>{
-      if(nm2 === '·无题材' || shownTh[nm2]) return;
-      const arr = brkDay[nm2], col2 = T_COLOR[nm2]||'#9aa6b8';
-      html += '<div class="tcard brkonly" data-th="'+nm2+'" data-d="'+d+'" data-brk="1" '+
-        'title="【'+nm2+'】当日无涨停梯队，但有 '+arr.length+' 只昨日 ≥3 板个股断板 · 点击查看断板跟踪" '+
-        'style="background:'+col2+'">'+
-        '<span class="r1"><span class="nm">'+nm2+'</span></span>'+
-        '<span class="r2"><span class="ct">无梯队</span>'+
-        '<span class="brkt">断'+arr.length+'</span></span>'+
-        '<span class="r3"><span class="lad" data-lad="1" data-th="'+nm2+'" data-d="'+d+'">断板跟踪</span></span>'+
-        '</div>';
-    });
+    // v72：断板后无梯队的题材卡不再单独展示（用户口径「无梯队的不用显示了」）；
+    // 主流题材卡上的「断N」绿标与题材浮层内的断板跟踪仍保留。
     html += '</div></div>';
   });
   const list = document.getElementById('theme-list');
@@ -3961,6 +3934,15 @@ function paintDpStage(mod, dt){
     : '';
 }
 function latestDate(){ const ds=((window.REVIEW||{}).dates||[]).slice().sort(); return ds[ds.length-1]||''; }
+/* v72：市场阶段日期映射（空间龙头四阶段，供题材明细行 / 热力表列头标注） */
+let _STG_MAP = null;
+function stageMap(){
+  if(_STG_MAP) return _STG_MAP;
+  const m = {};
+  ((window.REVIEW||{}).stages||[]).forEach(x=>{ if(x && x.stage) m[x.date] = x.stage; });
+  _STG_MAP = m;
+  return m;
+}
 
 /* 生成一个模块独立的「年 / 月 / 日 + 确定」控件（v71 还原） */
 function buildDPick(mod){
@@ -4033,7 +4015,6 @@ function initModuleDates(){ MODS.forEach(buildDPick); }
    ⑤ 历史回看日期已删除，页面固定最新交易日 */
 let EP_W = 1;                      // 统计窗口（1/3/5 日）
 let EP_END = null;                 // v71：历史回看截止日（null＝最新交易日）
-let SEAL_ZOOM = 100;               // 首封时间图宽度百分比（100＝适应容器宽度）
 const EP_NUM = v => v==null ? '—' : (v>0?'+':'')+v.toFixed(2)+'%';
 
 function epDays(){ return ((window.REVIEW||{}).dates||[]).slice().sort(); }
@@ -4221,74 +4202,65 @@ function paintRelay(d){
 function paintSeal(d){
   const host = document.getElementById('ep-seal');
   if(!host) return;
-  const zt = document.getElementById('seal-zt');
-  if(zt) zt.textContent = SEAL_ZOOM + '%';
-  const LF = ((window.REVIEW||{}).ladderFull||{})[d] || {};
-  const ths = Object.keys(LF).map(nm=>({nm:nm, arr:(LF[nm]||[]).filter(s=>s && s.t)}))
-    .filter(x=>x.arr.length).sort((a,b)=> b.arr.length-a.arr.length || a.nm.localeCompare(b.nm))
-    .slice(0, 14);
+  const R = window.REVIEW || {};
+  const LF = (R.ladderFull||{})[d] || {};
+  const ZB = (R.dayZB||{})[d] || {};
+  const ZBT = (R.zbTheme||{})[d] || {};
+  const ds = epDays(), di = ds.indexOf(d), dp = di>0 ? ds[di-1] : '';
+  /* v72：昨日已出现的赚钱效应题材集合——今日新入列的题材标「新」 */
+  const prevTh = new Set(Object.keys(dp ? ((R.ladderFull||{})[dp]||{}) : {}));
+  const ths = Object.keys(LF).filter(nm=>(LF[nm]||[]).length)
+    .sort((a,b)=> (LF[b].length - LF[a].length) || a.localeCompare(b));
   if(!ths.length){
     host.style.height = 'auto';
-    host.innerHTML = '<div class="sub" style="padding:8px 2px">'+fmtDate(d)+' 当日无梯队涨停记录</div>';
+    host.innerHTML = '<div class="sub" style="padding:8px 2px">'+fmtDate(d)+' 当日无赚钱效应题材</div>';
     return;
   }
-  const T0 = 9*60+15, T1 = 15*60;                  // 09:15 → 15:00
-  const pct = t=>{ const p = String(t||'').split(':'); const m=(+p[0]||0)*60+(+p[1]||0);
-    return Math.max(0, Math.min(100, (m-T0)/(T1-T0)*100)); };
-  const tick = m=>{ const h=Math.floor(m/60), mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; };
-  let axis = '';
-  for(let m=T0; m<=T1; m+=30){
-    axis += '<span class="tick'+(m%(60*2)?'':' maj')+'" style="left:'+((m-T0)/(T1-T0)*100)+'%">'+tick(m)+'</span>';
-  }
-  let h = '<div class="seal-scroll" id="seal-scroll"><div class="seal-wrap" style="width:'+SEAL_ZOOM+'%">'+
-    '<div class="seal-axis">'+axis+'</div>';
-  ths.forEach(x=>{
-    const col = T_COLOR[tName(x.nm)] || C.blue;
-    /* 同一题材内时间相近的个股换子行，避免标签重叠 */
-    const lanes = [];
-    x.arr.slice().sort((a,b)=> String(a.t).localeCompare(String(b.t))).forEach(s=>{
-      const px = pct(s.t);
-      let li = lanes.findIndex(ln=> px - ln.px > 12);
-      if(li < 0){ li = lanes.length; lanes.push({px:-99}); }
-      lanes[li].px = px;
-      (lanes[li].items || (lanes[li].items=[])).push({s:s, px:px});
-    });
-    const rows = lanes.map(ln=>'<div class="seal-lane">'+
-      ln.items.map(it=>{
-        const s = it.s, b = s.boards||1;
-        /* v71：上行＝个股名 + 连板高度，下行＝涨停时间 */
-        return '<span class="seal-chip" data-c="'+(s.code||'')+'" data-n="'+(s.name||'')+'" data-d="'+d+'" '+
-          'style="left:'+it.px+'%;background:'+col+(b>=2?';box-shadow:0 0 0 1px #ffd24a inset':'')+'" '+
-          'title="'+(s.name||'')+' · 首封 '+s.t+' · '+(b>=2? b+'板':'首板')+(s.s? ' · '+s.s:'')+
-          ' ｜点看日K"><span class="l1"><b>'+(s.name||'')+'</b><i>'+(b>=2? b+'板':'首板')+'</i></span>'+
-          '<span class="l2">'+s.t+'</span></span>';
-      }).join('')+'</div>').join('');
-    h += '<div class="seal-row"><span class="seal-th" style="color:'+col+'">'+x.nm+
-      '<em>'+x.arr.length+'</em></span><div class="seal-track">'+rows+'</div></div>';
+  const chip = (s, rk)=>{
+    const b = s.boards||1;
+    const t = s.t || '';
+    return '<span class="sl-stk rk-'+rk+'" data-c="'+(s.code||'')+'" data-n="'+(s.name||'')+'" data-d="'+d+'" '+
+      'title="'+(s.name||'')+'：'+(rk==='zb'?'炸板':'首封 '+ (t||'—'))+' · '+(rk==='zb'?'当日涨幅 '+s.chg+'%':(b>=2? b+'板':'首板'))+
+      (s.s? ' · '+s.s:'')+' ｜点看日K">'+(s.name||'')+
+      '<em>'+(rk==='zb'?'炸板':(b>=2? b+'板':'首板'))+'</em>'+
+      (t? '<span class="t">'+t+'</span>':'')+'</span>';
+  };
+  let h = '<div class="sl-tbl-wrap"><table class="sl-tbl"><thead><tr>'+
+    '<th class="sl-th">题材＼角色</th>'+
+    '<th class="sl-th" style="color:#f0b90b">龙头（最高板）</th>'+
+    '<th class="sl-th" style="color:#a55eea">助攻（次级连板）</th>'+
+    '<th class="sl-th" style="color:#3d8bff">跟风（首板）</th>'+
+    '<th class="sl-th" style="color:#2ebd85">炸板</th>'+
+    '</tr></thead><tbody>';
+  ths.forEach(nm=>{
+    const arr = LF[nm];
+    const top = Math.max.apply(null, arr.map(s=>s.boards||1));
+    const col = T_COLOR[tName(nm)] || C.blue;
+    const lead = arr.filter(s=>(s.boards||1)===top);
+    const mid  = arr.filter(s=>{ const b=s.boards||1; return b>=2 && b<top; });
+    const fir  = arr.filter(s=>(s.boards||1)===1);
+    const zbs  = Object.keys(ZB).filter(c=>ZBT[c]===nm)
+      .map(c=>({code:c, name:ZB[c][0], t:ZB[c][1], chg:ZB[c][2], boards:0}));
+    const cell = (list, rk)=>{
+      const inner = list.length
+        ? list.map(s=>chip(s, rk)).join('')
+        : '<span style="color:'+C.dim2+'">—</span>';
+      return '<td><div class="sl-cell">'+inner+'</div></td>';
+    };
+    const isNew = !prevTh.has(nm);
+    h += '<tr><th class="sl-rh" style="color:'+col+'" title="'+nm+'：涨停 '+arr.length+
+      ' 只'+(zbs.length? ' · 炸板 '+zbs.length+' 只':'')+(isNew?' · 今日新赚钱效应题材':'')+'">'+nm+
+      (isNew? '<em class="sl-new">新</em>':'')+'<i>'+arr.length+'</i></th>'+
+      cell(lead,'ld') + cell(mid,'zg') + cell(fir,'gf') + cell(zbs,'zb') +
+      '</tr>';
   });
-  h += '</div></div>'+
-    '<div class="seal-note">横轴＝首次封板时间（09:15–15:00）；同一题材内时间相近的个股分行摆放；'+
-    '个股名后为连板高度、下方为涨停时间；金色描边＝≥2板（连板）；点个股名看日K。'+
-    '比例 ' + SEAL_ZOOM + '%（可放大后拖动查看）。</div>';
+  h += '</tbody></table></div>'+
+    '<div class="seal-note">行＝当日赚钱效应题材（按涨停家数降序，绿标「新」＝昨日未入列的今日新赚钱效应题材）；'+
+    '列＝龙头（最高板）/ 助攻（低于龙头的连板）/ 跟风（首板）/ 炸板（盘中曾涨停未封住，绿标）；'+
+    '个股后为首次涨停时间 · 龙头金 / 助攻紫 / 跟风蓝 / 炸板绿 · 点个股看日K。</div>';
+  host.style.height = 'auto';
   host.innerHTML = h;
-  /* 拖动平移（仅此图；元素每次重绘，直接绑定） */
-  const sc = host.querySelector('#seal-scroll');
-  if(sc){
-    let drag = null;
-    sc.addEventListener('mousedown', ev=>{
-      drag = {x: ev.clientX, l: sc.scrollLeft};
-      sc.classList.add('dragging');
-      ev.preventDefault();
-    });
-    sc.addEventListener('mousemove', ev=>{
-      if(!drag) return;
-      sc.scrollLeft = drag.l - (ev.clientX - drag.x);
-    });
-    const stop = ()=>{ drag = null; sc.classList.remove('dragging'); };
-    sc.addEventListener('mouseleave', stop);
-    window.addEventListener('mouseup', stop);
-  }
-  host.querySelectorAll('.seal-chip').forEach(el=>{
+  host.querySelectorAll('.sl-stk').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation();
       if(el.dataset.c) showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
@@ -4306,6 +4278,7 @@ function paintHeat(d){
   const HC = 12, CC = 20;
   const hd = ds.slice(Math.max(0, ei-HC+1), ei+1);
   const cd = ds.slice(Math.max(0, ei-CC+1), ei+1);
+  const STGD = stageMap();                      // v72：列头日期下的当日市场阶段
 
   /* v71：题材「出现」口径 = 当日板块有连板（≥2板）且涨停 ≥3 家；
      热力表只统计窗口内出现 ≥3 次的题材 */
@@ -4365,7 +4338,12 @@ function paintHeat(d){
   const ztCnt = x=> Object.keys(((R.dayZT||{})[x])||{}).length;
   let html = '<div class="ht-tbl-wrap"><table class="ht-tbl"><thead><tr>'+
     '<th class="ht-th">题材＼日</th>'+
-    hd.map(x=>'<th class="ht-ch">'+fmtDate(x)+'</th>').join('')+'</tr></thead><tbody>';
+    hd.map(x=>{
+      const st = STGD[x];
+      return '<th class="ht-ch">'+fmtDate(x)+
+        (st? '<i style="color:'+STAGE_SOLID[st]+'" title="当日市场阶段（空间龙头四阶段）">'+st+'</i>':'')+
+        '</th>';
+    }).join('')+'</tr></thead><tbody>';
   rowTh.forEach(nm=>{
     const col = T_COLOR[tName(nm)] || C.blue;
     html += '<tr><th class="ht-rh" style="color:'+col+'" title="'+nm+'：窗口内共涨停 '+thCnt[nm]+
@@ -4393,14 +4371,7 @@ function paintHeat(d){
 }
 
 /* 首封时间图缩放控件（－/＋/适应宽度） */
-(function initSealZoom(){
-  const setZ = z=>{ SEAL_ZOOM = Math.max(60, Math.min(600, z)); paintSeal(epEndDate()); };
-  document.querySelectorAll('.seal-z').forEach(b=>{
-    b.onclick = ()=> setZ(SEAL_ZOOM + (+b.dataset.z)*20);
-  });
-  const fit = document.getElementById('seal-fit');
-  if(fit) fit.onclick = ()=> setZ(100);
-})();
+
 
 document.querySelectorAll('.ep-w').forEach(b=>{
   b.onclick = ()=>{ EP_W = +b.dataset.w; paintEarn(); };

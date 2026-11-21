@@ -824,8 +824,18 @@ DAY_ZB_RAW = fd.collect_zb(_ZT_DAYS)
 DAY_ZB = {d: {c: [v.get("name") or "", v.get("t") or "", v.get("chg") or 0]
               for c, v in m.items()}
           for d, m in DAY_ZB_RAW.items()}
-print("v70 个股当日状态：涨停池 %d 天 / 炸板池 %d 天（炸板 %d 个股票日）"
-      % (len(DAY_ZT), len(DAY_ZB), sum(len(v) for v in DAY_ZB.values())))
+# v72 炸板股题材映射：{d:{code: 题材}}（仅收当日有梯队的题材，供题材涨停时间表
+# 在题材内显示炸板股；映射口径与 ladderFull 一致，均取 theme_at[d]）
+DAY_ZBT = {}
+for _d, _m in DAY_ZB.items():
+    _tm = theme_at.get(_d) or {}
+    _lth = set((ladder_full.get(_d) or {}).keys())
+    _z = {c: _tm[c] for c in _m if _tm.get(c) in _lth}
+    if _z:
+        DAY_ZBT[_d] = _z
+print("v70 个股当日状态：涨停池 %d 天 / 炸板池 %d 天（炸板 %d 个股票日，题材化 %d 个股票日）"
+      % (len(DAY_ZT), len(DAY_ZB), sum(len(v) for v in DAY_ZB.values()),
+         sum(len(v) for v in DAY_ZBT.values())))
 # ---- 5.6.28 v55 新旧龙头交接事件序列（空间 + 题材） ----
 import handover as HO
 HANDOVER = HO.compute(dates, days, ladder_full, NAME=_NAME_ALL, limit=40)
@@ -1368,6 +1378,7 @@ data = {
     "relayFb": RELAY_FB,            # v69 昨日梯队 → 今日盈亏传导（逐股涨幅 + 是否晋级，按龙头/助攻/跟风分层）
     "dayZT": DAY_ZT,                # v70 近25日全量涨停股：{d:{code:[name,首封HH:MM,形态]}}
     "dayZB": DAY_ZB,                # v70 近25日炸板池：{d:{code:[name,首封HH:MM,当日涨幅]}}
+    "zbTheme": DAY_ZBT,             # v72 炸板股题材映射：{d:{code:题材}}（仅当日梯队题材）
     "lb": lb,                       # 日期 -> 当日连板股（2板+，含题材）
     "themeSource": {d: theme_source.get(d, "tgb") for d in theme_dates},
     "money": money,                 # 赚钱效应：板块当日有 ≥3 板个股再涨停的题材
