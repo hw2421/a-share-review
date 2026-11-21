@@ -1117,228 +1117,8 @@ def main():
     print("v47 连板梯队题材回退：当日漏抓沿用昨日/历史复盘 %d 个股票日、仍空 %d，异常 %d"
           % (n_lbfill47, n_lbempty47, n_lbbad47))
 
-    # ---- 16 v48 个股赚钱效应：昨日换手涨停→今日换手涨停 ----
-    # 独立复算（不依赖 build 的 theme_at）：逐笔核对「两日都在涨停池、非一字、
-    # 今日涨幅=涨停幅度、标签逻辑自洽」，并验证分类/规模汇总笔数合计=total。
-    MW = D.get("moneyWinners") or {}
-    EV = MW.get("events") or []
-    n_v48 = 0
-    SH_OK48 = {"一字", "赚钱", "赚T", "地天", "普通", "长腿", "低开"}
-    TAG_OK48 = {"极致高开全天红", "断板反包再连板", "地天板次日涨停",
-                "连续一字后首换手涨停", "N字反包次日涨停", "趋势股创新高周涨50%",
-                "题材持续换手连板", "普通换手连板晋级", "强势股", "龙头首阴"}
-    poolmap48 = {d: {s["code"]: s for s in pools[d]} for d in dates}
-    yz48 = fd.yizi_map(pools)
-    rng48 = MW.get("range") or []
-    didx48 = {d: i for i, d in enumerate(dates)}
-    LAD48 = D.get("ladders") or {}
-    LF48 = D.get("ladderFull") or {}
 
-    def _theme_of48(day, code):
-        """该股在 day 复盘清单（ladderFull）里的题材；无则空。用于题材回退口径校验。"""
-        for nm, arr in (LF48.get(day) or {}).items():
-            for s in arr:
-                if str(s.get("code")) == str(code):
-                    return nm
-        return ""
-
-    def zt10_48(code, d):
-        i = didx48.get(d)
-        return 0 if i is None else sum(
-            1 for k in range(max(0, i - 9), i + 1)
-            if code in poolmap48.get(dates[k], ()))
-
-    for e in EV:
-        code, d0, d = str(e["code"]), e["d0"], e["d"]
-        # ---- v56 龙头首阴：独立事件模型，走专属校验（与两日涨停模型口径不同）----
-        if e.get("kind") == "龙头首阴" or e.get("prim") == "龙头首阴":
-            if e.get("kind") != "龙头首阴":
-                err("v56 %s %s(%s) 龙头首阴缺 kind 标记" % (d, e["name"], code)); n_v48 += 1
-            if e.get("s0") != "首阴断板":
-                err("v56 %s %s(%s) 龙头首阴昨日形态应为首阴断板，实为 %s"
-                    % (d, e["name"], code, e.get("s0"))); n_v48 += 1
-            if e.get("b0", 0) < 3:
-                err("v56 %s %s(%s) 龙头首阴断板前仅%d板<3" % (d, e["name"], code, e.get("b0", 0))); n_v48 += 1
-            i0 = didx48.get(d0); i1 = didx48.get(d)
-            if i0 is None or i1 is None or i1 != i0 + 1:
-                err("v56 %s %s(%s) 龙头首阴买入日/次日非相邻交易日 %s→%s"
-                    % (d, e["name"], code, d0, d)); n_v48 += 1
-            # 次日涨幅须≥5% 或反包
-            chg_e = e.get("chg", 0)
-            if not (chg_e >= 5.0 or e.get("refanbao")):
-                err("v56 %s %s(%s) 龙头首阴次日涨幅%不足5%且非反包" % (d, e["name"], code)); n_v48 += 1
-            # 次日在位：若反包则必须在次日涨停池
-            lim56 = 0.05 if "ST" in e["name"] else (0.20 if code.startswith(("30", "688"))
-                     else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
-            if e.get("refanbao") and abs(chg_e - lim56 * 100) > 1.2:
-                err("v56 %s %s(%s) 标记反包但次日涨幅%s≠涨停幅度%.0f%%"
-                    % (d, e["name"], code, chg_e, lim56 * 100)); n_v48 += 1
-            if e.get("prim") != "龙头首阴" or any(t not in TAG_OK48 for t in (e.get("tags") or [])):
-                err("v56 %s %s(%s) 龙头首阴标签/主模式非法 %s / %s"
-                    % (d, e["name"], code, e.get("prim"), e.get("tags"))); n_v48 += 1
-            if rng48 and not (rng48[0] <= d <= rng48[1]):
-                err("v56 %s %s(%s) 超出统计区间 %s" % (d, e["name"], code, rng48)); n_v48 += 1
-            if e.get("zt10") != zt10_48(code, d):
-                err("v56 %s %s(%s) zt10=%s≠复算%d"
-                    % (d, e["name"], code, e.get("zt10"), zt10_48(code, d))); n_v48 += 1
-            th_e = e.get("theme") or ""
-            th_today = _theme_of48(d, code); th_yest = _theme_of48(d0, code)
-            if (th_today or th_yest) and th_e and th_e not in (th_today, th_yest):
-                err("v56 %s %s(%s) 题材「%s」非当日/断板日复盘归类" % (d, e["name"], code, th_e)); n_v48 += 1
-            continue  # 跳过两日涨停模型校验
-        # 两日都在涨停池
-        if code not in poolmap48.get(d0, {}) or code not in poolmap48.get(d, {}):
-            err("v48 %s %s(%s) 非两日连续涨停池个股" % (d, e["name"], code)); n_v48 += 1
-        # 一字排除（核心口径）
-        if code in yz48.get(d0, ()) or code in yz48.get(d, ()):
-            err("v48 %s %s(%s) 昨日或今日为一字，不应计入赚钱效应" % (d, e["name"], code)); n_v48 += 1
-        # 形态合法
-        if e.get("s0") not in SH_OK48 or e.get("s1") not in SH_OK48:
-            err("v48 %s %s(%s) 形态非法 %s/%s" % (d, e["name"], code, e.get("s0"), e.get("s1"))); n_v48 += 1
-        # 今日涨幅须≈涨停幅度（主板~10 / 创业科创~20 / 北交~30 / ST~5）
-        lim = 0.05 if "ST" in e["name"] else (0.20 if code.startswith(("30", "688"))
-              else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
-        if abs(e.get("chg", 0) - lim * 100) > 1.0:
-            err("v48 %s %s(%s) 今日涨幅 %s ≠ 涨停幅度 %.0f%%"
-                % (d, e["name"], code, e.get("chg"), lim * 100)); n_v48 += 1
-        # 标签合法 + 主标签在标签内
-        if any(t not in TAG_OK48 for t in (e.get("tags") or [])):
-            err("v48 %s %s(%s) 含非法标签 %s" % (d, e["name"], code, e.get("tags"))); n_v48 += 1
-        if e.get("prim") not in (e.get("tags") or []):
-            err("v48 %s %s(%s) 主标签 %s 不在标签内" % (d, e["name"], code, e.get("prim"))); n_v48 += 1
-        # 极致标签逻辑自洽：要求昨日连板 b0>=2 且今日开盘>0 且最低>0
-        if "极致高开全天红" in (e.get("tags") or []):
-            if not (e.get("b0", 0) >= 2 and e.get("open", 0) > 0 and e.get("low", 0) > 0):
-                err("v48 %s %s(%s) 极致标签但 b0/open/low 不自洽 %s/%s/%s"
-                    % (d, e["name"], code, e.get("b0"), e.get("open"), e.get("low"))); n_v48 += 1
-        # 地天标签必对应昨日地天形态
-        if "地天板次日涨停" in (e.get("tags") or []) and e.get("s0") != "地天":
-            err("v48 %s %s(%s) 地天标签但昨日形态 %s" % (d, e["name"], code, e.get("s0"))); n_v48 += 1
-        # 事件须落在统计区间内
-        if rng48 and not (rng48[0] <= d <= rng48[1]):
-            err("v48 %s %s(%s) 超出统计区间 %s" % (d, e["name"], code, rng48)); n_v48 += 1
-        # v49①：zt10 字段须与独立复算一致
-        if e.get("zt10") != zt10_48(code, d):
-            err("v49 %s %s(%s) zt10=%s ≠ 复算 %d"
-                % (d, e["name"], code, e.get("zt10"), zt10_48(code, d))); n_v48 += 1
-        # v55：赚钱效应日三条件（高开>0 / 全天最低>=昨收 / 收盘涨停已由 chg 校验保证）对所有样本硬门槛
-        if (e.get("open", 0) <= 0):
-            err("v55 %s %s(%s) 非高开 open=%s 不应计入赚钱效应" % (d, e["name"], code, e.get("open"))); n_v48 += 1
-        if (e.get("low", 0) < 0):
-            err("v55 %s %s(%s) 下破0%%线 low=%s 不应计入赚钱效应" % (d, e["name"], code, e.get("low"))); n_v48 += 1
-        # v55：板位门槛——昨日≥3板，N字反包/断板反包例外
-        if not (e.get("b0", 0) >= 3
-                or "N字反包次日涨停" in (e.get("tags") or [])
-                or "断板反包再连板" in (e.get("tags") or [])):
-            err("v55 %s %s(%s) 昨日仅%d板且非N字/反包例外，不应计入" % (d, e["name"], code, e.get("b0", 0))); n_v48 += 1
-        # v49③：题材须为当日复盘归类，或当日缺失时沿用昨日（v47 同源）
-        # 仅当当日/昨日 ladderFull 有该股归类时才强制（theme_at 另含涨停原因兜底，
-        # 清单外的归类属合法兜底，不强求出现在 ladderFull）。
-        th_e = e.get("theme") or ""
-        th_today = _theme_of48(d, code)
-        th_yest = _theme_of48(d0, code)
-        if (th_today or th_yest) and th_e and th_e not in (th_today, th_yest):
-            err("v49 %s %s(%s) 题材「%s」非当日/昨日复盘归类(当日=%s/昨日=%s)"
-                % (d, e["name"], code, th_e, th_today, th_yest)); n_v48 += 1
-        # v53③：强势股为叠加标签——须满足 10 日涨停≥5，且不能抢占 prim 主模式
-        if "强势股" in (e.get("tags") or []):
-            if e.get("zt10", 0) < 5:
-                err("v53 %s %s(%s) 强势股但 zt10=%d<5"
-                    % (d, e["name"], code, e.get("zt10", 0))); n_v48 += 1
-            if e.get("prim") == "强势股":
-                err("v53 %s %s(%s) 强势股不应作为 prim 主模式"
-                    % (d, e["name"], code)); n_v48 += 1
-    # 汇总笔数一致
-    if MW.get("total") != len(EV):
-        err("v48 total=%s ≠ 事件数 %d" % (MW.get("total"), len(EV))); n_v48 += 1
-    if sum(c.get("n", 0) for c in (MW.get("caps") or [])) != len(EV):
-        err("v48 规模分组笔数合计 ≠ 事件数 %d" % len(EV)); n_v48 += 1
-    for c in (MW.get("cats") or []):
-        if len(c.get("stocks") or []) > c.get("n", 0):
-            err("v48 分类「%s」代表股数 > 笔数" % c.get("k")); n_v48 += 1
-    # v50①：分类须按「占比 pct」降序排列（同占比按 n 降序）
-    CP = [(c.get("pct", 0), c.get("n", 0)) for c in (MW.get("cats") or [])]
-    if CP != sorted(CP, key=lambda x: (-x[0], -x[1])):
-        err("v50 形态分类未按占比降序：%s" % CP); n_v48 += 1
-    # v49⑤：同一类形态内代表个股按题材强度（当日 maxB/count）非递增
-    def _thstrength(day, th):
-        g = (LAD48.get(day) or {}).get(th) or {}
-        return (g.get("maxB") or 0, g.get("count") or 0)
-    for c in (MW.get("cats") or []):
-        sk = c.get("stocks") or []
-        st = [_thstrength(x[2], x[4]) for x in sk]
-        if st != sorted(st, reverse=True):
-            err("v49 分类「%s」代表股未按题材强度降序：%s" % (c.get("k"), st)); n_v48 += 1
-    # ---- v50②：全量事件池 eventsAll 独立复核（前端动态切分的数据源） ----
-    EVALL = MW.get("eventsAll") or []
-    DROPALL = MW.get("droppedEvents") or []
-    rngall = MW.get("allRange") or []
-    need = ("d0", "d", "code", "name", "theme", "b0", "b", "s0", "s1",
-            "tags", "open", "low", "chg", "cap", "capv", "why", "zt10", "prim")
-    for e in EVALL:
-        code, d = str(e.get("code", "")), e.get("d", "")
-        if any(k not in e for k in need):
-            err("v50 eventsAll 事件缺字段 %s(%s)" % (d, code)); n_v48 += 1
-        if rngall and not (rngall[0] <= d <= rngall[1]):
-            err("v50 eventsAll %s %s 超出全量区间" % (d, code)); n_v48 += 1
-        # v56 龙头首阴为独立事件模型：买入日=断板日、次日涨幅≥5%或反包，
-        # 不要求两日涨停/一字排除/高开/不下0线，跳过这些两日涨停模型专属校验。
-        if e.get("kind") == "龙头首阴" or e.get("prim") == "龙头首阴":
-            if not (e.get("chg", 0) >= 5.0 or e.get("refanbao")):
-                err("v56 eventsAll %s %s 龙头首阴次日未达反包/涨5%%" % (d, code)); n_v48 += 1
-            continue
-        lim = 0.05 if "ST" in e.get("name", "") else (0.20 if code.startswith(("30", "688"))
-              else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
-        if abs(e.get("chg", 0) - lim * 100) > 1.0:
-            err("v50 eventsAll %s %s 今日涨幅异常 %s" % (d, code, e.get("chg"))); n_v48 += 1
-        if code in yz48.get(e.get("d0"), ()) or code in yz48.get(d, ()):
-            err("v50 eventsAll %s %s 含一字" % (d, code)); n_v48 += 1
-        if e.get("open", 0) <= 0 or e.get("low", 0) < 0:
-            err("v55 eventsAll %s %s 非高开/下破0%%线" % (d, code)); n_v48 += 1
-        if not (e.get("b0", 0) >= 3
-                or "N字反包次日涨停" in (e.get("tags") or [])
-                or "断板反包再连板" in (e.get("tags") or [])):
-            err("v55 eventsAll %s %s 昨日板位<3且非例外" % (d, code)); n_v48 += 1
-    for e in DROPALL:
-        d, code = e.get("d", ""), str(e.get("code", ""))
-        if rngall and not (rngall[0] <= d <= rngall[1]):
-            err("v50 droppedEvents %s %s 超出全量区间" % (d, code)); n_v48 += 1
-    # 默认快照须为全量池的子集（按 code+d+prim 唯一键）
-    key_ev = lambda x: (str(x.get("code")), x.get("d"), x.get("prim"))
-    evall_keys = {key_ev(e) for e in EVALL}
-    for e in EV:
-        if key_ev(e) not in evall_keys:
-            err("v50 默认事件 %s %s 不在全量池" % (e.get("d"), e.get("code"))); n_v48 += 1
-    print("v48/v49/v50 个股赚钱效应：默认快照 %d 笔 / 全量池 %d 笔，分类 %d（占比降序）、"
-          "规模组 %d，剔除平淡晋级 %d 例，独立复核异常 %d"
-          % (len(EV), len(EVALL), len(MW.get("cats") or []), len(MW.get("caps") or []),
-             len(DROPALL), n_v48))
-
-    # ---- v55 个股亏钱效应：前一日≥3板 → 当日剧烈亏钱，四类形态独立复核 ----
-    ML = D.get("moneyLosers") or {}
-    LSEV = ML.get("eventsAll") or []
-    n_v55 = 0
-    LS_OK = {"天地板", "连续跌停", "断板次日跌停", "冲高回落跌停大阴线"}
-    for e in LSEV:
-        code, d0, d = str(e.get("code", "")), e.get("d0"), e.get("d")
-        if not code or not d0 or not d:
-            err("v55 亏钱效应事件缺 code/d0/d: %s" % e); n_v55 += 1; continue
-        if e.get("b0", 0) < 3:
-            err("v55 亏钱效应 %s %s 前一日仅%d板(<3)" % (d, code, e.get("b0", 0))); n_v55 += 1
-        if not (e.get("loss", 0) < 0):
-            err("v55 亏钱效应 %s %s 亏损率%s 非负" % (d, code, e.get("loss"))); n_v55 += 1
-        tg = e.get("tags") or []
-        if not tg or any(t not in LS_OK for t in tg):
-            err("v55 亏钱效应 %s %s 标签非法 %s" % (d, code, tg)); n_v55 += 1
-        if e.get("prim") not in tg:
-            err("v55 亏钱效应 %s %s 主标签%s 不在标签内" % (d, code, e.get("prim"))); n_v55 += 1
-        # 断板次日跌停：前一日涨停池、当日不在池
-        if "断板次日跌停" in tg and code in poolmap48.get(d, {}):
-            err("v55 亏钱效应 %s %s 断板次日跌停但当日仍在涨停池" % (d, code)); n_v55 += 1
-    if ML.get("total") != len(ML.get("events") or []):
-        err("v55 亏钱效应 total!=events %d" % len(ML.get("events") or [])); n_v55 += 1
-    print("v55 个股亏钱效应：默认快照 %d 笔 / 全量池 %d 笔，分类 %d，独立复核异常 %d"
-          % (len(ML.get("events") or []), len(LSEV), len(ML.get("cats") or []), n_v55))
+    # ---- v67：赚钱效应统计（earnStreak）与高位断板跟踪（brkTrack）独立复核见文末 ----
 
     # ---- v55 新旧龙头交接：事件序列结构 + 同身位一致性独立复核 ----
     HD = D.get("handover") or {}
@@ -1489,6 +1269,8 @@ def main():
           "独立复核异常 %d"
           % (NR_FP.get("nProfit", 0), NR_BASE.get("n", 0), len(NR.get("byDate") or {}),
              n_rec, ex_checked, n_v54))
+    # v67 起旧 v48 段已删，n_v48 仅作各段异常累加器
+    n_v48 = 0
     n_v48 += n_v54
 
     # ---- v58：明日交易机会复盘回测（nextRecsBacktest）独立复核 ----
@@ -1688,123 +1470,111 @@ def main():
              min(40, len(_tr_flat)), min(60, len(_bt_chg)), n_v62))
     n_v48 += n_v62
 
-    # ---- v64：赚钱效应复盘（earnProfile 独立复核）----
-    n_v64 = 0
-    EPV = D.get("earnProfile") or {}
-    _packs = EPV.get("packs") or {}
-    if not _packs:
-        err("v64 缺 earnProfile.packs"); n_v64 += 1
-    else:
-        # ① 窗口边界：截止日必须是最新交易日，起点按窗口回推
-        for _wk, _w in (("w1", 1), ("w3", 3), ("w5", 5)):
-            _pk = _packs.get(_wk)
-            if not _pk:
-                err("v64 缺窗口 %s" % _wk); n_v64 += 1; continue
-            if _pk.get("to") != dates[-1]:
-                err("v64 %s 截止日非最新交易日" % _wk); n_v64 += 1
-            _expf = dates[-_w] if len(dates) >= _w else dates[0]
-            if _pk.get("from") != _expf:
-                err("v64 %s 起始日不符 %s vs %s" % (_wk, _pk.get("from"), _expf)); n_v64 += 1
-            if not ((_pk.get("base") or {}).get("n")):
-                err("v64 %s 样本为空" % _wk); n_v64 += 1
+    # ---- v67：赚钱效应统计（earnStreak：连续两日换手赚钱机会个股，3板+）独立复核 ----
+    n_v67 = 0
+    ESV = D.get("earnStreak") or {}
+    ES_EV = ESV.get("eventsAll") or []
+    rng_es = ESV.get("allRange") or []
+    if not ES_EV:
+        err("v67 earnStreak 事件池为空"); n_v67 += 1
+    _pm_es = {d: {s["code"]: s for s in pools.get(d, [])} for d in dates}
+    for e in ES_EV:
+        code, d, d1 = str(e.get("code", "")), e.get("d", ""), e.get("d1", "")
+        if rng_es and not (rng_es[0] <= d <= rng_es[1]):
+            err("v67 eventsAll %s %s 超出全量区间" % (d, code)); n_v67 += 1
+        # t 日在涨停池、板位 ≥3
+        st_ = (_pm_es.get(d) or {}).get(code)
+        if not st_:
+            err("v67 %s %s 不在 t 日涨停池" % (d, code)); n_v67 += 1; continue
+        if (st_.get("boards") or 1) < 3:
+            err("v67 %s %s t日板位%d<3" % (d, code, st_.get("boards") or 1)); n_v67 += 1
+        # t-1 日在池且板位恰为 t板-1（连续晋级）
+        s1_ = (_pm_es.get(d1) or {}).get(code)
+        if not s1_ or (s1_.get("boards") or 1) != (st_.get("boards") or 1) - 1:
+            err("v67 %s %s t-1 日非换手连板晋级" % (d, code)); n_v67 += 1
+        # 两日非一字
+        if code in (yz.get(d) or ()) or code in (yz.get(d1) or ()):
+            err("v67 %s %s 含一字板" % (d, code)); n_v67 += 1
+        # 今日涨幅 ≈ 涨停幅度
+        lim = 0.05 if "ST" in e.get("name", "") else (0.20 if code.startswith(("30", "688"))
+              else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
+        if abs(e.get("chg", 0) - lim * 100) > 1.0:
+            err("v67 eventsAll %s %s t日涨幅异常 %s" % (d, code, e.get("chg"))); n_v67 += 1
+        # 抽样核对缺口标记（开盘 > 前日最高）
+        if _rnd.random() < 0.2:
+            _kb = _kb58_bucket(code).get(code) or {}
+            _b1 = _kb.get(d1)
+            _bt_ = _kb.get(d)
+            if _b1 and _bt_ and len(_b1) >= 6:
+                _exp_gap = 1 if (_b1[4] and _bt_[1] > _b1[4]) else 0
+                if e.get("gapT") != _exp_gap:
+                    err("v67 %s %s gapT 标记不符 %s vs %s" % (d, code, e.get("gapT"), _exp_gap)); n_v67 += 1
+    # 全量池完整性：窗口内每个「t-1/t 连续换手涨停且 t 板位≥3」的个股都应在池中（反向抽样）
+    _es_set = {(str(e.get("code")), e.get("d")) for e in ES_EV}
+    _n_es_expect = 0
+    for _i in range(max(1, len(dates) - 6), len(dates)):
+        _t, _t1 = dates[_i], dates[_i - 1]
+        for _s0 in (pools.get(_t) or []):
+            _c0 = str(_s0["code"])
+            if (_s0.get("boards") or 1) < 3 or _c0 in (yz.get(_t) or ()) or _c0 in (yz.get(_t1) or ()):
+                continue
+            _s1 = (_pm_es.get(_t1) or {}).get(_c0)
+            if not _s1 or (_s1.get("boards") or 1) != (_s0.get("boards") or 1) - 1:
+                continue
+            _n_es_expect += 1
+            if (_c0, _t) not in _es_set:
+                err("v67 %s %s 满足连续两日换手连板(≥3板)但不在事件池" % (_t, _c0)); n_v67 += 1
+    print("v67 赚钱效应统计：全量池 %d 笔（近5交易日应达标 %d），独立复核异常 %d"
+          % (len(ES_EV), _n_es_expect, n_v67))
+    n_v48 += n_v67
 
-        # ② 独立重建近 61 日样本（同口径但独立实现），复算 w20
-        _lfmap = {}
-        for _d0, _m in (D.get("ladderFull") or {}).items():
-            for _nm, _v in _m.items():
-                _arr = _v.get("stocks") if isinstance(_v, dict) else _v
-                for _s0 in (_arr or []):
-                    _lfmap[(_d0, str(_s0.get("code")))] = _nm
-        _carry = D.get("stockTheme") or {}
-        _stgm = {r["date"]: r for r in days}
-        _smp = []
-        for _i in range(max(0, len(dates) - 61), len(dates) - 1):
-            _d, _d1 = dates[_i], dates[_i + 1]
-            _yzd = {str(x) for x in (yz.get(_d) or set())}
-            _nxt = {str(s.get("code")) for s in (pools.get(_d1) or [])}
-            _pl = pools.get(_d) or []
-            _tm = {str(s.get("code")): (_lfmap.get((_d, str(s.get("code"))))
-                                        or _carry.get(str(s.get("code"))) or "") for s in _pl}
-            _thn, _thm = {}, {}
-            for _s0 in _pl:
-                _t0 = _tm[str(_s0.get("code"))]
-                if _t0:
-                    _thn[_t0] = _thn.get(_t0, 0) + 1
-                    _thm[_t0] = max(_thm.get(_t0, 0), _s0.get("boards") or 1)
-            for _s0 in _pl:
-                _c0 = str(_s0.get("code"))
-                if _c0 in _yzd:
-                    continue
-                _kb = _kb58_bucket(_c0).get(_c0) or {}
-                _bT, _b1 = _kb.get(_d), _kb.get(_d1)
-                if not _bT or not _b1 or not _bT[2] or not _b1[1]:
-                    continue
-                _t0 = _tm.get(_c0) or ""
-                _smp.append({
-                    "d": _d, "d1": _d1, "code": _c0, "boards": _s0.get("boards") or 1,
-                    "rc": (_b1[2] / _bT[2] - 1) * 100,
-                    "ri": (_b1[2] / _b1[1] - 1) * 100,
-                    "zt": 1 if _c0 in _nxt else 0,
-                    "stage": (_stgm.get(_d) or {}).get("stage") or "未知",
-                })
-        # v66：窗口按「验证日 d1」口径（与 earn_profile 一致）
-        _wd = set(dates[-5:])
-        _ss = [x for x in _smp if x["d1"] in _wd]
-        _p20 = _packs.get("w5") or {}
-        _b20 = _p20.get("base") or {}
-        if len(_ss) != _b20.get("n"):
-            err("v64 w5 样本数复算不符 %d vs %s" % (len(_ss), _b20.get("n"))); n_v64 += 1
-        elif _ss:
-            _calc = {
-                "win": sum(1 for x in _ss if x["rc"] > 0) / len(_ss) * 100,
-                "rc": sum(x["rc"] for x in _ss) / len(_ss),
-                "ri": sum(x["ri"] for x in _ss) / len(_ss),
-                "zt": sum(x["zt"] for x in _ss) / len(_ss) * 100,
-            }
-            for _k, _tol in (("win", .15), ("rc", .03), ("ri", .03), ("zt", .15)):
-                _gv = _b20.get(_k)
-                if _gv is None or abs(_gv - _calc[_k]) > _tol:
-                    err("v64 w5 %s 复算不符 %s vs %.3f" % (_k, _gv, _calc[_k])); n_v64 += 1
-        # ③ 板位 / 四阶段两个维度逐档复算（样本数 + 赚钱率）
-        def _bk64(b):
-            b = b or 1
-            return "1板" if b <= 1 else ("2板" if b == 2 else ("3板" if b == 3 else "4板+"))
-        for _key, _fn in (("boards", lambda x: _bk64(x["boards"])),
-                          ("stage", lambda x: x["stage"])):
-            _dm = next((x for x in (_p20.get("dims") or []) if x.get("key") == _key), None)
-            if not _dm:
-                err("v64 缺维度 %s" % _key); n_v64 += 1; continue
-            _g64 = {}
-            for _x in _ss:
-                _g64.setdefault(_fn(_x), []).append(_x)
-            _tot = 0
-            for _it in (_dm.get("items") or []):
-                _g = _g64.get(_it["k"]) or []
-                _tot += _it["n"]
-                if len(_g) != _it["n"]:
-                    err("v64 %s·%s 样本数不符 %d vs %d" % (_key, _it["k"], len(_g), _it["n"])); n_v64 += 1
-                elif _g:
-                    _w2 = sum(1 for x in _g if x["rc"] > 0) / len(_g) * 100
-                    if abs(_w2 - _it["win"]) > .15:
-                        err("v64 %s·%s 赚钱率不符 %.2f vs %.2f" % (_key, _it["k"], _w2, _it["win"])); n_v64 += 1
-            if _tot != len(_ss):
-                err("v64 %s 各档样本合计 %d ≠ 样本总数 %d" % (_key, _tot, len(_ss))); n_v64 += 1
-        # ④ 个股榜抽样：按 code 独立聚合，对账次数与笔均
-        for _r in (((_p20.get("stocks") or {}).get("up") or [])[:5] +
-                   ((_p20.get("stocks") or {}).get("down") or [])[:5]):
-            _g = [x for x in _ss if x["code"] == str(_r.get("code"))]
-            if len(_g) != _r.get("n"):
-                err("v64 个股榜 %s 次数不符 %d vs %s" % (_r.get("name"), len(_g), _r.get("n"))); n_v64 += 1
-            elif _g and abs(sum(x["rc"] for x in _g) / len(_g) - _r["rc"]) > .02:
-                err("v64 个股榜 %s 笔均不符" % _r.get("name")); n_v64 += 1
-        # ⑤ 明日待验证：今日涨停（非一字）家数与候选池覆盖
-        _tz = {str(x) for x in (yz.get(dates[-1]) or set())}
-        _tn = len([s for s in (pools.get(dates[-1]) or []) if str(s.get("code")) not in _tz])
-        if len((_p20.get("cand") or [])) > _tn:
-            err("v64 候选 %d > 今日可参与涨停 %d" % (len(_p20.get("cand") or []), _tn)); n_v64 += 1
-        print("v64 赚钱效应复盘：窗口 %s，w5 验证日口径样本 %d 笔独立复算（基准/板位/四阶段/个股榜/候选），异常 %d"
-              % ("/".join(sorted(_packs)), len(_ss), n_v64))
-    n_v48 += n_v64
+    # ---- v67：高位断板跟踪（brkTrack：昨日≥3板断板 → 跟踪3日）独立复核 ----
+    n_brk = 0
+    BTV = D.get("brkTrack") or {}
+    BT_DAYS = BTV.get("days") or {}
+    _bt_expect = {}
+    def _cls67(code, d):
+        _b = _kb58_bucket(code).get(str(code), {}).get(d)
+        return _b[2] if (_b and len(_b) >= 5 and _b[2]) else None
+    for _i in range(1, len(dates)):
+        _p, _d0 = dates[_i - 1], dates[_i]
+        _pc_map = {s["code"]: s for s in (pools.get(_d0) or [])}
+        for _s0 in (pools.get(_p) or []):
+            _b0 = _s0.get("boards") or 1
+            _c0 = str(_s0["code"])
+            if _b0 < 3:
+                continue
+            _cur = _pc_map.get(_c0)
+            if _cur and (_cur.get("boards") or 1) > _b0:
+                continue                      # 晋级，未断板
+            if _cls67(_c0, _p) is None:
+                continue                      # 断板日前收缺失（缓存截断/停牌豁免，build 同口径）
+            for _k in range(3):
+                _j = _i + _k
+                if _j >= len(dates):
+                    break
+                if _cls67(_c0, dates[_j]) is None:
+                    continue                  # 展示日收盘缺失，build 同口径跳过
+                _bt_expect.setdefault(dates[_j], set()).add((_c0, _d0, _k))
+    for _d, _items in BT_DAYS.items():
+        if _d not in date_set:
+            err("v67 brkTrack 展示日 %s 不在交易日历" % _d); n_brk += 1
+        for _x in _items:
+            _key = (str(_x.get("code")), _x.get("bd"), _x.get("n"))
+            if _key not in _bt_expect.get(_d, set()):
+                err("v67 brkTrack %s %s(%s) 多余条目 bd=%s n=%s"
+                    % (_d, _x.get("name"), _x.get("code"), _x.get("bd"), _x.get("n"))); n_brk += 1
+            _bt_expect.get(_d, set()).discard(_key)
+    _n_missing = sum(len(v) for v in _bt_expect.values())
+    for _d, _miss in _bt_expect.items():
+        if _miss:
+            err("v67 brkTrack %s 缺 %d 条断板跟踪（%s）"
+                % (_d, len(_miss), list(_miss)[:3])); n_brk += len(_miss)
+    print("v67 高位断板跟踪：%d 个展示日 / %d 条跟踪（应含 %d 条），独立复核异常 %d"
+          % (len(BT_DAYS), sum(len(v) for v in BT_DAYS.values()),
+             sum(len(v) for v in _bt_expect.values()) + sum(len(x) for x in BT_DAYS.values()), n_brk))
+    n_v48 += n_brk
+
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")

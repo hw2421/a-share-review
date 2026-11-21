@@ -784,23 +784,20 @@ reviewMeta = S["reviewMeta"]
 chances = S["chances"]            # v17：当日机会池 d -> [opp]（含一字买不进 / 炸板）
 kMarks = S["kMarks"]
 
-# ---- 5.6.26 v48 个股级赚钱效应（昨日换手涨停→今日换手涨停，最近两周） ----
-# 独立模块 money_winners.compute，口径与 verify_space 同源复用。
-import money_winners as MW
+# ---- 5.6.26 v67 连续两日换手赚钱机会个股（3板+，今日复盘页赚钱效应统计） ----
+# 口径：t-2 买入 → t-1 换手连板赚钱；t-1 买入 → t 换手连板赚钱；
+#       即 t-1、t 连续两日换手涨停（非一字），且 t 日板位 ≥3。跳空缺口单独标注。
+import earn_streak as ES
 _NAME_ALL = {s["code"]: s["name"] for d in dates for s in pools[d]}
-MONEY_WINNERS = MW.compute(dates, pools, fd.yizi_map(pools), KBARS, theme_at,
-                           ladders=ladders, ALL_N=140, NAME=_NAME_ALL, stages=days)
-print("个股赚钱效应（最近 %d 交易日）：%d 个接力样本，%d 类形态；全量池 %d 笔，" 
-      "按 v55 口径剔除 %d 笔（前一日<3板 / 非高开 / 下破0%%线）"
-      % (MONEY_WINNERS["n"], MONEY_WINNERS["total"],
-         len(MONEY_WINNERS["cats"]),
-         len(MONEY_WINNERS["eventsAll"]), len(MONEY_WINNERS["droppedEvents"])))
-# ---- 5.6.27 v55 个股级亏钱效应（前一日≥3板高位股 → 亏钱日剧烈亏钱，四类形态） ----
-import money_losers as ML
-MONEY_LOSERS = ML.compute(dates, pools, KBARS, theme_at, NAME=_NAME_ALL, ALL_N=140)
-print("个股亏钱效应（v55，最近 %d 交易日）：%d 个剧烈亏钱样本，%d 类形态；全量池 %d 笔"
-      % (MONEY_LOSERS["n"], MONEY_LOSERS["total"],
-         len(MONEY_LOSERS["cats"]), len(MONEY_LOSERS["eventsAll"])))
+EARN_STREAK = ES.compute(dates, pools, fd.yizi_map(pools), KBARS, theme_at,
+                         NAME=_NAME_ALL, ALL_N=140)
+print("v67 连续两日换手赚钱机会（3板+）：全量池 %d 笔（近5日 %d 笔）"
+      % (len(EARN_STREAK["eventsAll"]),
+         sum(1 for e in EARN_STREAK["eventsAll"] if e["d"] >= dates[-5])))
+# ---- 5.6.27 v67 高位断板跟踪（昨日≥3板断板 → 梯队最下一行跟踪3日） ----
+import brk_track as BT
+BRK_TRACK, _n_brk = BT.compute(dates, pools, KBARS, NAME=_NAME_ALL)
+print("v67 高位断板跟踪：共 %d 个跟踪股票日（断板日 + 后续2日）" % _n_brk)
 # ---- 5.6.28 v55 新旧龙头交接事件序列（空间 + 题材） ----
 import handover as HO
 HANDOVER = HO.compute(dates, days, ladder_full, NAME=_NAME_ALL, limit=40)
@@ -903,23 +900,9 @@ print("v63 循环仪表盘：%d 天，健康度均值 %.1f；负反馈起点 %d 
           max(1, sum(1 for r in CYCLE_OUT["days"] if r["score"] is not None))),
          sum(1 for r in CYCLE_OUT["days"] if r.get("neg"))))
 
-# ---- v64：赚钱效应复盘（决策页重建）----
-# 把近期全部涨停股平铺成「T 日涨停 → T+1 日验证」的样本，按 9 个特征维度分组算赚亏：
-# 板位 / 封板时间 / 开板次数 / 换手率 / 题材家数 / 题材地位 / 四阶段 / 涨停家数 / 健康度。
-# 三个结果口径：昨收买入→今收（主）、今开买入→今收、次日是否再涨停。
-import earn_profile as EP
-_YIZI_ALL = fd.yizi_map(pools)
-EP_OUT = EP.compute(dates, pools, ladder_full, days, CYCLE_MAP, KBARS,
-                    _YIZI_ALL, STOCK_THEME=carry)
-for _wk in EP_OUT["windows"]:
-    _p = EP_OUT["packs"][_wk]
-    _b = _p["base"]
-    print("v64 赚钱效应复盘 %s：%s~%s 样本 %d 笔，赚钱率 %.1f%%，昨收买 %+.2f%%，"
-          "今开买 %+.2f%%，晋级 %.1f%%；个股榜 %d 只，候选 %d 只"
-          % (_wk, _p["from"], _p["to"], _b["n"], _b["win"], _b["rc"],
-             (_b["ri"] if _b["ri"] is not None else 0), _b["zt"],
-             _p["stocks"]["total"], len(_p["cand"])))
-
+# ---- v67：今日复盘页重建为「连续两日换手赚钱机会（3板+）」统计，
+#      原 v64 赚钱效应复盘（earn_profile）与循环健康度展示撤出今日复盘页。
+#      cycle 仍计算：明日交易机会推荐（next_recs）按决策日读取循环分数。
 # ---- v51：明日交易机会推荐（复盘案例前一日前置条件统计 → 决策日匹配） ----
 # 放在形态回填之后，确保 ladder_full 元素已带「s」形态字段，可正确排除一字（买不进）。
 import next_recs as NR
@@ -1352,15 +1335,14 @@ data = {
     "ladders": ladders_out,          # 日期 -> 题材 -> {count,boards,ladder,maxB}（明细表/赚钱效应统一口径）
     "ladderFull": ladder_full,       # 日期 -> 题材 -> 当日梯队完整涨停个股（题材卡点梯队浮层）
     "stockTheme": carry,            # 个股 -> 最近一次归属题材（刷新时补当天题材用）
-    "earnProfile": EP_OUT,          # v64 赚钱效应复盘：特征归因 + 个股赚亏榜 + 明日待验证
+    "earnStreak": EARN_STREAK,      # v67 赚钱效应统计：连续两日换手赚钱机会个股（3板+）
+    "brkTrack": BRK_TRACK,          # v67 高位断板跟踪：昨日≥3板断板 → 跟踪3日涨跌幅
     "lb": lb,                       # 日期 -> 当日连板股（2板+，含题材）
     "themeSource": {d: theme_source.get(d, "tgb") for d in theme_dates},
     "money": money,                 # 赚钱效应：板块当日有 ≥3 板个股再涨停的题材
     "moneyDays": dates,             # 全期均有本地行情口径（区分"有行情"与"当日无达标题材"）
     "review": review,               # 三战法逐笔（前端按自定义时间段筛选）
     "reviewStat": reviewStat,       # v45：买入逻辑共性（市场阶段 / 题材 / 形态 / 涨停时机）
-    "moneyWinners": MONEY_WINNERS,  # v48/v55：个股赚钱效应（v55 收紧：前一日≥3板+高开+不下0线+回封涨停）
-    "moneyLosers": MONEY_LOSERS,    # v55：个股亏钱效应（前一日≥3板 → 亏钱日剧烈亏钱，四类形态）
     "handover": HANDOVER,          # v55：新旧龙头交接事件序列（空间 + 题材，含同身位备选）
     "nextRecs": NEXT_RECS,         # v51：明日交易机会推荐（复盘前一日前置条件画像 + 决策日匹配）
     "cycle": CYCLE_OUT,            # v60：赚钱效应循环仪表盘（健康度/生命周期/负反馈/交叉统计）
