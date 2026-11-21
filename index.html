@@ -815,6 +815,32 @@
   .cross-row .cst{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:4px;min-width:0}
   .cross-row .cst i{font-style:normal;font-size:11px;color:#cfe0ff;background:#1b2740;
                     border:1px solid #33456a;border-radius:4px;padding:1px 5px}
+  /* v69 首封时间记录图（纯 CSS 时间轨道） */
+  .seal-axis{position:relative;height:18px;margin:0 0 2px 118px;font-size:9px;color:var(--dim2)}
+  .seal-axis .tick{position:absolute;transform:translateX(-50%);top:0}
+  .seal-axis .tick.maj{color:#cfe0ff;font-weight:700}
+  .seal-row{display:flex;align-items:stretch;gap:6px;margin:5px 0}
+  .seal-th{flex:0 0 112px;text-align:right;font-size:11px;font-weight:700;white-space:nowrap;
+           overflow:hidden;text-overflow:ellipsis;align-self:center}
+  .seal-th em{font-style:normal;font-size:9px;color:var(--dim2);margin-left:3px;font-weight:400}
+  .seal-track{flex:1 1 auto;position:relative;background:#131c30;border:1px solid #22304a;
+              border-radius:6px;min-height:20px;padding:2px 0}
+  .seal-lane{position:relative;height:18px;margin:1px 0}
+  .seal-chip{position:absolute;transform:translateX(-50%);display:inline-flex;align-items:center;gap:3px;
+             background:#1c2740;border:1px solid #2b3a56;border-radius:4px;padding:0 5px;
+             font-size:10px;white-space:nowrap;cursor:pointer;line-height:1.5;z-index:2}
+  .seal-chip:hover{border-color:#fff;z-index:3}
+  .seal-chip b{color:#e6eefc;font-weight:600}
+  .seal-chip i{font-style:normal;font-size:8.5px;color:#ffd24a;font-weight:700}
+  .seal-note{margin-top:8px;font-size:10px;color:var(--dim2);line-height:1.6}
+  /* v69 多题材热力网格 */
+  .ht-grid{display:grid;gap:3px;font-size:10px}
+  .ht-corner{color:var(--dim2);font-size:9px;align-self:end;text-align:right;padding:2px 4px 0 0}
+  .ht-colh{color:#8b9bb5;font-size:9px;text-align:center;align-self:end}
+  .ht-rh{color:#9fb0cc;font-size:10px;text-align:right;padding:2px 6px 0 0;
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ht-cell{min-height:16px;border-radius:3px;background:#131c30;color:#0b1220;font-weight:800;
+           text-align:center;line-height:1.5;font-size:9.5px}
   .ep-sum{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
   .ep-k{flex:1;min-width:118px;background:#152238;border:1px solid #2b3a56;border-radius:8px;padding:8px 12px}
   .ep-k .t{font-size:10.5px;color:var(--dim2)}
@@ -4128,8 +4154,7 @@ function paintRelay(d){
   });
 }
 
-/* ③ 题材按时间首封记录图：横轴首封时间、纵轴题材、点上标个股名 */
-let EP_SEAL = null;
+/* ③ 题材按时间首封记录图（纯 CSS 时间轨道，避免 echarts 精简构建对 scatter 的兼容问题） */
 function paintSeal(d){
   const host = document.getElementById('ep-seal');
   if(!host) return;
@@ -4138,52 +4163,52 @@ function paintSeal(d){
     .filter(x=>x.arr.length).sort((a,b)=> b.arr.length-a.arr.length || a.nm.localeCompare(b.nm))
     .slice(0, 12);
   if(!ths.length){
-    if(EP_SEAL){ EP_SEAL.dispose(); EP_SEAL = null; }
     host.style.height = 'auto';
     host.innerHTML = '<div class="sub" style="padding:8px 2px">'+fmtDate(d)+' 当日无梯队涨停记录</div>';
     return;
   }
-  host.innerHTML = '';
-  host.style.height = Math.max(160, 42 + ths.length*44)+'px';
-  if(!EP_SEAL) EP_SEAL = echarts.init(host, null, {renderer:'canvas'});
-  const t2m = t=>{ const p = String(t||'').split(':'); return (+p[0]||0)*60 + (+p[1]||0); };
-  const pad2 = v=> (v<10?'0':'')+v;
-  const cats = ths.map(x=>x.nm);
-  const series = ths.map((x,i)=>{
+  const T0 = 9*60+15, T1 = 15*60;                  // 09:15 → 15:00
+  const pct = t=>{ const p = String(t||'').split(':'); const m=(+p[0]||0)*60+(+p[1]||0);
+    return Math.max(0, Math.min(100, (m-T0)/(T1-T0)*100)); };
+  const tick = m=>{ const h=Math.floor(m/60), mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; };
+  /* 轴刻度 */
+  let axis = '';
+  for(let m=T0; m<=T1; m+=30){
+    axis += '<span class="tick'+(m%(60*2)?'':' maj')+'" style="left:'+((m-T0)/(T1-T0)*100)+'%">'+tick(m)+'</span>';
+  }
+  let h = '<div class="seal-axis">'+axis+'</div>';
+  ths.forEach(x=>{
     const col = T_COLOR[tName(x.nm)] || C.blue;
-    return {
-      name: x.nm, type: 'scatter', z: 3,
-      data: x.arr.map(s=>({
-        value: [t2m(s.t), i], nm: s.name, b: s.boards||1, t: s.t, sp: s.s||'',
-        symbolSize: 7 + Math.min(9, (s.boards||1)*1.8),
-        itemStyle: {color: col, borderColor:'#0b1220', borderWidth:1}
-      })),
-      label: {show:true, position:'right', distance:4, fontSize:9, color:'#cfe0ff',
-              formatter: p=> p.data.nm},
-      labelLayout: {hideOverlap:true},
-      emphasis: {label:{color:'#fff', fontWeight:'bold'}}
-    };
+    /* 同一题材内时间相近的个股换子行，避免标签重叠 */
+    const lanes = [];
+    x.arr.slice().sort((a,b)=> String(a.t).localeCompare(String(b.t))).forEach(s=>{
+      const px = pct(s.t);
+      let li = lanes.findIndex(ln=> px - ln.px > 9);
+      if(li < 0){ li = lanes.length; lanes.push({px:-99}); }
+      lanes[li].px = px;
+      (lanes[li].items || (lanes[li].items=[])).push({s:s, px:px});
+    });
+    const rows = lanes.map(ln=>'<div class="seal-lane">'+
+      ln.items.map(it=>{
+        const s = it.s, b = s.boards||1;
+        return '<span class="seal-chip" data-c="'+(s.code||'')+'" data-n="'+(s.name||'')+'" data-d="'+d+'" '+
+          'style="left:'+it.px+'%;background:'+col+(b>=2?';box-shadow:0 0 0 1px #ffd24a inset':'')+'" '+
+          'title="'+(s.name||'')+' · 首封 '+s.t+' · '+(b>=2? b+'板':'首板')+(s.s? ' · '+s.s:'')+
+          ' ｜点看日K"><b>'+(s.name||'')+'</b>'+(b>=2? '<i>'+b+'板</i>':'')+'</span>';
+      }).join('')+'</div>').join('');
+    h += '<div class="seal-row"><span class="seal-th" style="color:'+col+'">'+x.nm+
+      '<em>'+x.arr.length+'</em></span><div class="seal-track">'+rows+'</div></div>';
   });
-  EP_SEAL.setOption({
-    animation: false,
-    grid: {left: 78, right: 96, top: 10, bottom: 26},
-    tooltip: {trigger:'item', backgroundColor:'#10182a', borderColor:'#3d8bff',
-      textStyle:{color:'#e6eefc', fontSize:11},
-      formatter: p=> p.data.nm+'<br>首封 '+p.data.t+' · '+(p.data.b>=2? p.data.b+'板':'首板')+
-        (p.data.sp? ' · '+p.data.sp : '')},
-    xAxis: {type:'value', min: 9*60+15, max: 15*60, interval: 30,
-      axisLabel: {color:'#8b9bb5', fontSize:9, formatter: v=> pad2(Math.floor(v/60))+':'+pad2(v%60)},
-      axisLine: {lineStyle:{color:'#2b3a56'}}, splitLine:{lineStyle:{color:'#1b2438'}}},
-    yAxis: {type:'category', data: cats, inverse: true,
-      axisLabel: {color:'#9fb0cc', fontSize:10},
-      axisLine: {lineStyle:{color:'#2b3a56'}}, splitLine:{show:true, lineStyle:{color:'#161f31'}}},
-    series: series
-  }, true);
-  EP_SEAL.resize();
+  h += '<div class="seal-note">横轴＝首次封板时间（09:15–15:00）；同一题材内时间相近的个股分行摆放；'+
+    '金色描边＝≥2板（连板）；点个股名看日K。</div>';
+  host.innerHTML = h;
+  host.querySelectorAll('.seal-chip').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation();
+      if(el.dataset.c) showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
+  });
 }
 
-/* ④ 多题材热力图（题材 × 交易日热度）+ 跨题材归类（个股题材漂移） */
-let EP_HEAT = null;
+/* ④ 多题材热力图（题材 × 交易日，纯 CSS 网格）+ 跨题材归类（题材漂移） */
 function paintHeat(d){
   const host = document.getElementById('ep-heat'), cross = document.getElementById('ep-cross');
   if(!host) return;
@@ -4192,12 +4217,10 @@ function paintHeat(d){
   const ei = ds.indexOf(d);
   if(ei < 0){ host.innerHTML=''; return; }
   const LF = R.ladderFull || {};
-  const HC = 12;                                   // 热力图列数（交易日）
-  const CC = 20;                                   // 跨题材回看天数
+  const HC = 12, CC = 20;
   const hd = ds.slice(Math.max(0, ei-HC+1), ei+1);
   const cd = ds.slice(Math.max(0, ei-CC+1), ei+1);
 
-  /* 统计数据：题材 → 每日涨停家数；个股 → 涉及过的题材 */
   const thCnt = {}, thDay = {}, codeTh = {}, nameOf = {};
   hd.forEach(x=>{
     const day = LF[x] || {};
@@ -4217,7 +4240,7 @@ function paintHeat(d){
     }));
   });
 
-  /* 跨题材归类：窗口内被 ≥2 个题材炒过的个股，按题材组合分组 */
+  /* 跨题材归类：窗口内被 ≥2 个题材炒过的个股 */
   if(cross){
     const multi = Object.keys(codeTh).filter(c=>Object.keys(codeTh[c]).length>=2)
       .sort((a,b)=> Object.keys(codeTh[b]).length - Object.keys(codeTh[a]).length);
@@ -4232,45 +4255,38 @@ function paintHeat(d){
       });
       const keys = Object.keys(grp).sort((a,b)=> grp[b].length-grp[a].length || a.localeCompare(b));
       cross.innerHTML = '<div class="cross-hd">跨题材归类 · 近 '+cd.length+' 个交易日有 '+
-        multi.length+' 只个股被 ≥2 个题材炒过（题材漂移＝资金在同一批股上换故事）</div>'+
+        multi.length+' 只个股被 ≥2 个题材炒过（题材漂移＝同一批股换故事，是热点的“底座”）</div>'+
         keys.map(k=>'<div class="cross-row"><span class="cth">'+k+'</span><span class="cst">'+
           grp[k].map(n=>'<i>'+n+'</i>').join('')+'</span></div>').join('');
     }
   }
 
-  /* 热力图：行＝题材（窗口内涨停家数 top12），列＝最近 12 个交易日，色深＝当日该题材涨停家数 */
+  /* 热力网格：行＝题材（窗口内涨停家数 top12），列＝最近 12 个交易日 */
   const rowTh = Object.keys(thCnt).sort((a,b)=> thCnt[b]-thCnt[a] || a.localeCompare(b)).slice(0, 12);
   if(!rowTh.length){
-    if(EP_HEAT){ EP_HEAT.dispose(); EP_HEAT = null; }
     host.style.height = 'auto';
     host.innerHTML = '<div class="sub" style="padding:8px 2px">'+fmtDate(d)+' 近端无题材涨停记录，热力图不展示。</div>';
     return;
   }
-  host.innerHTML = '';
-  host.style.height = Math.max(160, 54 + rowTh.length*26)+'px';
-  if(!EP_HEAT) EP_HEAT = echarts.init(host, null, {renderer:'canvas'});
-  const data = [];
   let mx = 1;
-  rowTh.forEach((nm,y)=> hd.forEach((day,x)=>{
-    const v = (thDay[nm] || {})[day] || 0;
-    if(v > mx) mx = v;
-    if(v) data.push([x, y, v]);
-  }));
-  EP_HEAT.setOption({
-    animation: false,
-    grid: {left: 96, right: 14, top: 8, bottom: 34},
-    tooltip: {trigger:'item', backgroundColor:'#10182a', borderColor:'#3d8bff',
-      textStyle:{color:'#e6eefc', fontSize:11},
-      formatter: p=> rowTh[p.value[1]]+' · '+fmtDate(hd[p.value[0]])+'<br>涨停 <b>'+p.value[2]+'</b> 只'},
-    xAxis: {type:'category', data: hd.map(x=>fmtDate(x).slice(0,5)), splitArea:{show:false},
-      axisLabel:{color:'#8b9bb5', fontSize:9}, axisLine:{lineStyle:{color:'#2b3a56'}}},
-    yAxis: {type:'category', data: rowTh, inverse: true,
-      axisLabel:{color:'#9fb0cc', fontSize:10}, axisLine:{lineStyle:{color:'#2b3a56'}}},
-    visualMap: {min:0, max:mx, show:false, inRange:{color:['#1b2740','#7a5c12','#f0b90b']}},
-    series: [{type:'heatmap', data:data, itemStyle:{borderColor:'#0b1220', borderWidth:1,
-      borderRadius:2}, emphasis:{itemStyle:{borderColor:'#fff', borderWidth:1}}}]
-  }, true);
-  EP_HEAT.resize();
+  rowTh.forEach(nm=> hd.forEach(day=>{ const v=(thDay[nm]||{})[day]||0; if(v>mx) mx=v; }));
+  let head = '<div class="ht-corner">题材＼日</div>'+
+    hd.map(x=>'<div class="ht-colh">'+fmtDate(x).slice(0,5)+'</div>').join('');
+  let body = '';
+  rowTh.forEach(nm=>{
+    const col = T_COLOR[tName(nm)] || C.blue;
+    body += '<div class="ht-rh" title="'+nm+'：窗口内共涨停 '+thCnt[nm]+' 只" style="color:'+col+'">'+nm+'</div>';
+    hd.forEach(day=>{
+      const v = (thDay[nm]||{})[day] || 0;
+      const a = v ? (0.25 + 0.75*v/mx) : 0;
+      body += '<div class="ht-cell" style="'+(v? 'background:'+col+';opacity:'+a.toFixed(2):'')+
+        '" title="'+nm+' · '+fmtDate(day)+'：涨停 '+v+' 只">'+(v||'')+'</div>';
+    });
+  });
+  const cols = hd.length;
+  host.innerHTML = '<div class="ht-grid" style="grid-template-columns:96px repeat('+cols+',1fr)">'+
+    head + body + '</div>'+
+    '<div class="seal-note">色块越亮＝当日该题材涨停家数越多；行按窗口内涨停总数排序（top12）。</div>';
 }
 
 document.querySelectorAll('.ep-w').forEach(b=>{
@@ -4758,7 +4774,6 @@ window.checkNewData = checkNewData;      // 暴露给自动化回归 / 控制台
     const nv = document.getElementById('nav');
     if(nv) document.documentElement.style.setProperty('--navh', nv.offsetHeight+'px');
     if(mktChart) mktChart.resize(); if(kChart) kChart.resize();
-    if(EP_SEAL) EP_SEAL.resize(); if(EP_HEAT) EP_HEAT.resize();
     fitK();                       // v68：视口变化后日K浮层重新收口（含位置夹回）
   });
 
