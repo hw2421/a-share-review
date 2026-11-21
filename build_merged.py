@@ -801,7 +801,8 @@ BRK_TRACK, _n_brk = BT.compute(dates, pools, KBARS, NAME=_NAME_ALL,
 print("v67 高位断板跟踪：共 %d 个跟踪股票日（断板日 + 后续2日）" % _n_brk)
 # ---- 5.6.27b v69 昨日梯队 → 今日盈亏传导（逐股反馈，龙头/助攻/跟风分层） ----
 import relay_fb as RF
-RELAY_FB, _n_rf = RF.compute(dates, pools, KBARS, ladder_full, NAME=_NAME_ALL)
+RELAY_FB, _n_rf = RF.compute(dates, pools, KBARS, ladder_full, NAME=_NAME_ALL,
+                             THEME=theme_at)
 print("v69 昨日梯队今日反馈：%d 个展示日 / %d 个题材（逐股涨幅+晋级）"
       % (len(RELAY_FB["days"]), _n_rf))
 # ---- 5.6.27b v70 个股当日状态：涨停首封时间 + 炸板（含首封时间） ----

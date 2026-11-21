@@ -1669,6 +1669,34 @@ def main():
           % (len(ZT), len(ZB), sum(len(v) for v in ZB.values()), n_st))
     n_v48 += n_st
 
+    # ---- v71：昨日梯队反馈右栏「题材今日梯队」（relayFb tl 字段）独立复核 ----
+    # 口径：tl 个股必须当日真实涨停且板位与池一致；昨日梯队中的晋级股必须出现在 tl
+    # （题材映射漂移时靠「昨日成员今日仍涨停」路径兜底）。
+    n_tl = 0
+    for _d, _rows in RF_DAYS.items():
+        _pc = {str(s["code"]): s for s in (pools.get(_d) or [])}
+        for _r in _rows:
+            _tl = _r.get("tl")
+            if _tl is None:
+                err("v71 %s %s 缺 tl 字段" % (_d, _r.get("th"))); n_tl += 1; continue
+            _tlset = set()
+            for _x in _tl:
+                _code = str(_x.get("code"))
+                _tlset.add(_code)
+                _s = _pc.get(_code)
+                if not _s:
+                    err("v71 %s %s tl 个股 %s 不在当日涨停池" % (_d, _r.get("th"), _code)); n_tl += 1
+                elif (_s.get("boards") or 1) != (_x.get("boards") or 1):
+                    err("v71 %s %s tl 个股 %s 板位不符 %s vs %s"
+                        % (_d, _r.get("th"), _code, _x.get("boards"), _s.get("boards"))); n_tl += 1
+            for _L in (_r.get("L") or []):
+                for _x in (_L.get("st") or []):
+                    if _x[4] == 1 and str(_x[1]) not in _tlset:
+                        err("v71 %s %s 晋级股 %s 未进 tl" % (_d, _r.get("th"), _x[1])); n_tl += 1
+    print("v71 题材今日梯队（relayFb tl）：%d 个展示日 / 独立复核异常 %d"
+          % (len(RF_DAYS), n_tl))
+    n_v48 += n_tl
+
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
     n_main = sum(1 for d in days if d.get("stage") == "主升")

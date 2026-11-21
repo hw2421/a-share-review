@@ -11,6 +11,8 @@
 数据契约：
   days = {展示日 d: [
      {"th": 题材, "top": 昨日最高板, "cnt": 昨日梯队只数,
+      "tl": [{"code","name","boards"}]（v71 题材今日梯队：昨日同题材成员中今日仍涨停的
+            （映射漂移也能看到晋级股）+ 今日新涨停且当日映射仍归该题材的个股，按板位降序）,
       "L": [ {"b": 昨日板位, "role": "龙头|助攻|跟风",
               "cn": 有今日价格的只数, "avg": 平均涨幅, "win": 赚钱率%, "pr": 晋级只数,
               "st": [[股票名, 代码, 昨日板位, 今日涨幅(%), 晋级标记], ...]}, ... ] }
@@ -32,7 +34,7 @@ def _lim_pct(code, name):
     return 10.0
 
 
-def compute(dates, pools, KBARS, ladder_full, days_num=ALL_N, NAME=None):
+def compute(dates, pools, KBARS, ladder_full, days_num=ALL_N, NAME=None, THEME=None):
     NAME = NAME or {}
     n = len(dates)
     if n < 2:
@@ -84,7 +86,31 @@ def compute(dates, pools, KBARS, ladder_full, days_num=ALL_N, NAME=None):
                     "pr": sum(1 for x in st if x[4] == 1),
                     "st": st,
                 })
-            day_rows.append({"th": th, "top": top, "cnt": len(arr), "L": L})
+            # v71 右栏「题材今日梯队」：昨日同题材成员中今日仍涨停的（映射漂移也能
+            # 看到晋级股）＋ 今日新涨停且当日映射仍归该题材的个股，按今日板位降序。
+            seen = set()
+            tarr = []
+            for s in arr:
+                code = str(s.get("code") or "")
+                cur = pmap.get(d, {}).get(code)
+                if cur:
+                    tarr.append({"code": code,
+                                 "name": s.get("name") or NAME.get(code) or code,
+                                 "boards": cur.get("boards") or 1})
+                    seen.add(code)
+            if THEME is not None:
+                tm = THEME.get(d) or {}
+                for cur in pmap.get(d, {}).values():
+                    code = str(cur.get("code") or "")
+                    if code in seen or not code:
+                        continue
+                    if tm.get(code) == th:
+                        tarr.append({"code": code,
+                                     "name": cur.get("name") or NAME.get(code) or code,
+                                     "boards": cur.get("boards") or 1})
+                        seen.add(code)
+            tarr.sort(key=lambda x: -x["boards"])
+            day_rows.append({"th": th, "top": top, "cnt": len(arr), "tl": tarr, "L": L})
         if day_rows:
             day_rows.sort(key=lambda x: (-x["top"], -x["cnt"], x["th"]))
             out[d] = day_rows
