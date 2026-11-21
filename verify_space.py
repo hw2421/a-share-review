@@ -1715,12 +1715,16 @@ def main():
     n_v48 += n_zbt
 
     # ---- v73：历史复盘（赚钱效应股断板 3 日跟踪 + 空间龙头叠加）独立复核 ----
-    # 口径复算：自事件日向前，断板日起 3 个交易日内再次涨停 → alive；否则 dead 移除。
-    # 校验：抽样事件的存活判定 / 板位 / 题材；展示股必须复算存活且在事件池；
-    #       当日空间龙头与 stages.spaceFull[0] 一致。
+    # v76 口径复算：赚钱效应股＝连续两日换手涨停 3 板+（事件池即 earnStreak）；
+    # 逐日展示区间＝涨停日 + 断板日起 3 个交易日（断板后 1~2 日内再板→继续，
+    # 3 日均未板→第 4 日起移除，数据末端窗口未走完→展示至末端）。
+    # 校验：页面展示记录必须落在复算的展示区间内且双向一致（防漏/防多）；
+    #       涨停日 state=涨停X板 且板位与涨停池一致，断板日 state=断板第X天；
+    #       alive 独立复算；当日空间龙头与 stages.spaceFull[0] 一致。
     n_hr = 0
     HRD = ((D.get("histReview") or {}).get("days")) or {}
     _ztset = {dd: {str(s["code"]) for s in (pools.get(dd) or [])} for dd in dates}
+    _pools76 = {dd: {str(s["code"]): s for s in (pools.get(dd) or [])} for dd in dates}
     _date_idx = {dd: i for i, dd in enumerate(dates)}
     _hr_best = {}
     for _e in ((D.get("earnStreak") or {}).get("eventsAll") or []):
@@ -1729,22 +1733,53 @@ def main():
         _k = (str(_e.get("code")), _e.get("d"))
         if _k not in _hr_best or (_e.get("b") or 1) > _hr_best[_k].get("b", 0):
             _hr_best[_k] = _e
+    _N76 = len(dates)
+
+    def _hr_visible(_code, _d0):
+        """独立复算逐日展示区间，返回 {(d, kind, boards, seq)}。"""
+        _i = _date_idx.get(_d0)
+        if _i is None:
+            return set()
+        _out, _i2 = set(), _i
+        while True:
+            _last = _i2
+            while _last + 1 < _N76 and str(_code) in _ztset[dates[_last + 1]]:
+                _last += 1
+            for _j in range(_i2, _last + 1):
+                _b = (_pools76.get(dates[_j], {}).get(str(_code)) or {}).get("boards") or 1
+                _out.add((dates[_j], "zt", _b, 0))
+            if _last + 1 >= _N76:
+                break
+            _bd = _last + 1
+            _tb = (_pools76.get(dates[_last], {}).get(str(_code)) or {}).get("boards") or 1
+            _re, _end = None, min(_bd + 2, _N76 - 1)
+            for _k in (1, 2):
+                if _bd + _k >= _N76:
+                    break
+                if str(_code) in _ztset[dates[_bd + _k]]:
+                    _re, _end = _bd + _k, _bd + _k - 1
+                    break
+            for _j in range(_bd, _end + 1):
+                _out.add((dates[_j], "brk", _tb, _j - _bd + 1))
+            if _re is None:
+                break
+            _i2 = _re
+        return _out
 
     def _hr_alive(_code, _d):
         _i = _date_idx.get(_d)
         if _i is None:
             return False
-        _N = len(dates)
         while True:
             _j = _i
-            while _j + 1 < _N and str(_code) in _ztset[dates[_j + 1]]:
+            while _j + 1 < _N76 and str(_code) in _ztset[dates[_j + 1]]:
                 _j += 1
-            if _j + 1 >= _N:
+            if _j + 1 >= _N76:
                 return True
             _bd = _j + 1
             _re, _cnt = None, 0
             for _k in range(3):
-                if _bd + _k >= _N:
+                if _bd + _k >= _N76:
                     break
                 _cnt += 1
                 if _k >= 1 and str(_code) in _ztset[dates[_bd + _k]]:
@@ -1754,34 +1789,48 @@ def main():
                 return _cnt < 3               # 窗口未走完（数据末端）视为存活
             _i = _re
 
-    for (_hc, _hd2), _he in _rnd.sample(list(_hr_best.items()), min(80, len(_hr_best))):
-        _day = HRD.get(_hd2) or {}
-        _row = next((s for _t in (_day.get("themes") or [])
-                     for s in (_t.get("stks") or []) if str(s.get("code")) == _hc), None)
-        _alive = _hr_alive(_hc, _hd2)
-        if not _row:
-            err("v73 %s %s 事件缺行（v75 起全部保留展示）" % (_hd2, _hc)); n_hr += 1
-            continue
-        if bool(_row.get("alive")) != _alive:
-            err("v73 %s %s 存活标记不符（复算%s / 页面%s）"
-                % (_hd2, _hc, _alive, _row.get("alive"))); n_hr += 1
-            continue
-        if (_row.get("boards") or 1) != (_he.get("b") or 1):
-            err("v73 %s %s 板位不符 %s vs %s"
-                % (_hd2, _hc, _row.get("boards"), _he.get("b"))); n_hr += 1
-        if (_row.get("theme") or "") != (_he.get("theme") or ""):
-            err("v73 %s %s 题材不符 %s vs %s"
-                % (_hd2, _hc, _row.get("theme"), _he.get("theme"))); n_hr += 1
-        if not _alive and _row.get("state") != "终止":
-            err("v73 %s %s 已终止但状态=%s" % (_hd2, _hc, _row.get("state"))); n_hr += 1
+    # 复算展示全集（合并规则与 hist_review 一致：涨停日优先、板位大者优先，alive 随行）
+    _expect = {}                              # (code, d) -> (kind, boards, seq, alive)
+    for (_hc, _hd0) in _hr_best:
+        _al = _hr_alive(_hc, _hd0)
+        for (_vd, _vk, _vb, _vs) in _hr_visible(_hc, _hd0):
+            _old = _expect.get((_hc, _vd))
+            if _old is None or ((_vk == "zt") > (_old[0] == "zt")) or \
+               (_vk == _old[0] and _vb > _old[1]):
+                _expect[(_hc, _vd)] = (_vk, _vb, _vs, _al)
+    # ① 页面 → 复算：每条展示记录必须落在复算区间，字段一致
+    _page_keys = set()
     for _hd2, _y in HRD.items():
         for _t in (_y.get("themes") or []):
             for _s in (_t.get("stks") or []):
                 _c = str(_s.get("code"))
-                if (_c, _hd2) not in _hr_best:
-                    err("v73 %s %s 不在赚钱效应事件池" % (_hd2, _c)); n_hr += 1
-                elif bool(_s.get("alive")) != _hr_alive(_c, _hd2):
-                    err("v73 %s %s 存活标记与复算不符" % (_hd2, _c)); n_hr += 1
+                _page_keys.add((_c, _hd2))
+                _ex = _expect.get((_c, _hd2))
+                if _ex is None:
+                    err("v76 %s %s 不在复算展示区间（第4日应已移除）" % (_hd2, _c)); n_hr += 1
+                    continue
+                _vk, _vb, _vs, _al = _ex
+                if bool(_s.get("alive")) != bool(_al):
+                    err("v76 %s %s 存活标记与复算不符" % (_hd2, _c)); n_hr += 1
+                if _vk == "zt":
+                    if _s.get("state") != "涨停%d板" % _vb:
+                        err("v76 %s %s 涨停日状态不符 %s vs 涨停%d板"
+                            % (_hd2, _c, _s.get("state"), _vb)); n_hr += 1
+                    _pb76 = (_pools76.get(_hd2, {}).get(_c) or {}).get("boards") or 1
+                    if (_s.get("boards") or 1) != _pb76:
+                        err("v76 %s %s 板位与涨停池不符 %s vs %s"
+                            % (_hd2, _c, _s.get("boards"), _pb76)); n_hr += 1
+                else:
+                    if _s.get("state") != "断板第%d天" % _vs:
+                        err("v76 %s %s 断板日状态不符 %s vs 断板第%d天"
+                            % (_hd2, _c, _s.get("state"), _vs)); n_hr += 1
+                    if (_s.get("boards") or 1) != _vb:
+                        err("v76 %s %s 断板日板位不符 %s vs %s"
+                            % (_hd2, _c, _s.get("boards"), _vb)); n_hr += 1
+    # ② 复算 → 页面：复算区间内每条都必须展示（防漏）
+    for (_hc, _vd) in _expect:
+        if _vd in HRD and (_hc, _vd) not in _page_keys:
+            err("v76 %s %s 复算应展示但页面缺失" % (_vd, _hc)); n_hr += 1
     _stg_by = {x.get("date"): x for x in (D.get("stages") or [])}
     for _hd2, _y in HRD.items():
         _sf = ((_stg_by.get(_hd2) or {}).get("spaceFull") or [])
@@ -1790,8 +1839,8 @@ def main():
             err("v73 %s 缺当日空间龙头" % _hd2); n_hr += 1
         elif _ld and _sf and str(_ld.get("code")) != str(_sf[0].get("code")):
             err("v73 %s 空间龙头与 stages 不符" % _hd2); n_hr += 1
-    print("v73 历史复盘：%d 个事件日 / 抽样 %d + 全量对账，独立复核异常 %d"
-          % (len(HRD), min(80, len(_hr_best)), n_hr))
+    print("v73/v76 历史复盘：%d 个展示日 / 展示记录 %d 条（复算 %d 条）双向对账，异常 %d"
+          % (len(HRD), len(_page_keys), len(_expect), n_hr))
     n_v48 += n_hr
 
     # ---- v74：历史复盘扩展（日期连续 / 缺口形态 / 断板龙头当日涨跌幅与炸板） +
@@ -1834,7 +1883,12 @@ def main():
         for _t in (_y74.get("themes") or []):
             for _s in (_t.get("stks") or []):
                 _g = _gap74(str(_s.get("code")), _dd)
-                if _g is not None and _s.get("gap") != _g:
+                # v76：缺口形态仅针对涨停日；断板日 gap 必须为空
+                if str(_s.get("code")) not in _ztset.get(_dd, set()):
+                    if _s.get("gap") is not None:
+                        err("v74 %s %s 断板日不应有缺口形态 %s"
+                            % (_dd, _s.get("name"), _s.get("gap"))); n_v74 += 1
+                elif _g is not None and _s.get("gap") != _g:
                     err("v74 %s %s 缺口形态不符 %s vs 复算 %s"
                         % (_dd, _s.get("name"), _s.get("gap"), _g)); n_v74 += 1
         _pb74 = _y74.get("prevBrk")

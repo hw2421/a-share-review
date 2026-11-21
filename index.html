@@ -351,9 +351,11 @@
   .tcards::-webkit-scrollbar{height:3px}
   .tcards::-webkit-scrollbar-thumb{background:#26314a;border-radius:2px}
   /* v74：题材卡统一尺寸（固定宽高）+ 名称完整显示（可换行）+ 容器横向拖动
-     v75：宽度 118px→92px（用户口径「太宽了，缩窄一点」） */
+     v75：宽度 118px→92px（用户口径「太宽了，缩窄一点」）
+     v76：题材卡大小＝最小可完整显示——宽度由内容自适应（无固定宽高），
+          题材名 / 龙头行不换行不截断，卡宽刚好容纳完整内容 */
   .tcard{display:inline-flex;flex-direction:column;align-items:flex-start;flex:0 0 auto;
-         width:92px;min-height:58px;box-sizing:border-box;
+         box-sizing:border-box;
          border-radius:4px;padding:2px 4px;cursor:pointer;
          border:1px solid rgba(255,255,255,.14);
          font-size:8.5px;line-height:1.2;color:#151a21;
@@ -364,8 +366,8 @@
   .tcard .r2,.tcard .r3,.tcard .r4{margin-top:0}
   /* 题材名下划线：极细半透明细线贴合文字宽度（overflow:hidden 会裁掉 text-decoration），
      弱化存在感、hover 时才提亮，保持高端克制的观感 */
-  /* v74：题材名全部完整显示（可换行，不再截断） */
-  .tcard .nm{font-weight:700;font-size:9px;max-width:100%;white-space:normal;
+  /* v76：题材名完整显示（不换行不截断，卡宽随内容自适应） */
+  .tcard .nm{font-weight:700;font-size:9px;max-width:100%;white-space:nowrap;
              line-height:1.25;letter-spacing:.2px;
              border-bottom:1px solid rgba(21,26,33,.26);padding-bottom:1px;cursor:pointer}
   .tcard:hover .nm{border-bottom-color:rgba(21,26,33,.72)}
@@ -375,7 +377,8 @@
   .tcard .brkt{display:inline-block;background:rgba(46,189,133,.9);color:#06281c;border-radius:3px;
               padding:0 3px;font-size:7.5px;font-weight:800;white-space:nowrap;margin-left:2px}
   /* v72：断板后无梯队的题材卡不再展示（brkonly 已删除）；断板数仍在主流题材卡上以「断N」标注 */
-  .tcard .ld{font-weight:800;font-size:8px;max-width:100%;white-space:normal;line-height:1.25}
+  /* v76：龙头行同样不换行（卡宽随内容自适应） */
+  .tcard .ld{font-weight:800;font-size:8px;max-width:100%;white-space:nowrap;line-height:1.25}
   .tcard .ld em{font-style:normal;font-weight:500;font-size:7.5px;opacity:.75;margin-left:1px}
   .tcard .lad{font-variant-numeric:tabular-nums;font-weight:700;font-size:7.5px;opacity:.75;white-space:nowrap}
   .src-ths{color:var(--blue);font-size:10px}
@@ -848,6 +851,9 @@
              border:1px solid #2b5548;border-radius:3px;padding:0 3px}
   .fbst i.na{font-style:normal;font-size:8px;color:var(--dim2)}
   .fbst .stk-zt,.fbst .stk-zb{font-size:8px}
+  /* v76：梯队个股涨停形式小标（缺口红 / 长腿灰，与历史复盘同款） */
+  .fbst i.gp{font-style:normal;font-size:8px;color:#fff;background:#c2492f;border-radius:3px;padding:0 3px;font-weight:700}
+  .fbst i.gp.ng{color:#cfd9ea;background:rgba(120,132,154,.25);font-weight:600}
   /* v73 历史复盘（赚钱效应股断板跟踪 + 空间龙头叠加） */
   .hr-day{border:1px solid #22304a;border-radius:8px;background:#111a2c;padding:8px 10px;margin-bottom:8px}
   .hr-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;margin-bottom:6px;
@@ -877,7 +883,7 @@
   /* v74：缺口 / 长腿形态小标（缺口＝当日最低价＞昨日最高价） */
   .hr-stk i.gp,.hr-ld i.gp,.hr-pb i.gp{font-style:normal;font-size:8.5px;color:#fff;background:#c2492f;border-radius:3px;padding:0 3px;font-weight:700}
   .hr-stk i.gp.ng,.hr-ld i.gp.ng,.hr-pb i.gp.ng{color:#cfd9ea;background:rgba(120,132,154,.25);font-weight:600}
-  /* v75：已终止（断板 3 日未再涨停）的赚钱效应股置灰保留展示 */
+  /* v76：断板链已终止（断板 3 日未再涨停）的赚钱效应股在窗口内最后展示日置灰，第 4 日起移除 */
   .hr-stk.dead{opacity:.42;filter:grayscale(.6)}
   /* v74：市场阶段徽标可点击 → 跳空间情绪明细表对应日期 */
   .hr-stg,.tdate .dstg{cursor:pointer}
@@ -1045,8 +1051,8 @@
 <!-- ============ 历史复盘（v73：赚钱效应股断板跟踪 + 空间龙头叠加） ============ -->
 <section class="page" id="page-hist">
   <div class="card">
-    <h3>历史复盘 <span class="sub">历史全部赚钱效应股 · 按日期排列（日期带市场阶段与空间高度）· 同日按题材、题材内按高度排列 ·
-      断板后 3 个交易日内再涨停继续存活，否则标「终止」置灰保留 · 叠加当日空间龙头与上一个断板空间龙头辅助判断 · 点题材看当日梯队 · 点个股看日K ·
+    <h3>历史复盘 <span class="sub">历史全部赚钱效应股（连续两天可换手买入且涨停的 3 板或以上）· 按日期排列（日期带市场阶段与空间高度）· 同日按题材、题材内按高度排列 ·
+      个股涨停日与断板日逐日展示，断板后持续展示三日（断板日+后两个交易日），三日均未涨停第四日起不再展示，期间再涨停则继续 · 叠加当日空间龙头与上一个断板空间龙头辅助判断 · 点题材看当日梯队 · 点个股看日K ·
       个股标记涨停形态（<b style="color:#f5455c">缺口</b>＝当日最低价＞昨日最高价 / <b style="color:#9fb0cc">长腿</b>）</span></h3>
     <div class="ep-bar">
       <span class="ep-lb">跳转日期</span>
@@ -1057,7 +1063,7 @@
       <button id="hist-prev" class="ep-go" title="往前一个交易日">◀</button>
       <button id="hist-next" class="ep-go" title="往后一个交易日">▶</button>
       <button id="hist-latest" class="ep-go" title="回到最新交易日">最新</button>
-      <span class="sub" style="margin-left:10px">明细表始终完整显示，选择日期仅定位高亮 · 已终止股置灰保留</span>
+      <span class="sub" style="margin-left:10px">明细表始终完整显示，选择日期仅定位高亮</span>
     </div>
     <div class="scroll" id="hist-list" style="max-height:none"></div>
   </div>
@@ -4174,6 +4180,16 @@ function stateTag(d, code){
     (b.t? ' · 首封 '+b.t : '')+'">炸板'+(b.t? ' '+b.t : '')+'</i>';
   return '';
 }
+/* v76 个股涨停形式：gapMap[d][code] = 1 缺口 / 0 长腿（缺口＝当日最低价＞昨日最高价，
+   与历史复盘 gap_of 同口径）；梯队个股据此显示涨停形式小标 */
+function gapOf(d, code){
+  const v = ((((window.REVIEW||{}).gapMap||{})[d]) || {})[String(code)];
+  return v == null ? null : v;
+}
+function gapTag(d, code){
+  const g = gapOf(d, code);
+  return g == null ? '' : (g ? '<i class="gp">缺口</i>' : '<i class="gp ng">长腿</i>');
+}
 /* 题材当日梯队字符串：优先 ladders.ladder，缺失用 ladderFull 板位集合现算 */
 function tierOf(d, nm){
   if(!nm) return '';
@@ -4300,7 +4316,7 @@ function paintRelay(d){
         byB[bd].map(s=>'<span class="fbst" data-c="'+(s.code||'')+'" data-n="'+(s.name||'')+'" data-d="'+d+'" '+
           'title="'+(s.name||'')+'：今日 '+bd+'板（'+role+'）'+(s.t? ' · 首封 '+s.t:'')+
           (s.s? ' · '+s.s:'')+' ｜点看日K">'+(s.name||'')+
-          '<em class="y">'+bd+'板</em>'+stateTag(d, s.code)+'</span>').join('')+
+          '<em class="y">'+bd+'板</em>'+gapTag(d, s.code)+stateTag(d, s.code)+'</span>').join('')+
         '</span></div>';
     }).join('') : '<span class="sub" style="padding:4px 0">今日该题材无梯队</span>';
     return '<div class="fbcard"><div class="fbhd"><b>'+r.th+'</b>'+
@@ -4346,7 +4362,7 @@ function paintNewLad(d){
         byB[bd].map(s=>'<span class="fbst" data-c="'+(s.code||'')+'" data-n="'+(s.name||'')+'" data-d="'+d+'" '+
           'title="'+(s.name||'')+'：今日 '+bd+'板（'+role+'）'+(s.t? ' · 首封 '+s.t:'')+
           (s.s? ' · '+s.s:'')+' ｜点看日K">'+(s.name||'')+
-          '<em class="y">'+bd+'板</em>'+stateTag(d, s.code)+'</span>').join('')+
+          '<em class="y">'+bd+'板</em>'+gapTag(d, s.code)+stateTag(d, s.code)+'</span>').join('')+
         '</span></div>';
     }).join('') : '<span class="sub" style="padding:4px 0">无梯队明细</span>';
     const col = T_COLOR[tName(nm)] || C.blue;
@@ -4581,9 +4597,10 @@ document.querySelectorAll('.ep-w').forEach(b=>{
 })();
 
 /* ================= v73 历史复盘 =================
-   历史全部赚钱效应股（earnStreak 全量池）按日期排列：日期带市场阶段 + 市场空间高度；
-   同一日期按题材分组、题材内按板位（高度）降序；断板后 3 个交易日内再次涨停继续显示，
-   否则移除；每只个股带自身板位（高度）、当日市场空间高度（空高）与断板跟踪状态；
+   历史全部赚钱效应股（earnStreak 全量池＝连续两天可换手买入且涨停的 3 板或以上）
+   按日期排列：日期带市场阶段 + 市场空间高度；同一日期按题材分组、题材内按板位（高度）降序；
+   v76：个股逐日展示——涨停日（涨停X板）+ 断板日（断板第X天），断板后持续展示三日，
+   三日均未涨停第四日起移除（按日控制可见性，不再整条删除）；
    叠加当日空间龙头 + 上一个仍存活的断板空间龙头辅助判断；点题材看当日梯队，点个股看日K。 */
 function renderHist(){
   const root = document.getElementById('hist-list');
@@ -4633,7 +4650,6 @@ function renderHist(){
         return '<span class="hr-stk'+(s.alive===0?' dead':'')+'" data-c="'+s.code+'" data-n="'+s.name+'" data-d="'+d+'" '+
           'title="'+s.name+'：'+s.boards+'板（自身高度）· 市场空间高度 '+(y.spaceTop==null?'—':y.spaceTop)+
           ' · '+s.state+(zt.s? ' · 形态 '+zt.s:'')+(trk? ' · '+trk:'')+' ｜点看日K"><b>'+s.name+'</b><em>'+s.boards+'板</em>'+
-          '<em class="sp">空高'+(y.spaceTop==null?'—':y.spaceTop)+'</em>'+
           (s.gap!=null? (s.gap? '<i class="gp">缺口</i>':'<i class="gp ng">长腿</i>') : '')+
           stateTag(d, s.code)+
           '<i class="st">'+s.state+'</i></span>';

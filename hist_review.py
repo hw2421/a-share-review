@@ -16,6 +16,14 @@ v74 扩展：
 v75 修正：不再移除已终止的赚钱效应股——历史全部保留展示，
   断板 3 日未再涨停的个股 alive=0、state="终止"，前端置灰显示（否则历史几乎全空）。
 
+v76 定稿口径：
+  · 赚钱效应股 ＝ 连续两天可换手买入且涨停的 3 板或以上个股（earnStreak 口径，
+    本模块事件池即其全量事件，两日均为换手涨停/非一字、t 日板位 ≥3）；
+  · 断板移除 ＝ 断板后持续展示三日（断板日、断板后第 1/2 个交易日共 3 个交易日），
+    这三日均未涨停则第四日起不再展示；窗口内再次涨停则回到活跃、以再板日为新起点；
+  · 个股逐日可见：涨停日展示（涨停X板），断板窗口日也展示（断板第X天），
+    不再把终止股从整条历史移除，而是按日控制可见性。
+
 跟踪规则（与 v67 brk_track 三日窗口一致）：
   断板日 = 连续涨停后的第一个未涨停交易日；自断板日起 3 个交易日窗口内
   （断板日本身必不涨停，实际机会为断板后 2 日）再次涨停 → 继续 alive，
@@ -28,7 +36,8 @@ v75 修正：不再移除已终止的赚钱效应股——历史全部保留展�
     "prevBrk": {code,name,boards,bd,days:[[d,chg,zt]...],re,state,chg,zb} 或 None,
                # 上一个仍存活的断板空间龙头（chg=当日涨跌幅, zb=当日炸板）
     "themes": [ {"th": 题材, "stks": [ {code,name,boards,state,track,gap,alive} ]} ]
-               # 全部赚钱效应股（alive=0 为已终止）；题材内存活优先、按板位降序
+               # 当日应展示的赚钱效应股（涨停日 + 断板窗口日）；
+               # alive=0 为该链已终止（窗口内最后展示，第 4 日起移除）
   }}
 """
 import bisect
@@ -133,13 +142,43 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N,
                 return False, "终止", breaks
             i = re_i
 
-    def state_of(alive, breaks):
-        if not breaks:
-            return "连板中"
-        last = breaks[-1]
-        if last["re"]:
-            return "断板后再涨停"
-        return "断板第%d天" % len(last["days"])
+    def visible_span(code, start_d):
+        """v76 逐日展示区间：自 start_d（涨停日）向前模拟。
+        返回 [(d, kind, boards, seq)]：
+          kind="zt"  涨停日（boards=当日板位，seq=0）
+          kind="brk" 断板窗口日（boards=最后涨停板位，seq=窗口内第几天 1..3）
+        断板日起持续展示 3 个交易日；断板后 1~2 日内再涨停 → 回到活跃、
+        以再板日为新起点重复；3 日均未涨停 → 第 4 日起不再展示；
+        数据末端窗口未走完 → 展示至数据末端。"""
+        if start_d not in idx:
+            return []
+        i = idx[start_d]
+        out = []
+        while True:
+            last = i
+            while last + 1 < n and is_zt(code, dates[last + 1]):
+                last += 1
+            for j in range(i, last + 1):
+                _, b = _st(code, dates[j])
+                out.append((dates[j], "zt", b, 0))
+            if last + 1 >= n:
+                break                                   # 数据末端
+            bd_i = last + 1
+            tb = _st(code, dates[last])[1]              # 最后涨停板位
+            re_i, end_j = None, min(bd_i + 2, n - 1)
+            for k in (1, 2):                            # 断板后第 1/2 日可再板
+                j = bd_i + k
+                if j >= n:
+                    break
+                if is_zt(code, dates[j]):
+                    re_i, end_j = j, j - 1
+                    break
+            for j in range(bd_i, end_j + 1):
+                out.append((dates[j], "brk", tb, j - bd_i + 1))
+            if re_i is None:
+                break                                   # 3 日窗口走完未涨停 → 移除
+            i = re_i
+        return out
 
     # ---- 空间龙头序列（tenure）与断板跟踪 ----
     tenures = []          # {code,name,boards,start,end,bd,alive,track}
@@ -182,6 +221,7 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N,
         return "未涨停"
 
     # ---- 赚钱效应股事件（按 code+d 去重，保留最高板） ----
+    n_alive = 0
     best = {}
     for e in events or []:
         if not e or not e.get("code") or e.get("d") not in idx:
@@ -189,39 +229,47 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N,
         k = (str(e["code"]), e["d"])
         if k not in best or (e.get("b") or 1) > best[k].get("b", 0):
             best[k] = e
-    by_date = {}
-    for (code, d), e in best.items():
-        by_date.setdefault(d, []).append(e)
+
+    # ---- v76：逐日展开（涨停日 + 断板窗口日），同一 code 多轮事件合并去重 ----
+    rec_map = {}                       # (code, d) -> row
+    for (code, d0), e in best.items():
+        alive, _st_t, brks = track(code, d0)
+        if alive:
+            n_alive += 1
+        for (d, kind, b, seq) in visible_span(code, d0):
+            row = {"code": code,
+                   "name": e.get("name") or NAME.get(code) or code,
+                   "boards": b,
+                   "theme": e.get("theme") or "",
+                   "gap": gap_of(code, d) if kind == "zt" else None,
+                   "alive": 1 if alive else 0,
+                   "state": ("涨停%d板" % b) if kind == "zt" else ("断板第%d天" % seq),
+                   "track": brks}
+            old = rec_map.get((code, d))
+            if old is None or ((kind == "zt") > (old["_k"] == "zt")) or \
+               (kind == old["_k"] and b > old["boards"]):
+                row["_k"] = kind
+                rec_map[(code, d)] = row
+    by_day = {}
+    for (code, d), v in rec_map.items():
+        v.pop("_k", None)
+        by_day.setdefault(d, []).append(v)
 
     out = {}
-    n_alive = 0
     lo = dates[-days_num] if (days_num and days_num < n) else (dates[0] if dates else "")
     meta_by = {x.get("date"): x for x in days_meta}
-    for d in dates:                          # v74：窗口内日期连续（无事件日 themes=[]）
+    for d in dates:                          # v74：窗口内日期连续（无展示日 themes=[]）
         if d < lo:
             continue
         meta = meta_by.get(d) or {}
-        rows = []
-        for e in by_date.get(d) or []:
-            code = str(e["code"])
-            alive, _st_t, brks = track(code, d)
-            if not alive:
-                _st_t = "终止"                # v75：断板 3 日未再板 → 置灰保留展示
-            else:
-                n_alive += 1
-            rows.append({"code": code,
-                         "name": e.get("name") or NAME.get(code) or code,
-                         "boards": e.get("b") or 1,
-                         "theme": e.get("theme") or "",
-                         "gap": gap_of(code, d),
-                         "alive": 1 if alive else 0,
-                         "state": _st_t if _st_t else state_of(alive, brks),
-                         "track": brks})
+        rows = by_day.get(d) or []
         grp = {}
         for r in rows:
             grp.setdefault(r["theme"] or "·无题材", []).append(r)
         themes = [{"th": th,
-                   "stks": sorted(v, key=lambda x: (not x["alive"], -x["boards"]))}
+                   "stks": sorted(v, key=lambda x: (not x["alive"],
+                                                    -x["boards"],
+                                                    0 if x["state"].startswith("涨停") else 1))}
                   for th, v in sorted(grp.items(),
                                       key=lambda kv: (-max((x["alive"], x["boards"])
                                                            for x in kv[1])[1],
@@ -262,8 +310,11 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N,
     return {
         "days": out,
         "allRange": [dates[0], dates[-1]] if dates else [],
-        "rule": ("历史复盘：窗口内交易日连续展示（当日无赚钱效应股显示「无」），日期带市场阶段与空间高度，"
-                 "同一日期按题材、题材内按板位降序；断板后 3 个交易日内再次涨停继续显示，否则移除；"
+        "rule": ("历史复盘（v76 定稿口径）：赚钱效应股＝连续两天可换手买入且涨停的 3 板或以上个股；"
+                 "窗口内交易日连续展示（当日无展示股显示「无」），日期带市场阶段与空间高度，"
+                 "同一日期按题材、题材内按板位降序；个股涨停日与断板日均逐日展示，"
+                 "断板后持续展示三日（断板日+后两个交易日），三日均未涨停则第四日起不再展示，"
+                 "窗口内再次涨停则继续展示；"
                  "叠加当日空间龙头与上一个仍存活的断板空间龙头（含当日涨跌幅与炸板标记）辅助判断；"
                  "个股涨停形态按缺口/长腿标注（缺口＝当日最低价＞昨日最高价）。"),
     }, n_alive

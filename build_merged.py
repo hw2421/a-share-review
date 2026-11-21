@@ -841,6 +841,29 @@ for _d, _m in DAY_ZB.items():
 print("v70 个股当日状态：涨停池 %d 天 / 炸板池 %d 天（炸板 %d 个股票日，题材化 %d 个股票日）"
       % (len(DAY_ZT), len(DAY_ZB), sum(len(v) for v in DAY_ZB.values()),
          sum(len(v) for v in DAY_ZBT.values())))
+# ---- 5.6.27b2 v76 个股涨停形式映射 gapMap：{d:{code: 1缺口/0长腿}} ----
+# 口径与 hist_review.gap_of 完全一致：当日最低价 > 昨日最高价 = 缺口，否则长腿。
+# 供今日复盘梯队（昨日梯队今日反馈 / 今日新增梯队）个股显示涨停形式。
+def _gap_flag(code, d):
+    b = (KBARS.get(str(code)) or {}).get(d)
+    if not b or len(b) < 5 or not b[2]:
+        return None
+    pb = _prev_bar(code, d)
+    if not pb or len(pb) < 5:
+        return None
+    return 1 if b[3] > pb[4] else 0
+GAP_MAP = {}
+for _d in _ZT_DAYS:
+    _m = {}
+    for _s in pools.get(_d, []):
+        _g = _gap_flag(str(_s["code"]), _d)
+        if _g is not None:
+            _m[str(_s["code"])] = _g
+    if _m:
+        GAP_MAP[_d] = _m
+print("v76 个股涨停形式映射（gapMap）：%d 天 / %d 个股票日（缺口 %d）"
+      % (len(GAP_MAP), sum(len(v) for v in GAP_MAP.values()),
+         sum(1 for v in GAP_MAP.values() for g in v.values() if g)))
 # ---- 5.6.27c v73 历史复盘（赚钱效应股按日期/题材/高度排列 + 断板3日跟踪 +
 #      空间龙头与上一个断板空间龙头叠加，3日不涨停移除） ----
 import hist_review as HR
@@ -1392,6 +1415,7 @@ data = {
     "dayZT": DAY_ZT,                # v74 近25日全量涨停股：{d:{code:[名称,首封,形态,板位,题材兜底]}}
     "dayZB": DAY_ZB,                # v70 近25日炸板池：{d:{code:[name,首封HH:MM,当日涨幅]}}
     "zbTheme": DAY_ZBT,             # v72 炸板股题材映射：{d:{code:题材}}（仅当日梯队题材）
+    "gapMap": GAP_MAP,              # v76 个股涨停形式：{d:{code:1缺口/0长腿}}
     "histReview": HIST_REVIEW,      # v73 历史复盘：赚钱效应股断板跟踪 + 空间龙头叠加
     "lb": lb,                       # 日期 -> 当日连板股（2板+，含题材）
     "themeSource": {d: theme_source.get(d, "tgb") for d in theme_dates},
