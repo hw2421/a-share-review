@@ -1575,6 +1575,64 @@ def main():
              sum(len(v) for v in _bt_expect.values()) + sum(len(x) for x in BT_DAYS.values()), n_brk))
     n_v48 += n_brk
 
+    # ---- v69：昨日梯队今日反馈（relayFb）独立复核 ----
+    n_rf = 0
+    RFV = D.get("relayFb") or {}
+    RF_DAYS = RFV.get("days") or {}
+    _pm_rf = {d: {str(s["code"]): s for s in (pools.get(d) or [])} for d in dates}
+    _rf_rows = []
+    for _d, _rows in RF_DAYS.items():
+        _ii = DIDXV.get(_d)
+        if not _ii:
+            err("v69 relayFb 展示日 %s 不在交易日历" % _d); n_rf += 1; continue
+        _dp = dates[_ii - 1]
+        for _r in _rows:
+            for _L in (_r.get("L") or []):
+                for _x in (_L.get("st") or []):
+                    _rf_rows.append((_d, _dp, _r, _L, _x))
+    for _d, _dp, _r, _L, _x in _rnd.sample(_rf_rows, min(60, len(_rf_rows))):
+        _code, _yb, _chg, _jb = str(_x[1]), _x[2], _x[3], _x[4]
+        _s0 = (_pm_rf.get(_dp) or {}).get(_code)
+        if not _s0 or (_s0.get("boards") or 1) != _yb:
+            err("v69 %s %s 昨日板位不符（记录%d）" % (_dp, _code, _yb)); n_rf += 1
+        # 角色与层板位一致
+        _exp_role = "龙头" if _yb == _r.get("top") else ("助攻" if _yb >= 2 else "跟风")
+        if _L.get("role") != _exp_role or _L.get("b") != _yb:
+            err("v69 %s %s 角色/层板位不符 %s/%s" % (_d, _code, _L.get("role"), _L.get("b"))); n_rf += 1
+        # 今日涨幅复算
+        _c0 = _closev(_code, _dp); _c1 = _closev(_code, _d)
+        if _c0 and _c1:
+            _exp_chg = round((_c1 / _c0 - 1) * 100, 2)
+            if _chg is None or abs(_exp_chg - _chg) > 0.05:
+                err("v69 %s %s 今日涨幅不符 %s vs %s" % (_d, _code, _chg, _exp_chg)); n_rf += 1
+            _cur = (_pm_rf.get(_d) or {}).get(_code)
+            _exp_jb = 1 if (_cur and (_cur.get("boards") or 1) > _yb) else 0
+            if _jb != _exp_jb:
+                err("v69 %s %s 晋级标记不符 %s vs %s" % (_d, _code, _jb, _exp_jb)); n_rf += 1
+        else:
+            if _jb != -1:
+                err("v69 %s %s 无价格却非 -1" % (_d, _code)); n_rf += 1
+    # 反向抽样：最新交易日的每个「昨日梯队在册个股」都应在当日的反馈里
+    if dates:
+        _d_last = dates[-1]
+        _dp_last = dates[-2] if len(dates) > 1 else None
+        if _dp_last and _d_last in RF_DAYS:
+            _seen = set()
+            for _r in RF_DAYS[_d_last]:
+                for _L in (_r.get("L") or []):
+                    for _x in (_L.get("st") or []):
+                        _seen.add((_r.get("th"), str(_x[1])))
+            _prev_lf = {}
+            for _th, _arr in (D.get("ladderFull") or {}).get(_dp_last, {}).items():
+                for _s in _arr:
+                    _prev_lf[(_th, str(_s.get("code")))] = 1
+            _miss = [k for k in _prev_lf if k not in _seen]
+            if _miss:
+                err("v69 %s 反馈缺 %d 条昨日梯队个股（%s）" % (_d_last, len(_miss), _miss[:3])); n_rf += len(_miss)
+    print("v69 昨日梯队今日反馈：%d 个展示日 / %d 条个股行，抽样 %d 复核，独立复核异常 %d"
+          % (len(RF_DAYS), len(_rf_rows), min(60, len(_rf_rows)), n_rf))
+    n_v48 += n_rf
+
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")

@@ -796,8 +796,14 @@ print("v67 连续两日换手赚钱机会（3板+）：全量池 %d 笔（近5�
          sum(1 for e in EARN_STREAK["eventsAll"] if e["d"] >= dates[-5])))
 # ---- 5.6.27 v67 高位断板跟踪（昨日≥3板断板 → 梯队最下一行跟踪3日） ----
 import brk_track as BT
-BRK_TRACK, _n_brk = BT.compute(dates, pools, KBARS, NAME=_NAME_ALL)
+BRK_TRACK, _n_brk = BT.compute(dates, pools, KBARS, NAME=_NAME_ALL,
+                               THEME=theme_at, CARRY=carry)
 print("v67 高位断板跟踪：共 %d 个跟踪股票日（断板日 + 后续2日）" % _n_brk)
+# ---- 5.6.27b v69 昨日梯队 → 今日盈亏传导（逐股反馈，龙头/助攻/跟风分层） ----
+import relay_fb as RF
+RELAY_FB, _n_rf = RF.compute(dates, pools, KBARS, ladder_full, NAME=_NAME_ALL)
+print("v69 昨日梯队今日反馈：%d 个展示日 / %d 个题材（逐股涨幅+晋级）"
+      % (len(RELAY_FB["days"]), _n_rf))
 # ---- 5.6.28 v55 新旧龙头交接事件序列（空间 + 题材） ----
 import handover as HO
 HANDOVER = HO.compute(dates, days, ladder_full, NAME=_NAME_ALL, limit=40)
@@ -1337,6 +1343,7 @@ data = {
     "stockTheme": carry,            # 个股 -> 最近一次归属题材（刷新时补当天题材用）
     "earnStreak": EARN_STREAK,      # v67 赚钱效应统计：连续两日换手赚钱机会个股（3板+）
     "brkTrack": BRK_TRACK,          # v67 高位断板跟踪：昨日≥3板断板 → 跟踪3日涨跌幅
+    "relayFb": RELAY_FB,            # v69 昨日梯队 → 今日盈亏传导（逐股涨幅 + 是否晋级，按龙头/助攻/跟风分层）
     "lb": lb,                       # 日期 -> 当日连板股（2板+，含题材）
     "themeSource": {d: theme_source.get(d, "tgb") for d in theme_dates},
     "money": money,                 # 赚钱效应：板块当日有 ≥3 板个股再涨停的题材

@@ -11,8 +11,8 @@
   每天记录：当日涨跌幅（vs 前收）+ 断板以来累计涨跌幅（vs 断板日前收）。
 
 数据契约：days = {展示日: [{code, name, b(断板前板位), bd(断板日),
-n(断板日起第几日 0/1/2), chg(当日涨跌幅), cum(累计涨跌幅)}]}。
-前端在连板梯队页取 days[当日] 渲染为最下一行。
+n(断板日起第几日 0/1/2), chg(当日涨跌幅), cum(累计涨跌幅), th(所属题材)}]}。
+前端在「题材炒作」页对应题材的当日梯队最下一行渲染（v68 从连板梯队页移入题材页）。
 
 日K bar 结构：[日期, 开, 收, 低, 高, 量]（收盘=b[2]）。
 """
@@ -21,9 +21,17 @@ import bisect
 TRACK_DAYS = 3
 
 
-def compute(dates, pools, KBARS, NAME=None, days_num=TRACK_DAYS):
+def compute(dates, pools, KBARS, NAME=None, days_num=TRACK_DAYS, THEME=None, CARRY=None):
     NAME = NAME or {}
+    THEME = THEME or {}          # 日期 -> {code: 题材}（断板前一日口径）
+    CARRY = CARRY or {}          # code -> 最近一次题材（兜底）
     CD = {c: sorted(r) for c, r in KBARS.items()}
+
+    def theme_of(code, d):
+        """断板股所属题材：优先取「断板前一日（仍 ≥3 板时）」的复盘题材归类，
+        缺失时回退到该股最近一次题材。"""
+        t = (THEME.get(d) or {}).get(str(code))
+        return t or CARRY.get(str(code)) or ""
 
     def close_of(c, d):
         b = (KBARS.get(str(c)) or {}).get(d)
@@ -64,11 +72,12 @@ def compute(dates, pools, KBARS, NAME=None, days_num=TRACK_DAYS):
                     "b": b0, "bd": d0, "n": k,
                     "chg": (round((cc / pcd - 1) * 100, 2) if pcd else None),
                     "cum": round((cc / pc - 1) * 100, 2),
+                    "th": theme_of(code, p),
                 })
                 n_ev += 1
     return {
         "days": out,
-        "rule": ("高位断板跟踪：昨日 ≥3 板个股统计日断板（未涨停）→ 当日梯队最下一行显示其涨跌幅，"
-                 "自断板日起跟踪 3 个交易日（断板日、+1、+2）。当日%＝收盘/昨收−1；"
-                 "累计%＝收盘/断板日前收−1。"),
+        "rule": ("高位断板跟踪：昨日 ≥3 板个股统计日断板（未涨停）→ 题材炒作页该题材当日梯队"
+                 "最下一行显示其涨跌幅，自断板日起跟踪 3 个交易日（断板日、+1、+2）。"
+                 "当日%＝收盘/昨收−1；累计%＝收盘/断板日前收−1；题材取断板前一日的复盘归类。"),
     }, n_ev
