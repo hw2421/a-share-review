@@ -13,10 +13,13 @@ v74 扩展：
   7. 个股涨停形态：缺口 / 长腿（缺口 = 当日最低价 > 昨日最高价，否则视为长腿）；
   8. 断板空间龙头显示当日涨跌幅（chg）与当日是否炸板（zb，取炸板池）。
 
+v75 修正：不再移除已终止的赚钱效应股——历史全部保留展示，
+  断板 3 日未再涨停的个股 alive=0、state="终止"，前端置灰显示（否则历史几乎全空）。
+
 跟踪规则（与 v67 brk_track 三日窗口一致）：
   断板日 = 连续涨停后的第一个未涨停交易日；自断板日起 3 个交易日窗口内
   （断板日本身必不涨停，实际机会为断板后 2 日）再次涨停 → 继续 alive，
-  以再板日为新起点重复跟踪；窗口走完仍无涨停 → dead，不再显示。
+  以再板日为新起点重复跟踪；窗口走完仍无涨停 → 终止（置灰保留展示）。
 
 数据契约：
   days = {交易日 d（窗口内连续）: {
@@ -24,8 +27,8 @@ v74 扩展：
     "leader":  {code,name,boards,state,gap} 或 None,   # 当日空间龙头
     "prevBrk": {code,name,boards,bd,days:[[d,chg,zt]...],re,state,chg,zb} 或 None,
                # 上一个仍存活的断板空间龙头（chg=当日涨跌幅, zb=当日炸板）
-    "themes": [ {"th": 题材, "stks": [ {code,name,boards,state,track,gap} ]} ]
-               # 仅 alive 的赚钱效应股；题材内按板位降序；无事件日为 []
+    "themes": [ {"th": 题材, "stks": [ {code,name,boards,state,track,gap,alive} ]} ]
+               # 全部赚钱效应股（alive=0 为已终止）；题材内存活优先、按板位降序
   }}
 """
 import bisect
@@ -203,22 +206,26 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N,
             code = str(e["code"])
             alive, _st_t, brks = track(code, d)
             if not alive:
-                continue                      # 断板 3 日未再涨停 → 不再显示
-            n_alive += 1
+                _st_t = "终止"                # v75：断板 3 日未再板 → 置灰保留展示
+            else:
+                n_alive += 1
             rows.append({"code": code,
                          "name": e.get("name") or NAME.get(code) or code,
                          "boards": e.get("b") or 1,
                          "theme": e.get("theme") or "",
                          "gap": gap_of(code, d),
+                         "alive": 1 if alive else 0,
                          "state": _st_t if _st_t else state_of(alive, brks),
                          "track": brks})
         grp = {}
         for r in rows:
             grp.setdefault(r["theme"] or "·无题材", []).append(r)
         themes = [{"th": th,
-                   "stks": sorted(v, key=lambda x: -x["boards"])}
+                   "stks": sorted(v, key=lambda x: (not x["alive"], -x["boards"]))}
                   for th, v in sorted(grp.items(),
-                                      key=lambda kv: -max(x["boards"] for x in kv[1]))]
+                                      key=lambda kv: (-max((x["alive"], x["boards"])
+                                                           for x in kv[1])[1],
+                                                      kv[0]))]
         # 当日空间龙头
         sf = meta.get("spaceFull") or []
         leader = None

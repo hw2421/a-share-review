@@ -350,10 +350,11 @@
   .tcards{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;flex:1 1 auto;padding:1px 0}
   .tcards::-webkit-scrollbar{height:3px}
   .tcards::-webkit-scrollbar-thumb{background:#26314a;border-radius:2px}
-  /* v74：题材卡统一尺寸（固定宽高）+ 名称完整显示（可换行）+ 容器横向拖动 */
+  /* v74：题材卡统一尺寸（固定宽高）+ 名称完整显示（可换行）+ 容器横向拖动
+     v75：宽度 118px→92px（用户口径「太宽了，缩窄一点」） */
   .tcard{display:inline-flex;flex-direction:column;align-items:flex-start;flex:0 0 auto;
-         width:118px;min-height:58px;box-sizing:border-box;
-         border-radius:4px;padding:2px 5px;cursor:pointer;
+         width:92px;min-height:58px;box-sizing:border-box;
+         border-radius:4px;padding:2px 4px;cursor:pointer;
          border:1px solid rgba(255,255,255,.14);
          font-size:8.5px;line-height:1.2;color:#151a21;
          transition:opacity .15s}
@@ -876,6 +877,8 @@
   /* v74：缺口 / 长腿形态小标（缺口＝当日最低价＞昨日最高价） */
   .hr-stk i.gp,.hr-ld i.gp,.hr-pb i.gp{font-style:normal;font-size:8.5px;color:#fff;background:#c2492f;border-radius:3px;padding:0 3px;font-weight:700}
   .hr-stk i.gp.ng,.hr-ld i.gp.ng,.hr-pb i.gp.ng{color:#cfd9ea;background:rgba(120,132,154,.25);font-weight:600}
+  /* v75：已终止（断板 3 日未再涨停）的赚钱效应股置灰保留展示 */
+  .hr-stk.dead{opacity:.42;filter:grayscale(.6)}
   /* v74：市场阶段徽标可点击 → 跳空间情绪明细表对应日期 */
   .hr-stg,.tdate .dstg{cursor:pointer}
   .hr-stg:hover,.tdate .dstg:hover{text-decoration:underline;filter:brightness(1.2)}
@@ -1029,6 +1032,8 @@
     <div id="es-root"></div>
     <h4 class="ep-h" id="ep-fb-h">昨日梯队 → 今日反馈</h4>
     <div id="ep-fb"></div>
+    <h4 class="ep-h">今日新增梯队 <span class="sub">昨日无梯队、今日新形成题材梯队的板块（与题材炒作入链题材同源）</span></h4>
+    <div id="ep-new"></div>
     <h4 class="ep-h">题材涨停时间表 <span class="sub">当日赚钱效应题材 · 龙头（金）/ 助攻（紫）/ 跟风（蓝）/ 炸板（绿）· 格内为首次涨停时间</span></h4>
     <div id="ep-seal" class="ep-chart"></div>
     <h4 class="ep-h">多题材热力表 <span class="sub">仅统计窗口内出现 ≥3 次的题材（当日板块有连板且涨停 ≥3 家）· 格内＝当日涨停家数与梯队</span></h4>
@@ -1041,15 +1046,18 @@
 <section class="page" id="page-hist">
   <div class="card">
     <h3>历史复盘 <span class="sub">历史全部赚钱效应股 · 按日期排列（日期带市场阶段与空间高度）· 同日按题材、题材内按高度排列 ·
-      断板后 3 个交易日内再涨停继续显示，否则移除 · 叠加当日空间龙头与上一个断板空间龙头辅助判断 · 点题材看当日梯队 · 点个股看日K ·
+      断板后 3 个交易日内再涨停继续存活，否则标「终止」置灰保留 · 叠加当日空间龙头与上一个断板空间龙头辅助判断 · 点题材看当日梯队 · 点个股看日K ·
       个股标记涨停形态（<b style="color:#f5455c">缺口</b>＝当日最低价＞昨日最高价 / <b style="color:#9fb0cc">长腿</b>）</span></h3>
     <div class="ep-bar">
       <span class="ep-lb">跳转日期</span>
+      <select id="hist-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
+      <select id="hist-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
+      <select id="hist-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
+      <button id="hist-go" class="ep-go" title="跳转到所选日期（明细表滚动定位并高亮）">确定</button>
       <button id="hist-prev" class="ep-go" title="往前一个交易日">◀</button>
-      <select id="hist-date" class="ep-sel" title="选择历史交易日 → 明细表滚动定位并高亮该日"></select>
       <button id="hist-next" class="ep-go" title="往后一个交易日">▶</button>
       <button id="hist-latest" class="ep-go" title="回到最新交易日">最新</button>
-      <span class="sub" style="margin-left:10px">明细表始终完整显示，选择日期仅定位高亮</span>
+      <span class="sub" style="margin-left:10px">明细表始终完整显示，选择日期仅定位高亮 · 已终止股置灰保留</span>
     </div>
     <div class="scroll" id="hist-list" style="max-height:none"></div>
   </div>
@@ -4235,6 +4243,7 @@ function paintEarn(){
     };
   });
   paintRelay(end);
+  paintNewLad(end);
   paintSeal(end);
   paintHeat(end);
 }
@@ -4304,8 +4313,55 @@ function paintRelay(d){
   });
 }
 
+/* ②b 今日新增梯队（v75）：昨日无题材梯队、今日新形成梯队的板块。
+   口径：题材炒作入链题材（themeDetail）中，昨日没有、今日新出现的题材；
+   展示其今日完整梯队（按板位分行，龙头金/助攻紫/跟风蓝）。 */
+function paintNewLad(d){
+  const host = document.getElementById('ep-new');
+  if(!host) return;
+  const R = window.REVIEW || {};
+  const ds = epDays(), i = ds.indexOf(d), dp = i>0 ? ds[i-1] : '';
+  const TD = R.themeDetail || {}, LF = R.ladderFull || {};
+  const prevNames = new Set((dp ? (TD[dp]||[]) : []).map(x=>x.name));
+  const prevT = new Set([...prevNames].map(x=>tName(x)));
+  const isNew = nm=> dp ? !(prevNames.has(nm) || prevT.has(tName(nm))) : true;
+  const news = (TD[d]||[]).filter(x=>isNew(x.name))
+    .sort((a,b)=> (b.count||0) - (a.count||0) || a.name.localeCompare(b.name));
+  if(!news.length){
+    host.innerHTML = '<div class="sub" style="padding:8px 2px">'+
+      (dp? fmtDate(d)+' 无今日新增题材梯队' : '无上一交易日')+'</div>';
+    return;
+  }
+  const ROLE_COL = {'龙头':'#f0b90b', '助攻':'#a55eea', '跟风':'#3d8bff'};
+  host.innerHTML = news.map(x=>{
+    const nm = x.name;
+    const arr = (LF[d]||{})[nm] || (LF[d]||{})[tName(nm)] || [];
+    const byB = {};
+    arr.forEach(s=>{ const bd=(s&&s.boards)||1; (byB[bd] || (byB[bd]=[])).push(s); });
+    const boards = Object.keys(byB).map(Number).sort((a,b)=>b-a);
+    const lad = boards.length ? boards.map(bd=>{
+      const role = bd===boards[0] ? '龙头' : (bd>=2 ? '助攻' : '跟风');
+      const rc = ROLE_COL[role] || '#7f8ea6';
+      return '<div class="ladrow"><span class="ladb" style="color:'+rc+'">'+role+' '+bd+'板</span><span class="ladst">'+
+        byB[bd].map(s=>'<span class="fbst" data-c="'+(s.code||'')+'" data-n="'+(s.name||'')+'" data-d="'+d+'" '+
+          'title="'+(s.name||'')+'：今日 '+bd+'板（'+role+'）'+(s.t? ' · 首封 '+s.t:'')+
+          (s.s? ' · '+s.s:'')+' ｜点看日K">'+(s.name||'')+
+          '<em class="y">'+bd+'板</em>'+stateTag(d, s.code)+'</span>').join('')+
+        '</span></div>';
+    }).join('') : '<span class="sub" style="padding:4px 0">无梯队明细</span>';
+    const col = T_COLOR[tName(nm)] || C.blue;
+    return '<div class="fbcard"><div class="fbhd"><b style="color:'+col+'">'+nm+'</b>'+
+      '<em class="sl-new">新</em>'+
+      '<span class="sub">今日新形成梯队 · 涨停 '+x.count+' 只'+(boards.length? ' · 最高 '+boards[0]+'板':'')+'</span></div>'+
+      lad+'</div>';
+  }).join('');
+  host.querySelectorAll('.fbst').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
+  });
+}
+
 /* ③ 题材涨停时间表（v74：以 dayZT 全量涨停为源——题材内今日涨停个股全部展示；
-      复盘清单外个股以 stockTheme 兜底题材，再无则归「未归类」） */
+      v75：只显示题材炒作当日入链题材） */
 function paintSeal(d){
   const host = document.getElementById('ep-seal');
   if(!host) return;
@@ -4334,8 +4390,18 @@ function paintSeal(d){
     nm = nm || '未归类';
     (grp[nm] || (grp[nm] = [])).push({code:c, name:v[0], t:v[1], s:v[2], boards:v[3]||1});
   });
-  const ths = Object.keys(grp).sort((a,b)=>
-    (grp[b].length - grp[a].length) || a.localeCompare(b));
+  /* v75：只显示题材炒作当日入链的题材（themeDetail，与题材炒作页对应日一致），
+     兜底/未归类行不再显示 */
+  const allowed = new Set(((R.themeDetail||{})[d]||[]).map(x=>x.name));
+  const allowedT = new Set([...allowed].map(x=>tName(x)));
+  const inChain = nm=> allowed.has(nm) || allowedT.has(tName(nm));
+  const ths = Object.keys(grp).filter(inChain)
+    .sort((a,b)=> (grp[b].length - grp[a].length) || a.localeCompare(b));
+  if(!ths.length){
+    host.style.height = 'auto';
+    host.innerHTML = '<div class="sub" style="padding:8px 2px">'+fmtDate(d)+' 当日无入链题材（题材炒作门槛：有连板且涨停 ≥3 家）</div>';
+    return;
+  }
   const chip = (s, rk)=>{
     const b = s.boards||1;
     const t = s.t || '';
@@ -4377,9 +4443,9 @@ function paintSeal(d){
       '</tr>';
   });
   h += '</tbody></table></div>'+
-    '<div class="seal-note">行＝当日题材（按涨停家数降序；题材内今日涨停个股全部展示，'+
-    '复盘清单外个股按最近归属题材兜底、无归属归「未归类」；绿标「新」＝昨日未入列题材）；'+
-    '列＝龙头（最高板）/ 助攻（低于龙头的连板）/ 跟风（首板）/ 炸板（盘中曾涨停未封住，绿标）；'+
+    '<div class="seal-note">行＝当日题材炒作入链题材（与题材炒作页对应日一致，按涨停家数降序，'+
+    '绿标「新」＝昨日未入列题材）；列＝龙头（最高板）/ 助攻（低于龙头的连板）/ 跟风（首板）/'+
+    '炸板（盘中曾涨停未封住，绿标）；题材内今日涨停个股全部展示，'+
     '个股带首次涨停时间与涨停形态（一字/赚T/普通/长腿/赚钱/低开）· 龙头金 / 助攻紫 / 跟风蓝 / 炸板绿 · 点个股看日K。</div>';
   host.style.height = 'auto';
   host.innerHTML = h;
@@ -4564,7 +4630,7 @@ function renderHist(){
       const stks = t.stks.map(s=>{
         const trk = fmtT(s.track);
         const zt = ztOf(d, s.code) || {};
-        return '<span class="hr-stk" data-c="'+s.code+'" data-n="'+s.name+'" data-d="'+d+'" '+
+        return '<span class="hr-stk'+(s.alive===0?' dead':'')+'" data-c="'+s.code+'" data-n="'+s.name+'" data-d="'+d+'" '+
           'title="'+s.name+'：'+s.boards+'板（自身高度）· 市场空间高度 '+(y.spaceTop==null?'—':y.spaceTop)+
           ' · '+s.state+(zt.s? ' · 形态 '+zt.s:'')+(trk? ' · '+trk:'')+' ｜点看日K"><b>'+s.name+'</b><em>'+s.boards+'板</em>'+
           '<em class="sp">空高'+(y.spaceTop==null?'—':y.spaceTop)+'</em>'+
@@ -4594,50 +4660,72 @@ function renderHist(){
   root.querySelectorAll('.hr-stg').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation(); gotoMarket(el.closest('.hr-day').dataset.d); };
   });
-  /* v74：跳转日期控件填充 */
-  const sel = document.getElementById('hist-date');
-  if(sel){
-    const cur = sel.value;
-    sel.innerHTML = ds.slice().reverse().map(x=>'<option value="'+x+'">'+fmtDate(x)+'</option>').join('');
-    if(cur && days[cur]) sel.value = cur;
-    else sel.value = ds[0];
-  }
+  /* v75：跳转日期 年/月/日 三级联动填充 */
+  fillHistDPick();
 }
 
 /* v74：历史复盘日期跳转（明细表不变，滚动定位 + 高亮） */
 function histJump(date){
   if(!date) return;
-  const sel = document.getElementById('hist-date');
-  if(sel) sel.value = date;
+  HIST_CUR = date;
   const el = document.querySelector('#hist-list .hr-day[data-d="'+date+'"]');
   if(!el) return;
   /* sticky 头部会遮住对齐视口顶部的卡片，留出偏移 */
-  const y = el.getBoundingClientRect().top + window.scrollY - 92;
-  window.scrollTo(0, Math.max(0, y));
+  const yy = el.getBoundingClientRect().top + window.scrollY - 92;
+  window.scrollTo(0, Math.max(0, yy));
   el.classList.remove('dp-flash');
   void el.offsetWidth;
   el.classList.add('dp-flash');
   setTimeout(()=>el.classList.remove('dp-flash'), 1700);
+  fillHistDPick();
+}
+
+/* v75：年/月/日 三级下拉（仅列出有数据的年/月/日），选中即定位 */
+let HIST_CUR = null;                 // 当前定位日期
+function histDates(){ return Object.keys(((window.REVIEW||{}).histReview||{}).days||{}).sort((a,b)=>b.localeCompare(a)); }
+function fillHistDPick(){
+  const yEl = document.getElementById('hist-y'), mEl = document.getElementById('hist-m'),
+        dEl = document.getElementById('hist-d');
+  if(!yEl) return;
+  const ds = histDates();
+  const years = [...new Set(ds.map(x=>x.slice(0,4)))].sort().reverse();
+  /* 保留用户已选的年/月，即使该组合当下无定位日（三级联动不跳变） */
+  const cy = yEl.value && years.includes(yEl.value) ? yEl.value
+    : (HIST_CUR && years.includes(HIST_CUR.slice(0,4)) ? HIST_CUR.slice(0,4) : years[0]);
+  const months = [...new Set(ds.filter(x=>x.slice(0,4)===cy).map(x=>x.slice(4,6)))].sort().reverse();
+  const cm = mEl.value && months.includes(mEl.value) ? mEl.value
+    : (HIST_CUR && HIST_CUR.slice(0,4)===cy && months.includes(HIST_CUR.slice(4,6)) ? HIST_CUR.slice(4,6) : months[0]);
+  const days = ds.filter(x=>x.slice(0,6)===cy+cm).map(x=>x.slice(6,8)).sort().reverse();
+  const cd = dEl.value && days.includes(dEl.value) ? dEl.value
+    : (HIST_CUR && HIST_CUR.slice(0,6)===cy+cm && days.includes(HIST_CUR.slice(6,8)) ? HIST_CUR.slice(6,8) : days[0]);
+  yEl.innerHTML = years.map(v=>'<option value="'+v+'"'+(v===cy?' selected':'')+'>'+v+'</option>').join('');
+  mEl.innerHTML = months.map(v=>'<option value="'+v+'"'+(v===cm?' selected':'')+'>'+v+'</option>').join('');
+  dEl.innerHTML = days.map(v=>'<option value="'+v+'"'+(v===cd?' selected':'')+'>'+v+'</option>').join('');
 }
 (function initHistNav(){
-  const sel = document.getElementById('hist-date');
-  const p = document.getElementById('hist-prev'), n = document.getElementById('hist-next'),
-        lt = document.getElementById('hist-latest');
-  if(sel) sel.onchange = ()=>histJump(sel.value);
+  const y = document.getElementById('hist-y'), m = document.getElementById('hist-m'),
+        d = document.getElementById('hist-d'),
+        p = document.getElementById('hist-prev'), n = document.getElementById('hist-next'),
+        lt = document.getElementById('hist-latest'), go = document.getElementById('hist-go');
+  const sel = ()=> y && (y.value + (m? m.value:'') + (d? d.value:''));
+  const refill = ()=>{ fillHistDPick(); HIST_CUR = sel(); };
+  if(y) y.onchange = refill;
+  if(m) m.onchange = refill;
+  if(d) d.onchange = ()=>{ HIST_CUR = sel(); histJump(HIST_CUR); };
+  if(go) go.onclick = ()=>histJump(sel());
   if(p) p.onclick = ()=>{
-    const ds = Object.keys(((window.REVIEW||{}).histReview||{}).days||{}).sort();
-    const cur = sel && sel.value, i = ds.indexOf(cur);
+    const ds = histDates();
+    const cur = HIST_CUR && ds.includes(HIST_CUR) ? HIST_CUR : ds[0];
+    const i = ds.indexOf(cur);
+    if(i >= 0 && i < ds.length-1) histJump(ds[i+1]);
+  };
+  if(n) n.onclick = ()=>{
+    const ds = histDates();
+    const cur = HIST_CUR && ds.includes(HIST_CUR) ? HIST_CUR : ds[0];
+    const i = ds.indexOf(cur);
     if(i > 0) histJump(ds[i-1]);
   };
-  if(n) p && (n.onclick = ()=>{
-    const ds = Object.keys(((window.REVIEW||{}).histReview||{}).days||{}).sort();
-    const cur = sel && sel.value, i = ds.indexOf(cur);
-    if(i >= 0 && i < ds.length-1) histJump(ds[i+1]);
-  });
-  if(lt) lt.onclick = ()=>{
-    const ds = Object.keys(((window.REVIEW||{}).histReview||{}).days||{}).sort();
-    if(ds.length) histJump(ds[ds.length-1]);
-  };
+  if(lt) lt.onclick = ()=>{ const ds = histDates(); if(ds.length) histJump(ds[0]); };
 })();
 
 /* v66：旧决策页死代码（renderDecision/paintDecision/paintCyclePanel/dcStep）已删除 */
