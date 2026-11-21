@@ -836,6 +836,14 @@ for _d, _m in DAY_ZB.items():
 print("v70 个股当日状态：涨停池 %d 天 / 炸板池 %d 天（炸板 %d 个股票日，题材化 %d 个股票日）"
       % (len(DAY_ZT), len(DAY_ZB), sum(len(v) for v in DAY_ZB.values()),
          sum(len(v) for v in DAY_ZBT.values())))
+# ---- 5.6.27c v73 历史复盘（赚钱效应股按日期/题材/高度排列 + 断板3日跟踪 +
+#      空间龙头与上一个断板空间龙头叠加，3日不涨停移除） ----
+import hist_review as HR
+HIST_REVIEW, _n_hr = HR.compute(dates, pools, KBARS,
+                                (EARN_STREAK or {}).get("eventsAll") or [],
+                                days, NAME=_NAME_ALL, days_num=140)
+print("v73 历史复盘：%d 个事件日 / %d 只存活赚钱效应股"
+      % (len(HIST_REVIEW["days"]), _n_hr))
 # ---- 5.6.28 v55 新旧龙头交接事件序列（空间 + 题材） ----
 import handover as HO
 HANDOVER = HO.compute(dates, days, ladder_full, NAME=_NAME_ALL, limit=40)
@@ -1379,6 +1387,7 @@ data = {
     "dayZT": DAY_ZT,                # v70 近25日全量涨停股：{d:{code:[name,首封HH:MM,形态]}}
     "dayZB": DAY_ZB,                # v70 近25日炸板池：{d:{code:[name,首封HH:MM,当日涨幅]}}
     "zbTheme": DAY_ZBT,             # v72 炸板股题材映射：{d:{code:题材}}（仅当日梯队题材）
+    "histReview": HIST_REVIEW,      # v73 历史复盘：赚钱效应股断板跟踪 + 空间龙头叠加
     "lb": lb,                       # 日期 -> 当日连板股（2板+，含题材）
     "themeSource": {d: theme_source.get(d, "tgb") for d in theme_dates},
     "money": money,                 # 赚钱效应：板块当日有 ≥3 板个股再涨停的题材

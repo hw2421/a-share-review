@@ -55,6 +55,8 @@
   nav button.on[data-t="chance"]{background:#8c1f61;color:#fff;border-color:#ff9ed7;box-shadow:0 0 9px rgba(224,64,151,.5)}
   nav button[data-t="decision"]{background:rgba(38,198,218,.14);border-color:rgba(38,198,218,.42);color:#9fe8f2}
   nav button.on[data-t="decision"]{background:#0e6a78;color:#fff;border-color:#5fe0ef;box-shadow:0 0 9px rgba(38,198,218,.5)}
+  nav button[data-t="hist"]{background:rgba(255,210,74,.14);border-color:rgba(255,210,74,.42);color:#ffe29a}
+  nav button.on[data-t="hist"]{background:#8a6a00;color:#fff;border-color:#ffd24a;box-shadow:0 0 9px rgba(240,185,11,.5)}
   .page{display:none;padding:12px 16px}
   .page.on{display:block}
   .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
@@ -844,6 +846,32 @@
              border:1px solid #2b5548;border-radius:3px;padding:0 3px}
   .fbst i.na{font-style:normal;font-size:8px;color:var(--dim2)}
   .fbst .stk-zt,.fbst .stk-zb{font-size:8px}
+  /* v73 历史复盘（赚钱效应股断板跟踪 + 空间龙头叠加） */
+  .hr-day{border:1px solid #22304a;border-radius:8px;background:#111a2c;padding:8px 10px;margin-bottom:8px}
+  .hr-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;margin-bottom:6px;
+         border-bottom:1px solid #1d2a42;padding-bottom:5px}
+  .hr-date{font-weight:800;font-size:13px;color:#dcbafb}
+  .hr-stg{display:inline-block;border-radius:10px;padding:1px 8px;font-size:10.5px;font-weight:700}
+  .hr-top{color:var(--dim2);font-size:10.5px}
+  .hr-ld,.hr-pb{display:inline-flex;align-items:center;gap:3px;border-radius:5px;padding:1px 7px;
+                font-size:10.5px;white-space:nowrap;cursor:pointer}
+  .hr-ld{background:rgba(240,185,11,.12);border:1px solid rgba(240,185,11,.5);color:#ffd24a}
+  .hr-pb{background:rgba(120,132,154,.10);border:1px dashed rgba(120,132,154,.45);color:#9fb0cc}
+  .hr-pb b,.hr-ld b{color:#e6eefc}
+  .hr-ths{display:flex;flex-direction:column;gap:5px}
+  .hr-trow{display:flex;align-items:flex-start;gap:6px}
+  .hr-th{flex:0 0 auto;display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:700;
+         border:1px solid #33456a;border-radius:5px;padding:1px 7px;cursor:pointer;background:#182440}
+  .hr-th:hover{border-color:#3d8bff;color:#fff}
+  .hr-th em{font-style:normal;font-size:9px;color:var(--dim2);font-weight:400}
+  .hr-stks{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+  .hr-stk{display:inline-flex;align-items:center;gap:3px;background:#1b2740;border:1px solid #33456a;
+          border-radius:5px;padding:1px 6px;font-size:10.5px;cursor:pointer}
+  .hr-stk:hover{border-color:#3d8bff;background:#233b60}
+  .hr-stk em{font-style:normal;font-size:9px;color:var(--gold);font-weight:700}
+  .hr-stk em.sp{color:#9fe3e0}
+  .hr-stk i.st{font-style:normal;font-size:9px;color:#8ce3bf;background:rgba(46,189,133,.12);
+               border:1px solid #2b5548;border-radius:3px;padding:0 3px}
   /* v69 跨题材归类 */
   .cross-hd{font-size:11px;color:var(--dim2);margin:6px 0 4px}
   .cross-row{display:flex;gap:8px;align-items:flex-start;margin:4px 0;flex-wrap:wrap}
@@ -925,6 +953,7 @@
       <button data-t="theme">题材炒作</button>
       <button data-t="ladder">连板梯队</button>
       <button data-t="decision">今日复盘</button>
+      <button data-t="hist">历史复盘</button>
     </nav>
     <span class="upd" id="upd">--</span>
     <span class="alert" id="alert" title="点击查看详情"></span>
@@ -994,6 +1023,15 @@
     <h4 class="ep-h">多题材热力表 <span class="sub">仅统计窗口内出现 ≥3 次的题材（当日板块有连板且涨停 ≥3 家）· 格内＝当日涨停家数与梯队</span></h4>
     <div id="ep-heat" class="ep-chart"></div>
     <div id="ep-cross"></div>
+  </div>
+</section>
+
+<!-- ============ 历史复盘（v73：赚钱效应股断板跟踪 + 空间龙头叠加） ============ -->
+<section class="page" id="page-hist">
+  <div class="card">
+    <h3>历史复盘 <span class="sub">历史全部赚钱效应股 · 按日期排列（日期带市场阶段与空间高度）· 同日按题材、题材内按高度排列 ·
+      断板后 3 个交易日内再涨停继续显示，否则移除 · 叠加当日空间龙头与上一个断板空间龙头辅助判断 · 点题材看当日梯队 · 点个股看日K</span></h3>
+    <div class="scroll" id="hist-list" style="max-height:none"></div>
   </div>
 </section>
 
@@ -4386,6 +4424,74 @@ document.querySelectorAll('.ep-w').forEach(b=>{
   if(sel) sel.onchange = ()=>{ EP_END = sel.value; paintEarn(); };
 })();
 
+/* ================= v73 历史复盘 =================
+   历史全部赚钱效应股（earnStreak 全量池）按日期排列：日期带市场阶段 + 市场空间高度；
+   同一日期按题材分组、题材内按板位（高度）降序；断板后 3 个交易日内再次涨停继续显示，
+   否则移除；每只个股带自身板位（高度）、当日市场空间高度（空高）与断板跟踪状态；
+   叠加当日空间龙头 + 上一个仍存活的断板空间龙头辅助判断；点题材看当日梯队，点个股看日K。 */
+function renderHist(){
+  const root = document.getElementById('hist-list');
+  if(!root) return;
+  const H = (window.REVIEW||{}).histReview || {};
+  const days = H.days || {};
+  const ds = Object.keys(days).sort((a,b)=>b.localeCompare(a));
+  if(!ds.length){
+    root.innerHTML = '<div class="sub" style="padding:10px 2px">暂无存活的赚钱效应股'+
+      '（断板 3 个交易日未再涨停的已移除）。</div>';
+    return;
+  }
+  const fmtT = trk=>{
+    if(!trk || !trk.length) return '';
+    return trk.map(t=>{
+      const dd = (t.days||[]).map(x=> fmtDate(x[0])+' '+(x[1]==null?'—':(x[1]>0?'+':'')+x[1]+'%')).join(' / ');
+      return '断板'+fmtDate(t.bd)+'（'+dd+'）'+(t.re? ' → '+fmtDate(t.re)+'再涨停':'');
+    }).join('；');
+  };
+  let h = '';
+  ds.forEach(d=>{
+    const y = days[d];
+    const stg = y.stage
+      ? '<span class="hr-stg" style="background:'+(STAGE_SOLID[y.stage]||'#78849a')+'22;'+
+        'border:1px solid '+(STAGE_SOLID[y.stage]||'#78849a')+'66;color:'+(STAGE_SOLID[y.stage]||'#78849a')+
+        '" title="当日市场阶段（空间龙头四阶段）">'+y.stage+'</span>' : '';
+    const ld = y.leader
+      ? '<span class="hr-ld" data-c="'+y.leader.code+'" data-n="'+y.leader.name+'" data-d="'+d+'" '+
+        'title="当日空间龙头 · 点看日K">空间龙头 <b>'+y.leader.name+'</b> '+y.leader.boards+
+        '板 · '+y.leader.state+'</span>'
+      : '<span class="hr-top">当日无空间龙头</span>';
+    const pb = y.prevBrk
+      ? '<span class="hr-pb" data-c="'+y.prevBrk.code+'" data-n="'+y.prevBrk.name+'" data-d="'+d+'" '+
+        'title="上一个断板空间龙头（断板 3 日跟踪内存活）· 点看日K">上断板龙头 <b>'+y.prevBrk.name+
+        '</b> '+y.prevBrk.boards+'板 · 断板'+fmtDate(y.prevBrk.bd)+' · '+y.prevBrk.state+
+        (y.prevBrk.re? '（'+fmtDate(y.prevBrk.re)+'再板）':'')+'</span>' : '';
+    const ths = y.themes.map(t=>{
+      const stks = t.stks.map(s=>{
+        const trk = fmtT(s.track);
+        return '<span class="hr-stk" data-c="'+s.code+'" data-n="'+s.name+'" data-d="'+d+'" '+
+          'title="'+s.name+'：'+s.boards+'板（自身高度）· 市场空间高度 '+(y.spaceTop==null?'—':y.spaceTop)+
+          ' · '+s.state+(trk? ' · '+trk:'')+' ｜点看日K"><b>'+s.name+'</b><em>'+s.boards+'板</em>'+
+          '<em class="sp">空高'+(y.spaceTop==null?'—':y.spaceTop)+'</em>'+stateTag(d, s.code)+
+          '<i class="st">'+s.state+'</i></span>';
+      }).join('');
+      return '<div class="hr-trow"><span class="hr-th" data-th="'+t.th+'" data-d="'+d+'" '+
+        'title="点看 '+fmtDate(d)+'「'+(t.th==='·无题材'?'无题材':t.th)+'」当日题材梯队">'+
+        (t.th==='·无题材'?'无题材':t.th)+'<em>'+t.stks.length+'</em></span>'+
+        '<div class="hr-stks">'+stks+'</div></div>';
+    }).join('');
+    h += '<div class="hr-day"><div class="hr-hd"><span class="hr-date">'+fmtDate(d)+'</span>'+stg+
+      '<span class="hr-top">空间高度 '+(y.spaceTop==null?'—':y.spaceTop)+' 板</span>'+ld+pb+'</div>'+
+      '<div class="hr-ths">'+ths+'</div></div>';
+  });
+  root.innerHTML = h;
+  root.querySelectorAll('.hr-stk,.hr-ld,.hr-pb').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation();
+      if(el.dataset.c) showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
+  });
+  root.querySelectorAll('.hr-th').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation(); openLadPop(el.dataset.th, el.dataset.d, ev); };
+  });
+}
+
 /* v66：旧决策页死代码（renderDecision/paintDecision/paintCyclePanel/dcStep）已删除 */
 
 /* v71：连板梯队日期导航（上一交易日 / 下一交易日 / 今日） */
@@ -4465,6 +4571,7 @@ function switchTab(t){
   if(tlist) tlist.scrollTop = 0;              // 题材按时间降序，最新在最上
   if(t==='ladder') renderLadder(LADDER_DATE);
   if(t==='decision') paintEarn();
+  if(t==='hist') renderHist();
   if(t==='market' && mktChart) setTimeout(()=>mktChart.resize(), 30);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.t));
@@ -4478,6 +4585,7 @@ if(!window.REVIEW){
   try{ renderTheme(); }catch(e){ document.title='THMERR:'+e.message; }
   try{ renderLadder(); }catch(e){ document.title='LADERR:'+e.message; }
   try{ initModuleDates(); }catch(e){ document.title='DPERR:'+e.message; }   // v71：各模块独立日期控件
+  try{ renderHist(); }catch(e){ document.title='HISTERR:'+e.message; }      // v73：历史复盘
   const spHd=document.getElementById('sp-handover');
   if(spHd) spHd.onclick=e=>openHandover('space','全市场',e);
   try{ nrInit(); }catch(e){ document.title='NRERR:'+e.message; }

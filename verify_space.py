@@ -1714,6 +1714,87 @@ def main():
           % (len(ZBTM), sum(len(v) for v in ZBTM.values()), n_zbt))
     n_v48 += n_zbt
 
+    # ---- v73：历史复盘（赚钱效应股断板 3 日跟踪 + 空间龙头叠加）独立复核 ----
+    # 口径复算：自事件日向前，断板日起 3 个交易日内再次涨停 → alive；否则 dead 移除。
+    # 校验：抽样事件的存活判定 / 板位 / 题材；展示股必须复算存活且在事件池；
+    #       当日空间龙头与 stages.spaceFull[0] 一致。
+    n_hr = 0
+    HRD = ((D.get("histReview") or {}).get("days")) or {}
+    _ztset = {dd: {str(s["code"]) for s in (pools.get(dd) or [])} for dd in dates}
+    _date_idx = {dd: i for i, dd in enumerate(dates)}
+    _hr_best = {}
+    for _e in ((D.get("earnStreak") or {}).get("eventsAll") or []):
+        if not _e or _e.get("d") not in _date_idx:
+            continue
+        _k = (str(_e.get("code")), _e.get("d"))
+        if _k not in _hr_best or (_e.get("b") or 1) > _hr_best[_k].get("b", 0):
+            _hr_best[_k] = _e
+
+    def _hr_alive(_code, _d):
+        _i = _date_idx.get(_d)
+        if _i is None:
+            return False
+        _N = len(dates)
+        while True:
+            _j = _i
+            while _j + 1 < _N and str(_code) in _ztset[dates[_j + 1]]:
+                _j += 1
+            if _j + 1 >= _N:
+                return True
+            _bd = _j + 1
+            _re, _cnt = None, 0
+            for _k in range(3):
+                if _bd + _k >= _N:
+                    break
+                _cnt += 1
+                if _k >= 1 and str(_code) in _ztset[dates[_bd + _k]]:
+                    _re = _bd + _k
+                    break
+            if _re is None:
+                return _cnt < 3               # 窗口未走完（数据末端）视为存活
+            _i = _re
+
+    for (_hc, _hd2), _he in _rnd.sample(list(_hr_best.items()), min(80, len(_hr_best))):
+        _day = HRD.get(_hd2) or {}
+        _codes = {str(s.get("code")) for _t in (_day.get("themes") or [])
+                  for s in (_t.get("stks") or [])}
+        _alive = _hr_alive(_hc, _hd2)
+        if _alive != (_hc in _codes):
+            err("v73 %s %s 存活判定不符（复算%s / 页面%s）"
+                % (_hd2, _hc, _alive, _hc in _codes)); n_hr += 1
+            continue
+        if _alive:
+            _row = next((s for _t in (_day.get("themes") or [])
+                         for s in (_t.get("stks") or []) if str(s.get("code")) == _hc), None)
+            if not _row:
+                err("v73 %s %s alive 却无行" % (_hd2, _hc)); n_hr += 1
+                continue
+            if (_row.get("boards") or 1) != (_he.get("b") or 1):
+                err("v73 %s %s 板位不符 %s vs %s"
+                    % (_hd2, _hc, _row.get("boards"), _he.get("b"))); n_hr += 1
+            if (_row.get("theme") or "") != (_he.get("theme") or ""):
+                err("v73 %s %s 题材不符 %s vs %s"
+                    % (_hd2, _hc, _row.get("theme"), _he.get("theme"))); n_hr += 1
+    for _hd2, _y in HRD.items():
+        for _t in (_y.get("themes") or []):
+            for _s in (_t.get("stks") or []):
+                _c = str(_s.get("code"))
+                if (_c, _hd2) not in _hr_best:
+                    err("v73 %s %s 不在赚钱效应事件池" % (_hd2, _c)); n_hr += 1
+                elif not _hr_alive(_c, _hd2):
+                    err("v73 %s %s 断板 3 日未再板却仍显示" % (_hd2, _c)); n_hr += 1
+    _stg_by = {x.get("date"): x for x in (D.get("stages") or [])}
+    for _hd2, _y in HRD.items():
+        _sf = ((_stg_by.get(_hd2) or {}).get("spaceFull") or [])
+        _ld = _y.get("leader")
+        if _sf and not _ld:
+            err("v73 %s 缺当日空间龙头" % _hd2); n_hr += 1
+        elif _ld and _sf and str(_ld.get("code")) != str(_sf[0].get("code")):
+            err("v73 %s 空间龙头与 stages 不符" % _hd2); n_hr += 1
+    print("v73 历史复盘：%d 个事件日 / 抽样 %d + 全量对账，独立复核异常 %d"
+          % (len(HRD), min(80, len(_hr_best)), n_hr))
+    n_v48 += n_hr
+
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
     n_main = sum(1 for d in days if d.get("stage") == "主升")
