@@ -1795,6 +1795,86 @@ def main():
           % (len(HRD), min(80, len(_hr_best)), n_hr))
     n_v48 += n_hr
 
+    # ---- v74：历史复盘扩展（日期连续 / 缺口形态 / 断板龙头当日涨跌幅与炸板） +
+    #      dayZT 扩展字段（板位与池一致、题材兜底合法）----
+    n_v74 = 0
+    # ① 日期连续：窗口内每个交易日都必须有输出（无赚钱效应日 themes=[]）
+    _lo74 = dates[-140] if len(dates) > 140 else (dates[0] if dates else "")
+    for _dd in dates:
+        if _dd >= _lo74 and _dd not in HRD:
+            err("v74 历史复盘缺日期 %s（窗口 %s 起）" % (_dd, _lo74)); n_v74 += 1
+    # 缺口 / 断板龙头当日涨跌幅复核（按个股自身日K序列，与 hist_review 同规则）
+    def _pbar74(c, d):
+        rec = KBV.get(str(c)) or {}
+        _ds = sorted(k for k, b in rec.items() if b and len(b) >= 5 and b[2])
+        _k = bisect.bisect_left(_ds, d)
+        for _j in range(_k - 1, -1, -1):
+            _b = rec.get(_ds[_j])
+            if _b and len(_b) >= 5 and _b[2]:
+                return _b
+        return None
+    def _gap74(c, d):
+        rec = KBV.get(str(c)) or {}
+        _b = rec.get(d)
+        if not _b or len(_b) < 5 or not _b[2]:
+            return None
+        _pb = _pbar74(c, d)
+        if not _pb or len(_pb) < 5:
+            return None
+        return 1 if _b[3] > _pb[4] else 0
+    def _chg74(c, d):
+        rec = KBV.get(str(c)) or {}
+        _b = rec.get(d)
+        if not _b or len(_b) < 3 or not _b[2]:
+            return None
+        _pb = _pbar74(c, d)
+        if not _pb or not _pb[2]:
+            return None
+        return round((_b[2] / _pb[2] - 1) * 100, 2)
+    for _dd, _y74 in HRD.items():
+        for _t in (_y74.get("themes") or []):
+            for _s in (_t.get("stks") or []):
+                _g = _gap74(str(_s.get("code")), _dd)
+                if _g is not None and _s.get("gap") != _g:
+                    err("v74 %s %s 缺口形态不符 %s vs 复算 %s"
+                        % (_dd, _s.get("name"), _s.get("gap"), _g)); n_v74 += 1
+        _pb74 = _y74.get("prevBrk")
+        if _pb74:
+            _pc = str(_pb74.get("code"))
+            _eg = _chg74(_pc, _dd)
+            if _eg is not None and _pb74.get("chg") != _eg:
+                err("v74 %s 断板龙头 %s 当日涨跌幅不符 %s vs 复算 %s"
+                    % (_dd, _pb74.get("name"), _pb74.get("chg"), _eg)); n_v74 += 1
+            _ezb = 1 if _pc in ((D.get("dayZB") or {}).get(_dd) or {}) else 0
+            if (_pb74.get("zb") or 0) != _ezb:
+                err("v74 %s 断板龙头 %s 炸板标记不符 %s vs %s"
+                    % (_dd, _pb74.get("name"), _pb74.get("zb"), _ezb)); n_v74 += 1
+    # ② dayZT 扩展字段：板位与涨停池一致；题材必须可追溯到复盘清单或历史 carry
+    _zt74 = D.get("dayZT") or {}
+    _ever74 = {}
+    for _day, _thm in LFV.items():
+        for _nm, _arr in _thm.items():
+            for _s in _arr:
+                _ever74.setdefault(str(_s.get("code")), set()).add(_nm)
+    _pool74 = {dd: {str(s["code"]): s for s in (pools.get(dd) or [])} for dd in dates}
+    for _dd, _mm in _zt74.items():
+        for _c, _v in _mm.items():
+            _ps = _pool74.get(_dd, {}).get(_c)
+            if not _ps:
+                err("v74 dayZT %s %s 不在涨停池" % (_dd, _c)); n_v74 += 1
+                continue
+            if len(_v) < 5:
+                err("v74 dayZT %s %s 字段不足" % (_dd, _c)); n_v74 += 1
+                continue
+            if (_v[3] or 1) != (_ps.get("boards") or 1):
+                err("v74 dayZT %s %s 板位不符 %s vs %s"
+                    % (_dd, _v[0], _v[3], _ps.get("boards"))); n_v74 += 1
+            if _v[4] and _v[4] not in _ever74.get(_c, set()):
+                err("v74 dayZT %s %s 题材兜底非法「%s」" % (_dd, _v[0], _v[4])); n_v74 += 1
+    print("v74 历史复盘扩展（连续 %d 日 / 缺口 / 断板龙头涨跌幅 / dayZT 扩展）：异常 %d"
+          % (sum(1 for _dd in dates if _dd >= _lo74), n_v74))
+    n_v48 += n_v74
+
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
     n_main = sum(1 for d in days if d.get("stage") == "主升")

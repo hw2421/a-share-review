@@ -814,11 +814,16 @@ _ZT_DAYS = dates[-25:]
 DAY_ZT = {}
 for _d in _ZT_DAYS:
     _m = {}
+    _tm0 = theme_at.get(_d) or {}
     for _s in pools.get(_d, []):
         _c = str(_s["code"])
         _t = str(_s.get("first_seal") or _s.get("t") or "")
+        # v74 扩展：[名称, 首封, 形态, 板位, 题材]——题材涨停时间表据此展示当日
+        # 全量涨停股（复盘清单外个股用 carry 最近题材兜底，再无则前端归「未归类」）
         _m[_c] = [_s.get("name") or "", _t[:5] if _t[:2].isdigit() else "",
-                  _up_shape(_c, _d, _s.get("name") or "")]
+                  _up_shape(_c, _d, _s.get("name") or ""),
+                  _s.get("boards") or 1,
+                  _tm0.get(_c) or carry.get(_c) or ""]
     DAY_ZT[_d] = _m
 DAY_ZB_RAW = fd.collect_zb(_ZT_DAYS)
 DAY_ZB = {d: {c: [v.get("name") or "", v.get("t") or "", v.get("chg") or 0]
@@ -841,7 +846,7 @@ print("v70 个股当日状态：涨停池 %d 天 / 炸板池 %d 天（炸板 %d 
 import hist_review as HR
 HIST_REVIEW, _n_hr = HR.compute(dates, pools, KBARS,
                                 (EARN_STREAK or {}).get("eventsAll") or [],
-                                days, NAME=_NAME_ALL, days_num=140)
+                                days, NAME=_NAME_ALL, days_num=140, zb_days=DAY_ZB)
 print("v73 历史复盘：%d 个事件日 / %d 只存活赚钱效应股"
       % (len(HIST_REVIEW["days"]), _n_hr))
 # ---- 5.6.28 v55 新旧龙头交接事件序列（空间 + 题材） ----
@@ -1384,7 +1389,7 @@ data = {
     "earnStreak": EARN_STREAK,      # v67 赚钱效应统计：连续两日换手赚钱机会个股（3板+）
     "brkTrack": BRK_TRACK,          # v67 高位断板跟踪：昨日≥3板断板 → 跟踪3日涨跌幅
     "relayFb": RELAY_FB,            # v69 昨日梯队 → 今日盈亏传导（逐股涨幅 + 是否晋级，按龙头/助攻/跟风分层）
-    "dayZT": DAY_ZT,                # v70 近25日全量涨停股：{d:{code:[name,首封HH:MM,形态]}}
+    "dayZT": DAY_ZT,                # v74 近25日全量涨停股：{d:{code:[名称,首封,形态,板位,题材兜底]}}
     "dayZB": DAY_ZB,                # v70 近25日炸板池：{d:{code:[name,首封HH:MM,当日涨幅]}}
     "zbTheme": DAY_ZBT,             # v72 炸板股题材映射：{d:{code:题材}}（仅当日梯队题材）
     "histReview": HIST_REVIEW,      # v73 历史复盘：赚钱效应股断板跟踪 + 空间龙头叠加

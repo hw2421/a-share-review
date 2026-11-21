@@ -8,25 +8,33 @@
   4. 叠加显示空间龙头 + 上一个断板空间龙头（同样断板后跟踪三天，不涨停不再显示）；
   5. 每个个股都显示空间高度（个股连板高度 + 当日市场空间高度）。
 
+v74 扩展：
+  6. 日期连续：窗口内所有交易日均有输出（当日无赚钱效应股 → themes=[]，前端显示「无」）；
+  7. 个股涨停形态：缺口 / 长腿（缺口 = 当日最低价 > 昨日最高价，否则视为长腿）；
+  8. 断板空间龙头显示当日涨跌幅（chg）与当日是否炸板（zb，取炸板池）。
+
 跟踪规则（与 v67 brk_track 三日窗口一致）：
   断板日 = 连续涨停后的第一个未涨停交易日；自断板日起 3 个交易日窗口内
   （断板日本身必不涨停，实际机会为断板后 2 日）再次涨停 → 继续 alive，
   以再板日为新起点重复跟踪；窗口走完仍无涨停 → dead，不再显示。
 
 数据契约：
-  days = {事件日 d: {
+  days = {交易日 d（窗口内连续）: {
     "stage": 当日市场阶段, "spaceTop": 当日市场空间高度,
-    "leader":  {code,name,boards,state} 或 None,     # 当日空间龙头
-    "prevBrk": {code,name,boards,bd,days:[[d,chg,zt]...],re,state} 或 None,
-               # 上一个仍存活的断板空间龙头（辅助判断）
-    "themes": [ {"th": 题材, "stks": [ {code,name,boards,state,track} ]} ]
-               # 仅 alive 的赚钱效应股；题材内按板位降序
+    "leader":  {code,name,boards,state,gap} 或 None,   # 当日空间龙头
+    "prevBrk": {code,name,boards,bd,days:[[d,chg,zt]...],re,state,chg,zb} 或 None,
+               # 上一个仍存活的断板空间龙头（chg=当日涨跌幅, zb=当日炸板）
+    "themes": [ {"th": 题材, "stks": [ {code,name,boards,state,track,gap} ]} ]
+               # 仅 alive 的赚钱效应股；题材内按板位降序；无事件日为 []
   }}
 """
+import bisect
+
 ALL_N = 140          # 与 earnStreak 事件池覆盖一致
 
 
-def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N):
+def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N,
+            zb_days=None):
     NAME = NAME or {}
     idx = {d: i for i, d in enumerate(dates)}
     n = len(dates)
@@ -47,6 +55,45 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N):
         if pv and cc:
             return round((cc / pv - 1) * 100, 2)
         return None
+
+    # ---- v74：个股自身日K序列（缺口 / 停牌顺延涨跌幅计算） ----
+    _sdates = {}
+
+    def sdates(c):
+        if c not in _sdates:
+            rec = KBARS.get(str(c)) or {}
+            _sdates[c] = sorted(k for k, b in rec.items()
+                                if b and len(b) >= 5 and b[2])
+        return _sdates[c]
+
+    def bar(c, d):
+        b = (KBARS.get(str(c)) or {}).get(d)
+        return b if (b and len(b) >= 5 and b[2]) else None
+
+    def prev_bar(c, d):
+        ds = sdates(c)
+        k = bisect.bisect_left(ds, d)
+        for j in range(k - 1, -1, -1):
+            b = (KBARS.get(str(c)) or {}).get(ds[j])
+            if b and len(b) >= 5 and b[2]:
+                return b
+        return None
+
+    def chg_own(c, d):
+        """个股在交易日 d 的涨跌幅（按自身上一根日K，停牌顺延），无数据返回 None。"""
+        b, pb = bar(c, d), prev_bar(c, d)
+        if b and pb and pb[2]:
+            return round((b[2] / pb[2] - 1) * 100, 2)
+        return None
+
+    def gap_of(c, d):
+        """涨停形态：缺口=当日最低价(b[3])>昨日最高价(pb[4])；否则长腿。无日K返回 None。"""
+        b, pb = bar(c, d), prev_bar(c, d)
+        if not b or not pb or len(b) < 5 or len(pb) < 5:
+            return None
+        return 1 if b[3] > pb[4] else 0
+
+    zbmap = zb_days or {}
 
     def _st(c, d):
         s = pmap.get(d, {}).get(str(c)) or {}
@@ -146,12 +193,13 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N):
     out = {}
     n_alive = 0
     lo = dates[-days_num] if (days_num and days_num < n) else (dates[0] if dates else "")
-    for d in sorted(by_date):
+    meta_by = {x.get("date"): x for x in days_meta}
+    for d in dates:                          # v74：窗口内日期连续（无事件日 themes=[]）
         if d < lo:
             continue
-        meta = next((x for x in days_meta if x.get("date") == d), None) or {}
+        meta = meta_by.get(d) or {}
         rows = []
-        for e in by_date[d]:
+        for e in by_date.get(d) or []:
             code = str(e["code"])
             alive, _st_t, brks = track(code, d)
             if not alive:
@@ -161,10 +209,9 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N):
                          "name": e.get("name") or NAME.get(code) or code,
                          "boards": e.get("b") or 1,
                          "theme": e.get("theme") or "",
+                         "gap": gap_of(code, d),
                          "state": _st_t if _st_t else state_of(alive, brks),
                          "track": brks})
-        if not rows:
-            continue
         grp = {}
         for r in rows:
             grp.setdefault(r["theme"] or "·无题材", []).append(r)
@@ -177,9 +224,11 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N):
         leader = None
         if sf:
             s0 = sf[0]
-            leader = {"code": str(s0.get("code") or ""), "name": s0.get("name") or "",
+            _lc = str(s0.get("code") or "")
+            leader = {"code": _lc, "name": s0.get("name") or "",
                       "boards": s0.get("boards") or 1,
-                      "state": leader_state(str(s0.get("code") or ""), d)}
+                      "gap": gap_of(_lc, d),
+                      "state": leader_state(_lc, d)}
         # 上一个仍存活的断板空间龙头（断板日 <= d 的最近一个 alive tenure）
         prev = None
         for t in tenures:
@@ -196,6 +245,8 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N):
                        "boards": prev["boards"], "bd": prev["bd"],
                        "days": (last or {}).get("days", []),
                        "re": (last or {}).get("re", ""),
+                       "chg": chg_own(prev["code"], d),          # v74：当日涨跌幅
+                       "zb": 1 if str(prev["code"]) in (zbmap.get(d) or {}) else 0,
                        "state": prev["state"]}
         out[d] = {"stage": meta.get("stage") or "",
                   "spaceTop": meta.get("spaceTop"),
@@ -204,7 +255,8 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N):
     return {
         "days": out,
         "allRange": [dates[0], dates[-1]] if dates else [],
-        "rule": ("历史复盘：赚钱效应股按日期排列（日期带市场阶段与空间高度），同一日期按题材、"
-                 "题材内按板位降序；断板后 3 个交易日内再次涨停继续显示，否则移除；"
-                 "叠加当日空间龙头与上一个仍存活的断板空间龙头辅助判断。"),
+        "rule": ("历史复盘：窗口内交易日连续展示（当日无赚钱效应股显示「无」），日期带市场阶段与空间高度，"
+                 "同一日期按题材、题材内按板位降序；断板后 3 个交易日内再次涨停继续显示，否则移除；"
+                 "叠加当日空间龙头与上一个仍存活的断板空间龙头（含当日涨跌幅与炸板标记）辅助判断；"
+                 "个股涨停形态按缺口/长腿标注（缺口＝当日最低价＞昨日最高价）。"),
     }, n_alive
