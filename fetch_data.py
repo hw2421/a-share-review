@@ -31,6 +31,7 @@ TGB_BLOG = "https://www.tgb.cn/blog/444409"
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 OCR_CACHE = os.path.join(OUT_DIR, ".ocr_cache.json")
 POOL_CACHE = os.path.join(OUT_DIR, ".pool_cache.json")
+ZB_CACHE = os.path.join(OUT_DIR, ".zb_cache.json")     # v70：炸板池（曾涨停未封住）
 
 STAGE_ORDER = ["节点", "补涨", "突破", "主升"]
 
@@ -230,6 +231,87 @@ def compute_streaks(pools, anchors=None):
         res[d] = cur
         prev = cur
     return res
+
+
+def ths_zb_pool(date_str):
+    """v70 炸板池（盘中曾涨停、收盘未封住）。
+
+    用户口径：「如果炸板的话显示炸板（如果炸板个股可以取到首封时间也显示这个时间）」。
+    同花顺「涨停炸板」池带 first_limit_up_time，正好能给出首次触板时间。
+    返回 {code: {"name","t"(首封 HH:MM),"n"(开板次数),"chg"(涨跌幅)}}；
+    非交易日/失败返回 None。
+    """
+    out = {}
+    for page in range(1, 3):
+        url = ("https://data.10jqka.com.cn/dataapi/limit_up/open_limit_pool"
+               "?page=%d&limit=100&field=%s&filter=HS,GEM2STAR"
+               "&order_field=330324&order_type=0&date=%s"
+               % (page, THS_FIELDS, date_str))
+        d = None
+        for attempt in range(2):
+            d = http_json(url, THS_REFERER)
+            if d and d.get("status_code") == 0 and d.get("data") is not None:
+                break
+            d = None
+            time.sleep(THS_INTERVAL * (attempt + 1))
+        if d is None:
+            return None if page == 1 else out
+        info = d["data"].get("info") or []
+        for it in info:
+            code = str(it.get("code") or "")
+            if not code:
+                continue
+            t = ts2str(it.get("first_limit_up_time"))
+            out[code] = {
+                "name": it.get("name") or "",
+                "t": "" if t.startswith("--") else t[:5],
+                "n": int(it.get("open_num") or 0),
+                "chg": round(float(it.get("change_rate") or 0), 2),
+            }
+        total = (d["data"].get("page") or {}).get("total") or 0
+        if len(out) >= total or not info:
+            break
+        time.sleep(0.6)
+    return out
+
+
+def load_zb_cache():
+    if os.path.exists(ZB_CACHE):
+        try:
+            return json.load(open(ZB_CACHE, encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def collect_zb(dates, sleep_s=0.6):
+    """按交易日批量取炸板池（带本地缓存，只补未抓过的日期）。
+
+    返回 {date: {code: {...}}}；抓取失败的日期不出现在结果里（前端自动降级为
+    日K 判定炸板、不显示首封时间），不影响其它模块。
+    """
+    cache = load_zb_cache()
+    out, n_new, fails = {}, 0, []
+    for ds in dates:
+        if ds in cache:
+            out[ds] = cache[ds]
+            continue
+        info = ths_zb_pool(ds)
+        if info is None:
+            fails.append(ds)
+            continue
+        out[ds] = info
+        cache[ds] = info
+        n_new += 1
+        time.sleep(sleep_s)
+    if n_new:
+        try:
+            json.dump(cache, open(ZB_CACHE, "w", encoding="utf-8"), ensure_ascii=False)
+        except Exception:
+            pass
+    if fails:
+        log("      炸板池未取到 %d 天（%s）" % (len(fails), ",".join(fails[:5])))
+    return out
 
 
 def load_pool_cache():

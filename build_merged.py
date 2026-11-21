@@ -804,6 +804,27 @@ import relay_fb as RF
 RELAY_FB, _n_rf = RF.compute(dates, pools, KBARS, ladder_full, NAME=_NAME_ALL)
 print("v69 昨日梯队今日反馈：%d 个展示日 / %d 个题材（逐股涨幅+晋级）"
       % (len(RELAY_FB["days"]), _n_rf))
+# ---- 5.6.27b v70 个股当日状态：涨停首封时间 + 炸板（含首封时间） ----
+# 今日复盘页要「涨停→显示涨停时间；炸板→显示炸板（取到首封时间也显示）」。
+# dayZT：近 25 个交易日全量涨停股（不只是达标题材），取同花顺涨停池 first_seal。
+# dayZB：同花顺「涨停炸板」池（曾涨停未封住），带首封时间与开板次数；
+#        抓不到的日子由前端按日K（最高≥涨停价、收盘未封）降级判定，不显示时间。
+_ZT_DAYS = dates[-25:]
+DAY_ZT = {}
+for _d in _ZT_DAYS:
+    _m = {}
+    for _s in pools.get(_d, []):
+        _c = str(_s["code"])
+        _t = str(_s.get("first_seal") or _s.get("t") or "")
+        _m[_c] = [_s.get("name") or "", _t[:5] if _t[:2].isdigit() else "",
+                  _up_shape(_c, _d, _s.get("name") or "")]
+    DAY_ZT[_d] = _m
+DAY_ZB_RAW = fd.collect_zb(_ZT_DAYS)
+DAY_ZB = {d: {c: [v.get("name") or "", v.get("t") or "", v.get("chg") or 0]
+              for c, v in m.items()}
+          for d, m in DAY_ZB_RAW.items()}
+print("v70 个股当日状态：涨停池 %d 天 / 炸板池 %d 天（炸板 %d 个股票日）"
+      % (len(DAY_ZT), len(DAY_ZB), sum(len(v) for v in DAY_ZB.values())))
 # ---- 5.6.28 v55 新旧龙头交接事件序列（空间 + 题材） ----
 import handover as HO
 HANDOVER = HO.compute(dates, days, ladder_full, NAME=_NAME_ALL, limit=40)
@@ -1344,6 +1365,8 @@ data = {
     "earnStreak": EARN_STREAK,      # v67 赚钱效应统计：连续两日换手赚钱机会个股（3板+）
     "brkTrack": BRK_TRACK,          # v67 高位断板跟踪：昨日≥3板断板 → 跟踪3日涨跌幅
     "relayFb": RELAY_FB,            # v69 昨日梯队 → 今日盈亏传导（逐股涨幅 + 是否晋级，按龙头/助攻/跟风分层）
+    "dayZT": DAY_ZT,                # v70 近25日全量涨停股：{d:{code:[name,首封HH:MM,形态]}}
+    "dayZB": DAY_ZB,                # v70 近25日炸板池：{d:{code:[name,首封HH:MM,当日涨幅]}}
     "lb": lb,                       # 日期 -> 当日连板股（2板+，含题材）
     "themeSource": {d: theme_source.get(d, "tgb") for d in theme_dates},
     "money": money,                 # 赚钱效应：板块当日有 ≥3 板个股再涨停的题材

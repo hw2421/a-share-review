@@ -1633,6 +1633,41 @@ def main():
           % (len(RF_DAYS), len(_rf_rows), min(60, len(_rf_rows)), n_rf))
     n_v48 += n_rf
 
+    # ---- v70：个股当日状态（dayZT 涨停首封时间 / dayZB 炸板池）独立复核 ----
+    n_st = 0
+    ZT = D.get("dayZT") or {}
+    ZB = D.get("dayZB") or {}
+    if not ZT:
+        err("v70 dayZT 为空"); n_st += 1
+    for _d, _m in ZT.items():
+        if _d not in date_set:
+            err("v70 dayZT 日期 %s 不在交易日历" % _d); n_st += 1; continue
+        _pc = {str(s["code"]): s for s in (pools.get(_d) or [])}
+        _want = set(_pc)
+        _got = set(_m)
+        if _want != _got:
+            err("v70 dayZT %s 个股集合与涨停池不符（多 %d / 少 %d）"
+                % (_d, len(_got - _want), len(_want - _got))); n_st += 1
+        # 首封时间必须与池内 first_seal 同日（HH:MM）
+        for _c, _v in list(_m.items())[:40]:
+            _s = _pc.get(_c) or {}
+            _fs = str(_s.get("first_seal") or "")
+            if _fs and len(_fs) >= 5 and _fs[:2].isdigit() and _v[1] and _v[1] != _fs[:5]:
+                err("v70 dayZT %s %s 首封时间 %s ≠ 池内 %s" % (_d, _c, _v[1], _fs[:5])); n_st += 1
+    for _d, _m in ZB.items():
+        if _d not in date_set:
+            err("v70 dayZB 日期 %s 不在交易日历" % _d); n_st += 1; continue
+        _pc = {str(s["code"]) for s in (pools.get(_d) or [])}
+        _over = _pc & set(_m)                 # 炸板股不可能同时收盘涨停
+        if _over:
+            err("v70 dayZB %s 有 %d 只同时出现在涨停池（%s）"
+                % (_d, len(_over), list(_over)[:3])); n_st += len(_over)
+        for _c, _v in _m.items():
+            if _v[1] and (len(_v[1]) != 5 or not _v[1][:2].isdigit()):
+                err("v70 dayZB %s %s 首封时间格式异常 %s" % (_d, _c, _v[1])); n_st += 1
+    print("v70 个股当日状态：涨停池 %d 天 / 炸板池 %d 天（%d 个炸板股票日），独立复核异常 %d"
+          % (len(ZT), len(ZB), sum(len(v) for v in ZB.values()), n_st))
+    n_v48 += n_st
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")
