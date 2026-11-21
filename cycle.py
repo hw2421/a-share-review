@@ -25,13 +25,21 @@
 交叉统计/互证矩阵/压力测试/推荐降级）。
 
 输出：
-  days        [{date, s1..s4, score, neg, negNames, r1..r4 原始读数}, ...] 全期
+  days        [{date, s1..s4, score, neg, negNames, r1..r4 原始读数,
+                det 最近5天附计分明细(参与计算的个股清单)}, ...] 全期
   rule        口径说明
+
+v66 计分明细（det，仅最近 5 个交易日，供前端点击分数格弹出「根据什么股票算的」）：
+  d1  [{c,n,b,chg,ok}]   昨日≥2板股今日涨幅（ok=收盘≥0，即①的样本）
+  d2  [{c,n,b,chg,prom}] 昨日全部涨停股今日涨幅+是否晋级（②的样本）
+  d3  {c12:[{c,n}], c2p:[{c,n}]}   1→2板晋级清单 / 今日≥2板清单
+  d4  {mx, prevMx, zt, prevZt, lead:[{c,n,boards}]}   高度与涨停家数变化 + 今日最高板股
 """
 import bisect
 
 NEG_LOSS = -8.0           # 负反馈起点阈值：≥2 只前一日≥3板股 收盘跌幅 ≤ −8%
 NEG_HIT = 2               # 单日命中家数门槛（高位集中处刑，非个别股）
+DETAIL_DAYS = 5           # v66：最近 N 个交易日附带计分明细
 
 
 def compute(dates, pools, days, KBARS, summit=None):
@@ -66,43 +74,68 @@ def compute(dates, pools, days, KBARS, summit=None):
         if i == 0:
             continue
         pd_ = dates[i - 1]
+        want_det = i >= len(dates) - DETAIL_DAYS   # v66：最近5天附计分明细
         prev_pool = pmap.get(pd_, {})
         cur_pool = pmap.get(d, {})
         # ① 昨日 ≥2 板个股今日不亏钱率 / 平均涨幅
         hi2 = [(c, s) for c, s in prev_pool.items() if (s.get("boards") or 1) >= 2]
         chgs = []
+        det1 = []
         for c, s in hi2:
             cp, cc = close_at(c, pd_), close_at(c, d)
             if cp and cc:
-                chgs.append((cc / cp - 1) * 100)
+                _g = (cc / cp - 1) * 100
+                chgs.append(_g)
+                if want_det:
+                    det1.append({"c": c, "n": s.get("name") or c,
+                                 "b": s.get("boards") or 1,
+                                 "chg": round(_g, 2), "ok": 1 if _g >= 0 else 0})
         r1 = (sum(1 for x in chgs if x >= 0) / len(chgs)) if chgs else None
         avg1 = (sum(chgs) / len(chgs)) if chgs else None
         # ② 昨日全部涨停股：晋级率 + 红盘率
         promo = red = tot = 0
+        det2 = []
         for c, s in prev_pool.items():
             cp, cc = close_at(c, pd_), close_at(c, d)
             if not cp or not cc:
                 continue
             tot += 1
             cs = cur_pool.get(c)
-            if cs and (cs.get("boards") or 1) > (s.get("boards") or 1):
+            _prom = 1 if (cs and (cs.get("boards") or 1) > (s.get("boards") or 1)) else 0
+            if _prom:
                 promo += 1
             if cc > cp:
                 red += 1
+            if want_det:
+                det2.append({"c": c, "n": s.get("name") or c,
+                             "b": s.get("boards") or 1,
+                             "chg": round((cc / cp - 1) * 100, 2), "prom": _prom})
         r2a = (promo / tot) if tot else None
         r2b = (red / tot) if tot else None
         # ③ 1→2 板晋级家数 + 今日 ≥2 板家数
         cnt12 = 0
+        det12, det2p = [], []
         for c, s in prev_pool.items():
             if (s.get("boards") or 1) == 1:
                 cs = cur_pool.get(c)
                 if cs and (cs.get("boards") or 1) == 2:
                     cnt12 += 1
+                    if want_det:
+                        det12.append({"c": c, "n": s.get("name") or c})
+        det2p = [{"c": c, "n": s.get("name") or c, "b": s.get("boards") or 1}
+                 for c, s in cur_pool.items() if (s.get("boards") or 1) >= 2] if want_det else []
         cnt2p = sum(1 for s in cur_pool.values() if (s.get("boards") or 1) >= 2)
         # ④ 空间高度变化 + 涨停家数变化
         st_c, st_p = SD.get(d) or {}, SD.get(pd_) or {}
         dh = (st_c.get("maxBoard") or 0) - (st_p.get("maxBoard") or 0)
         dz = (st_c.get("ztCount") or 0) - (st_p.get("ztCount") or 0)
+        if want_det:
+            _mx = st_c.get("maxBoard") or 0
+            det4 = {"mx": _mx, "prevMx": st_p.get("maxBoard") or 0,
+                    "zt": st_c.get("ztCount") or 0, "prevZt": st_p.get("ztCount") or 0,
+                    "lead": [{"c": c, "n": s.get("name") or c, "b": s.get("boards") or 1}
+                             for c, s in cur_pool.items()
+                             if (s.get("boards") or 1) == _mx][:6]}
         # 负反馈起点：≥2 只「前一日 ≥3 板」个股当日收盘跌幅 ≤ −8%（高位集中处刑日）。
         # 冲高回落型（收盘/最高≤−10%）全期仅 1 天且漏掉低开低走型，弃用；
         # 单只 −8% 有 552 天太泛，≥2 只联动 199 天（约 8%）——既有信号意义又不失焦。
@@ -124,6 +157,13 @@ def compute(dates, pools, days, KBARS, summit=None):
             "cnt12": cnt12, "cnt2p": cnt2p, "dh": dh, "dz": dz,
             "neg": neg, "negNames": neg_names[:3],
         })
+        if want_det:
+            rows[-1]["det"] = {
+                "d1": sorted(det1, key=lambda x: -x["chg"]),
+                "d2": sorted(det2, key=lambda x: (-(x["prom"]), -x["chg"])),
+                "d3": {"c12": det12, "c2p": det2p},
+                "d4": det4,
+            }
 
     # ---------- 分位数映射打分 ----------
     def prct_fn(vals):

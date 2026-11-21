@@ -1696,7 +1696,7 @@ def main():
         err("v64 缺 earnProfile.packs"); n_v64 += 1
     else:
         # ① 窗口边界：截止日必须是最新交易日，起点按窗口回推
-        for _wk, _w in (("w10", 10), ("w20", 20), ("w60", 60)):
+        for _wk, _w in (("w1", 1), ("w3", 3), ("w5", 5)):
             _pk = _packs.get(_wk)
             if not _pk:
                 err("v64 缺窗口 %s" % _wk); n_v64 += 1; continue
@@ -1741,18 +1741,19 @@ def main():
                     continue
                 _t0 = _tm.get(_c0) or ""
                 _smp.append({
-                    "d": _d, "code": _c0, "boards": _s0.get("boards") or 1,
+                    "d": _d, "d1": _d1, "code": _c0, "boards": _s0.get("boards") or 1,
                     "rc": (_b1[2] / _bT[2] - 1) * 100,
                     "ri": (_b1[2] / _b1[1] - 1) * 100,
                     "zt": 1 if _c0 in _nxt else 0,
                     "stage": (_stgm.get(_d) or {}).get("stage") or "未知",
                 })
-        _wd = set(dates[-20:])
-        _ss = [x for x in _smp if x["d"] in _wd]
-        _p20 = _packs.get("w20") or {}
+        # v66：窗口按「验证日 d1」口径（与 earn_profile 一致）
+        _wd = set(dates[-5:])
+        _ss = [x for x in _smp if x["d1"] in _wd]
+        _p20 = _packs.get("w5") or {}
         _b20 = _p20.get("base") or {}
         if len(_ss) != _b20.get("n"):
-            err("v64 w20 样本数复算不符 %d vs %s" % (len(_ss), _b20.get("n"))); n_v64 += 1
+            err("v64 w5 样本数复算不符 %d vs %s" % (len(_ss), _b20.get("n"))); n_v64 += 1
         elif _ss:
             _calc = {
                 "win": sum(1 for x in _ss if x["rc"] > 0) / len(_ss) * 100,
@@ -1763,7 +1764,7 @@ def main():
             for _k, _tol in (("win", .15), ("rc", .03), ("ri", .03), ("zt", .15)):
                 _gv = _b20.get(_k)
                 if _gv is None or abs(_gv - _calc[_k]) > _tol:
-                    err("v64 w20 %s 复算不符 %s vs %.3f" % (_k, _gv, _calc[_k])); n_v64 += 1
+                    err("v64 w5 %s 复算不符 %s vs %.3f" % (_k, _gv, _calc[_k])); n_v64 += 1
         # ③ 板位 / 四阶段两个维度逐档复算（样本数 + 赚钱率）
         def _bk64(b):
             b = b or 1
@@ -1801,7 +1802,7 @@ def main():
         _tn = len([s for s in (pools.get(dates[-1]) or []) if str(s.get("code")) not in _tz])
         if len((_p20.get("cand") or [])) > _tn:
             err("v64 候选 %d > 今日可参与涨停 %d" % (len(_p20.get("cand") or []), _tn)); n_v64 += 1
-        print("v64 赚钱效应复盘：窗口 %s，w20 样本 %d 笔独立复算（基准/板位/四阶段/个股榜/候选），异常 %d"
+        print("v64 赚钱效应复盘：窗口 %s，w5 验证日口径样本 %d 笔独立复算（基准/板位/四阶段/个股榜/候选），异常 %d"
               % ("/".join(sorted(_packs)), len(_ss), n_v64))
     n_v48 += n_v64
 

@@ -20,7 +20,7 @@ import bisect
 from collections import defaultdict
 
 PRI = ["天地板", "连续跌停", "断板次日跌停", "冲高回落跌停大阴线"]
-WINDOWS = {"week": 5, "twoweek": 10, "month": 20}
+WINDOWS = {"d1": 1, "d3": 3, "d5": 5}   # v66：近1日(默认)/3日/5日
 
 
 def lim_of(code, name=""):

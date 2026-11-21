@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""赚钱效应复盘（v64）——把近期涨停股拉平成样本，按特征分组算赚亏，让数据自己说话。
+"""赚钱效应复盘（v64→v66）——把近期涨停股拉平成样本，按特征分组算赚亏，让数据自己说话。
 
 核心问题（用户口径）：
   近期市场里，哪些个股在赚钱、哪些在亏钱？它们有什么共同特征？
@@ -18,17 +18,28 @@
 
 聚合口径：
   每档给 样本数 n、赚钱率 win（rc>0 占比）、笔均 rc/ri、晋级率 zt、
-  超额 ex（该档笔均 rc − 全样本笔均 rc）。只保留 n≥MIN_N 的档参与排序，
-  避免小样本噪声；n<MIN_N 的档照实展示但标「样本少」。
+  超额 ex（该档笔均 rc − 全样本笔均 rc）。只保留 n≥MIN_N(w) 的档参与排序，
+  避免小样本噪声；n<MIN_N(w) 的档照实展示但标「样本少」。
 
-输出三套窗口（10/20/60 交易日），前端直接切换，不重复计算。
+窗口（v66 用户定）：近 1 / 3 / 5 个交易日，默认 1 日。
+  样本门槛按窗口缩放 MIN_N(w)=max(3, 30·w/20)——1 日窗口全样本才几十笔，
+  固定 30 会让所有档变灰、最强/最弱和候选全空。个股榜最少出现次数同步缩放
+  （1 日窗口每股最多出现 1 次，门槛固定 2 会让个股榜永远为空）。
+
+明日待验证（候选）：按所选窗口独立打分（特征分＝命中该窗口强/弱档超额之和），
+特征分 ≤0 的不推荐（v66：只有站在赚钱画像上的才列出来）。
 """
 from collections import Counter, defaultdict
 
-MIN_N = 30          # 单档最小样本（排序 / 候选权重用）
+MIN_N = 30          # 单档最小样本基准（20 日窗口用；按窗口缩放）
 MIN_N_CROSS = 25    # 交叉格最小样本
-MIN_N_STOCK = 2     # 个股上榜最少出现次数
-ALL_N = 60          # 样本池覆盖交易日数（=最大窗口）
+MIN_N_STOCK = 2     # 个股上榜最少出现次数基准（按窗口缩放）
+ALL_N = 30          # 样本池覆盖交易日数（=最大窗口 5 的富余余量）
+
+
+def min_n_for(w):
+    """按窗口缩放单档最小样本：1日→3 / 3日→4 / 5日→7。"""
+    return max(3, int(MIN_N * w / 20))
 
 DIMS = [
     ("boards", "板位"),
@@ -154,12 +165,13 @@ def _mean(xs):
     return sum(xs) / len(xs) if xs else None
 
 
-def _agg(samples, base_rc):
+def _agg(samples, base_rc, min_n=None):
     n = len(samples)
     if not n:
         return None
     rc = [s["rc"] for s in samples]
     ri = [s["ri"] for s in samples if s["ri"] is not None]
+    mn = MIN_N if min_n is None else min_n
     return {
         "n": n,
         "win": round(sum(1 for x in rc if x > 0) / n * 100, 1),
@@ -167,7 +179,7 @@ def _agg(samples, base_rc):
         "ri": round(_mean(ri), 2) if ri else None,
         "zt": round(sum(s["zt"] for s in samples) / n * 100, 1),
         "ex": (round(_mean(rc) - base_rc, 2) if base_rc is not None else None),
-        "few": n < MIN_N,
+        "few": n < mn,
     }
 
 
@@ -235,7 +247,7 @@ def _build_samples(dates, pools, theme_of, stages, cycle_map, KBARS, yizi):
     return out
 
 
-def _dims_agg(samples, base_rc):
+def _dims_agg(samples, base_rc, min_n=None):
     res = []
     for key, label in DIMS:
         grp = defaultdict(list)
@@ -243,7 +255,7 @@ def _dims_agg(samples, base_rc):
             grp[s["f"][key]].append(s)
         items = []
         for k, ss in grp.items():
-            a = _agg(ss, base_rc)
+            a = _agg(ss, base_rc, min_n)
             if a:
                 a["k"] = k
                 items.append(a)
@@ -254,15 +266,16 @@ def _dims_agg(samples, base_rc):
     return res
 
 
-def _cross(samples, base_rc, d1, d2, name):
+def _cross(samples, base_rc, d1, d2, name, min_n=None):
     grp = defaultdict(list)
     for s in samples:
         grp[(s["f"][d1], s["f"][d2])].append(s)
     cells = []
+    mn = MIN_N_CROSS if min_n is None else min_n
     for (a, b), ss in grp.items():
-        if len(ss) < MIN_N_CROSS:
+        if len(ss) < mn:
             continue
-        g = _agg(ss, base_rc)
+        g = _agg(ss, base_rc, min_n)
         if not g:
             continue
         g.pop("few", None)
@@ -272,13 +285,14 @@ def _cross(samples, base_rc, d1, d2, name):
     return {"name": name, "cells": cells}
 
 
-def _stocks(samples, NAME, limit=12):
+def _stocks(samples, NAME=None, min_stock=None, limit=12):
     grp = defaultdict(list)
     for s in samples:
         grp[s["code"]].append(s)
+    ms = MIN_N_STOCK if min_stock is None else min_stock
     rows = []
     for code, ss in grp.items():
-        if len(ss) < MIN_N_STOCK:
+        if len(ss) < ms:
             continue
         rc = [s["rc"] for s in ss]
         th = Counter(s["theme"] for s in ss if s["theme"]).most_common(1)
@@ -295,7 +309,7 @@ def _stocks(samples, NAME, limit=12):
     rows.sort(key=lambda x: -x["rc"])
     up = [r for r in rows if r["rc"] > 0][:limit]
     down = [r for r in reversed(rows) if r["rc"] < 0][:limit]
-    return {"up": up, "down": down, "total": len(rows)}
+    return {"up": up, "down": down, "total": len(rows), "minS": ms}
 
 
 def _candidates(today_samples, dims, top, bottom, limit=8):
@@ -319,6 +333,8 @@ def _candidates(today_samples, dims, top, bottom, limit=8):
             (hits if e["ex"] > 0 else miss).append(
                 {"dim": e["dim"], "k": k, "ex": e["ex"], "n": e["n"], "win": e["win"]})
         score = round(sum(x["ex"] for x in hits + miss), 2) if (hits or miss) else None
+        if score is None or score <= 0:
+            continue                      # v66：特征分 ≤0 不推荐（没站在赚钱画像上）
         out.append({
             "code": s["code"], "name": s["name"], "boards": s["boards"],
             "theme": s["theme"], "score": score,
@@ -330,7 +346,7 @@ def _candidates(today_samples, dims, top, bottom, limit=8):
 
 
 def compute(dates, pools, ladder_full, stages, cycle_map, KBARS, yizi, NAME=None,
-            STOCK_THEME=None, windows=(10, 20, 60)):
+            STOCK_THEME=None, windows=(1, 3, 5)):
     """STOCK_THEME：个股→题材兜底映射（build 传 data.json 的 stockTheme，覆盖 96% 涨停股）。
 
     题材口径：当日复盘清单（ladder_full）优先，清单外的涨停股用 stockTheme 兜底；
@@ -370,12 +386,15 @@ def compute(dates, pools, ladder_full, stages, cycle_map, KBARS, yizi, NAME=None
     base_rc = _mean([s["rc"] for s in samples]) if samples else None
     packs = {}
     for w in windows:
+        mn = min_n_for(w)
+        # v66：按「验证日 d1」∈ 最近 w 个交易日过滤——「近1日」＝最新交易日当天
+        # 昨日涨停股的验证结果（若按涨停日 d 过滤，w1 会把最新一天的结果漏掉）。
         wd = set(dates[-w:])
-        ss = [s for s in samples if s["d"] in wd]
+        ss = [s for s in samples if s["d1"] in wd]
         if not ss:
             continue
-        b = _agg(ss, None) or {}
-        dims = _dims_agg(ss, _mean([x["rc"] for x in ss]))
+        b = _agg(ss, None, mn) or {}
+        dims = _dims_agg(ss, _mean([x["rc"] for x in ss]), mn)
         flat = []
         for dm in dims:
             for it in dm["items"]:
@@ -389,14 +408,15 @@ def compute(dates, pools, ladder_full, stages, cycle_map, KBARS, yizi, NAME=None
             "win": w,
             "from": dates[-w] if len(dates) >= w else dates[0],
             "to": today,
+            "minN": mn,
             "base": {"n": b.get("n"), "win": b.get("win"), "rc": b.get("rc"),
                      "ri": b.get("ri"), "zt": b.get("zt")},
             "dims": dims,
-            "cross": [_cross(ss, _mean([x["rc"] for x in ss]), "boards", "seal", "板位 × 封板时间"),
-                      _cross(ss, _mean([x["rc"] for x in ss]), "stage", "boards", "四阶段 × 板位")],
+            "cross": [_cross(ss, _mean([x["rc"] for x in ss]), "boards", "seal", "板位 × 封板时间", max(3, int(MIN_N_CROSS * w / 20))),
+                      _cross(ss, _mean([x["rc"] for x in ss]), "stage", "boards", "四阶段 × 板位", max(3, int(MIN_N_CROSS * w / 20)))],
             "top": tp,
             "bottom": bt,
-            "stocks": _stocks(ss, NAME),
+            "stocks": _stocks(ss, NAME, min_stock=(1 if w <= 3 else MIN_N_STOCK)),
             "cand": _candidates(today_samples, dims, tp, bt),
         }
 
@@ -407,7 +427,9 @@ def compute(dates, pools, ladder_full, stages, cycle_map, KBARS, yizi, NAME=None
         "rule": ("样本＝T 日涨停股（剔除一字，当天买不进）在 T+1 的验证。三个结果口径："
                  "①昨收买入→今收（持筹者，主排序）；②今开买入→今收（接力者日内）；"
                  "③T+1 是否再涨停（晋级）。停牌/缺K线/首日无昨收的样本剔除。"
-                 "每档「超额」＝该档笔均 − 同窗口全样本笔均；只有样本≥%d 的档参与最强/最弱"
-                 "排序与候选打分，样本少的档照实列出但标灰。特征全部来自当日涨停池与环境，"
-                 "不做任何预设结论——数据说什么就是什么。" % MIN_N),
+                 "窗口＝近 1/3/5 个交易日（默认 1 日）；单档门槛按窗口缩放（1日≥3笔 / 3日≥4笔 / 5日≥7笔），"
+                 "不足门槛的档照实列出但标灰、不参与最强/最弱排序与候选打分。"
+                 "每档「超额」＝该档笔均 − 同窗口全样本笔均。"
+                 "明日待验证按所选窗口独立打分，特征分≤0 的不列。"
+                 "特征全部来自当日涨停池与环境，不做任何预设结论——数据说什么就是什么。"),
     }

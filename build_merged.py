@@ -810,11 +810,24 @@ print("新旧龙头交接（v55）：空间 %d 次 / 题材 %d 个题材共 %d �
 excludedConsecYizi = S.get("excludedConsecYizi", [])   # v18：连续一字开盘、不属于战法标的
 v23stat = S.get("v23stat", {})          # 战法 T日复盘→T+1 参与 的触发统计
 
-# ---- 5.6.3 主包内嵌日K：已移除（占原包 30%，且线上托管无 gzip）----
-# 全站可点个股日K由 klines/klines_0..7.json 分片按「需求日聚簇」完整提供，
-# 窗口含断板后 5 个交易日；旧主包只有近 60 根，既冗余又会在分片缺失时把
-# 可视窗口截断到错误位置。保留空字段兼容旧前端的 (REVIEW.klines||{}) 读取。
+# ---- 5.6.3 主包内嵌日K（v65 恢复精简版）：近 60 日活跃股（全部涨停池去重）
+# 每股尾部 130 根（约半年）。v55 起日K全靠 8 个 20MB 分片，点击个股要先下完
+# 20MB 才出图，手机/慢网络直接表现为「点了没反应」。现在点击高频股（近期涨停
+# 池 + 赚钱画像全部个股均在其中）秒开；更早历史与内嵌未覆盖股仍走分片兜底。
+# 压缩后增量约 1MB（zlib 9），远小于一次 20MB 分片下载。
+_codes60 = set()
+for _d in dates[-60:]:
+    for _s in pools.get(_d, []):
+        _codes60.add(str(_s["code"]))
 kl_main = {}
+for _c in _codes60:
+    _rec = KBARS.get(_c)
+    if not _rec:
+        continue
+    _bars = [_rec[x] for x in sorted(_rec.keys()) if _rec[x]]
+    kl_main[_c] = _bars[-130:]
+print("内嵌日K（v65）：近60日活跃股 %d 只，命中 %d 只 × 尾部130根" %
+      (len(_codes60), len(kl_main)))
 
 # ---- 5.7 当日连板梯队（2 板及以上，含题材；供「连板梯队」页） ----
 # v47：当日没抓到题材的连板股，沿用「昨日复盘」的题材归类。

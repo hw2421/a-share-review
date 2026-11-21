@@ -40,7 +40,7 @@ PRI_PRIM = [p for p in PRI if p != "强势股"]
 # 与「两日连续涨停」模型字段口径不同（不要求今日涨幅=涨停幅度、不要求高开/不下0线），
 # 校验时须走独立分支。
 KIND_FIRSTYIN = "龙头首阴"
-WINDOWS = {"week": 5, "twoweek": 10, "month": 20}
+WINDOWS = {"d1": 1, "d3": 3, "d5": 5}   # v66：近1日(默认)/3日/5日
 
 
 def lim_of(code, name=""):
