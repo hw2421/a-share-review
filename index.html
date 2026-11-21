@@ -38,9 +38,6 @@
   .hsel .lb{color:var(--dim);font-size:11px;white-space:nowrap}
   .hsel select{background:var(--card2);border:1px solid var(--line);color:var(--text);
                border-radius:7px;padding:1px 5px;font-size:11px;outline:none;cursor:pointer}
-  #today-btn{background:#1c2740;border:1px solid var(--blue);color:var(--text);
-             border-radius:7px;padding:1px 9px;font-size:11px;cursor:pointer;white-space:nowrap}
-  #today-btn:hover{background:#24365c}
   .hsel .dinfo{color:var(--dim2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* 四个导航：并入 header 首行、顶端固定；各自不同底色，紧凑胶囊 */
   nav{display:inline-flex;gap:4px;align-items:center;flex:0 0 auto}
@@ -175,7 +172,7 @@
            border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-left:8px}
   .hd-open:hover{background:#3a2a56}
   #thpop{position:fixed;z-index:95;background:#141c2e;border:1px solid var(--blue);
-         border-radius:8px;padding:10px 14px;width:min(560px,calc(100vw - 16px));display:none;
+         border-radius:8px;padding:10px 14px;width:min(900px,calc(100vw - 16px));display:none;
          box-shadow:0 8px 30px rgba(0,0,0,.5);font-size:12px;cursor:move;
          max-height:86vh;overflow-y:auto}
   #thpop h4{color:var(--blue);font-size:13.5px;margin-bottom:6px;padding-right:24px;line-height:1.5}
@@ -190,6 +187,25 @@
   #thpop .tstat .sw{display:inline-block;margin-right:10px;white-space:nowrap}
   #thpop .tstat .sw i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:3px}
   #thpop .tstat .note{grid-column:1/-1;color:var(--dim2);font-size:10px}
+  /* v70 线路图改「连板梯队」横向列：每日一列，列内按板位分行，可左右拖动 */
+  #thpop .thscroll{display:flex;gap:8px;overflow-x:auto;cursor:grab;padding:2px 0 8px}
+  #thpop .thscroll.dragging{cursor:grabbing;user-select:none}
+  #thpop .thcol{flex:0 0 176px;background:#101a2c;border:1px solid #26354f;border-radius:7px;
+                padding:6px 8px;align-self:flex-start}
+  #thpop .thcol.newest{border-color:#3d8bff;box-shadow:0 0 0 1px rgba(61,139,255,.35) inset}
+  #thpop .thcol-hd{display:flex;justify-content:space-between;align-items:center;gap:6px;
+                   font-size:11px;color:#cfe0ff;font-weight:800;border-bottom:1px dashed #26354f;
+                   padding-bottom:4px;margin-bottom:5px}
+  #thpop .thcol-hd .stg4{font-size:9.5px;font-weight:700}
+  #thpop .thlv{display:flex;gap:5px;align-items:flex-start;margin:3px 0}
+  #thpop .thlv .lbd{flex:0 0 28px;font-size:10px;color:var(--gold);font-weight:800;text-align:right;
+                    white-space:nowrap;padding-top:1px}
+  #thpop .thlv .stks{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:3px;min-width:0}
+  #thpop .thstk{font-size:10.5px;background:#1b2740;border:1px solid #33456a;border-radius:4px;
+                padding:0 4px;cursor:pointer;white-space:nowrap;color:#e6eefc}
+  #thpop .thstk:hover{border-color:#78b0ff;background:#24365c}
+  #thpop .thstk em{font-style:normal;font-size:8.5px;color:#ffd24a;margin-left:2px}
+  #thpop .thstk .tt{font-size:8.5px;color:#8b9bb5;margin-left:3px}
   #thpop .drow{display:flex;align-items:center;gap:8px;padding:3px 0;
                border-bottom:1px solid rgba(120,140,170,.15);cursor:auto}
   #thpop .drow:last-child{border-bottom:none}
@@ -276,18 +292,6 @@
   .stgchip{display:inline-block;border-radius:3px;padding:0 6px;font-size:11px;
            margin-left:6px;color:#fff;line-height:1.6;vertical-align:1px}
   /* ---------- 每模块独立日期选择（年月日 + 确定） ---------- */
-  .dpick{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:6px;
-         font-size:10.5px;color:var(--dim2)}
-  .dpick .dp-lb{white-space:nowrap;color:var(--dim)}
-  .dpick select{background:var(--card2);border:1px solid var(--line);color:var(--text);
-        border-radius:5px;padding:2px 4px;font-size:10.5px}
-  .dpick .dp-go{background:#1b4a90;border:1px solid #78b0ff;color:#fff;border-radius:5px;
-        padding:2px 10px;font-size:10.5px;cursor:pointer}
-  .dpick .dp-go:hover{filter:brightness(1.2)}
-  .dpick .dp-now{color:var(--gold);white-space:nowrap}
-  #hsel-go{background:#1b4a90;border:1px solid var(--blue);color:var(--text);
-        border-radius:5px;padding:2px 10px;font-size:11px;cursor:pointer}
-  #hsel-go:hover{filter:brightness(1.25)}
   .dp-flash{animation:dpflash 1.6s ease}
   @keyframes dpflash{0%,100%{background:transparent}20%,60%{background:rgba(240,185,11,.22)}}
   /* 历史日期选取后：对应日期的数据行/卡片持续高亮凸显（闪动之外还留底色） */
@@ -759,12 +763,6 @@
   .ep-w:hover{border-color:#3d8bff}
   .ep-w.on{background:#1b4a90;color:#fff;border-color:#78b0ff;font-weight:700}
   /* v68：历史回测日期选择 */
-  .ep-go{background:#152238;color:#9fb0cc;border:1px solid #2b3a56;border-radius:6px;
-         padding:3px 9px;font-size:12px;cursor:pointer}
-  .ep-go:hover{border-color:#3d8bff;color:#fff}
-  .ep-sel{background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;
-          padding:2px 6px;font-size:12px;max-width:140px}
-  .ep-sel:hover{border-color:#3d8bff}
   /* v69 赚钱效应页：极简名单 */
   .ep-h{font-size:12.5px;color:#ffd24a;margin:14px 0 6px;font-weight:800}
   .ep-h .sub{font-weight:400;color:var(--dim2);font-size:11px;margin-left:6px}
@@ -783,6 +781,17 @@
                border-radius:3px;padding:0 3px}
   .ep-ch .th{font-size:10.5px;color:#dcbafb;border:1px solid #6a4a9288;border-radius:4px;padding:0 4px}
   .ep-ch .th:hover{background:#2a1c44;color:#fff}
+  /* v70 个股当日状态：涨停（首封时间）/ 炸板（含首封时间） */
+  .stk-zt{font-style:normal;font-size:9px;color:#ffd24a;background:rgba(240,185,11,.14);
+          border:1px solid rgba(240,185,11,.42);border-radius:3px;padding:0 3px;font-weight:700;
+          white-space:nowrap}
+  .stk-zb{font-style:normal;font-size:9px;color:#2ebd85;background:rgba(46,189,133,.14);
+          border:1px solid rgba(46,189,133,.42);border-radius:3px;padding:0 3px;font-weight:700;
+          white-space:nowrap}
+  /* v70 题材梯队小标（如 4-2-1） */
+  .ep-ch .th em.tier,.fbcard .tier{font-style:normal;font-size:9px;color:#9fe3e0;
+          background:rgba(159,227,224,.12);border:1px solid rgba(159,227,224,.35);border-radius:3px;
+          padding:0 3px;margin-left:3px;font-weight:700}
   /* v69 昨日梯队 → 今日反馈 */
   .fbcard{background:#152238;border:1px solid #2b3a56;border-radius:8px;padding:7px 9px;margin-bottom:8px}
   .fbhd{display:flex;align-items:baseline;gap:8px;margin-bottom:5px;border-bottom:1px solid #22304a;padding-bottom:4px}
@@ -815,13 +824,23 @@
   .cross-row .cst{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:4px;min-width:0}
   .cross-row .cst i{font-style:normal;font-size:11px;color:#cfe0ff;background:#1b2740;
                     border:1px solid #33456a;border-radius:4px;padding:1px 5px}
-  /* v69 首封时间记录图（纯 CSS 时间轨道） */
-  .seal-axis{position:relative;height:18px;margin:0 0 2px 118px;font-size:9px;color:var(--dim2)}
+  /* v70 首封时间图（纯 CSS 时间轨道）——左对齐 + 比例缩放 + 拖动平移 */
+  .seal-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 6px;font-size:11px}
+  .seal-bar .ep-lb{color:var(--dim);white-space:nowrap}
+  .seal-z,.seal-z2{background:#1c2740;border:1px solid #2b3a56;color:var(--text);border-radius:5px;
+                   padding:1px 9px;font-size:12px;cursor:pointer;line-height:1.6}
+  .seal-z:hover,.seal-z2:hover{border-color:#3d8bff;color:#fff}
+  .seal-z2{font-size:11px}
+  .seal-zt{min-width:44px;text-align:center;color:#ffd24a;font-weight:700;font-variant-numeric:tabular-nums}
+  .seal-scroll{overflow-x:auto;overflow-y:hidden;cursor:grab;padding-bottom:4px}
+  .seal-scroll.dragging{cursor:grabbing;user-select:none}
+  .seal-wrap{min-width:100%}
+  .seal-axis{position:relative;height:18px;margin:0 0 2px 92px;font-size:9px;color:var(--dim2)}
   .seal-axis .tick{position:absolute;transform:translateX(-50%);top:0}
   .seal-axis .tick.maj{color:#cfe0ff;font-weight:700}
-  .seal-row{display:flex;align-items:stretch;gap:6px;margin:5px 0}
-  .seal-th{flex:0 0 112px;text-align:right;font-size:11px;font-weight:700;white-space:nowrap;
-           overflow:hidden;text-overflow:ellipsis;align-self:center}
+  .seal-row{display:flex;align-items:stretch;gap:0;margin:5px 0}
+  .seal-th{flex:0 0 92px;text-align:left;font-size:11px;font-weight:700;white-space:nowrap;
+           overflow:hidden;text-overflow:ellipsis;align-self:center;padding-right:8px}
   .seal-th em{font-style:normal;font-size:9px;color:var(--dim2);margin-left:3px;font-weight:400}
   .seal-track{flex:1 1 auto;position:relative;background:#131c30;border:1px solid #22304a;
               border-radius:6px;min-height:20px;padding:2px 0}
@@ -832,15 +851,23 @@
   .seal-chip:hover{border-color:#fff;z-index:3}
   .seal-chip b{color:#e6eefc;font-weight:600}
   .seal-chip i{font-style:normal;font-size:8.5px;color:#ffd24a;font-weight:700}
-  .seal-note{margin-top:8px;font-size:10px;color:var(--dim2);line-height:1.6}
-  /* v69 多题材热力网格 */
-  .ht-grid{display:grid;gap:3px;font-size:10px}
-  .ht-corner{color:var(--dim2);font-size:9px;align-self:end;text-align:right;padding:2px 4px 0 0}
-  .ht-colh{color:#8b9bb5;font-size:9px;text-align:center;align-self:end}
-  .ht-rh{color:#9fb0cc;font-size:10px;text-align:right;padding:2px 6px 0 0;
-         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ht-cell{min-height:16px;border-radius:3px;background:#131c30;color:#0b1220;font-weight:800;
-           text-align:center;line-height:1.5;font-size:9.5px}
+  .seal-note{margin-top:6px;font-size:10px;color:var(--dim2);line-height:1.6}
+  /* v70 多题材热力表（行＝题材，列＝交易日，格内＝涨停家数 + 梯队） */
+  .ht-tbl-wrap{overflow-x:auto;padding-bottom:4px}
+  .ht-tbl{border-collapse:separate;border-spacing:3px;font-size:10px;table-layout:auto;
+          margin-left:0;width:max-content;max-width:100%}
+  .ht-tbl th{font-weight:700}
+  .ht-tbl .ht-th{color:var(--dim2);font-size:9.5px;text-align:left;padding:0 6px 0 0;white-space:nowrap}
+  .ht-tbl .ht-ch{color:#8b9bb5;font-size:9px;text-align:center;font-weight:400;width:52px}
+  .ht-tbl .ht-rh{color:#9fb0cc;font-size:10.5px;text-align:left;padding-right:8px;white-space:nowrap;
+                 max-width:96px;overflow:hidden;text-overflow:ellipsis}
+  .ht-tbl .ht-cell{width:52px;height:26px;border-radius:3px;background:#131c30;color:#0b1220;
+                   font-weight:800;text-align:center;line-height:1.15;font-size:10px;
+                   padding:1px 0;white-space:nowrap}
+  .ht-tbl .ht-cell b{display:block;font-size:10.5px}
+  .ht-tbl .ht-cell i{display:block;font-style:normal;font-size:8px;font-weight:700;opacity:.72}
+  .ht-tbl .ht-sum .ht-rh{color:#ffd24a}
+  .ht-tbl .ht-tot{background:#1b2740;color:#cfe0ff;font-weight:800;font-size:10px}
   .ep-sum{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
   .ep-k{flex:1;min-width:118px;background:#152238;border:1px solid #2b3a56;border-radius:8px;padding:8px 12px}
   .ep-k .t{font-size:10.5px;color:var(--dim2)}
@@ -875,24 +902,14 @@
     </nav>
     <span class="upd" id="upd">--</span>
     <span class="alert" id="alert" title="点击查看详情"></span>
-    <button id="reset-zoom" title="恢复默认比例（一屏铺满）">复原比例</button>
-  </div>
-  <div class="hrow hsel">
-    <span class="lb">历史数据</span>
-    <select id="hy" title="选择年份"></select>
-    <select id="hm" title="选择月份"></select>
-    <select id="hd" title="选择日期"></select>
-    <button id="hsel-go" title="确定后所有模块一起跳转到该日期的数据">确定</button>
-    <button id="today-btn" title="跳转至今日最新数据">今日</button>
     <button id="refresh-btn" title="回源检查最新数据并自动重载 + 拉取当天涨停池，同步题材炒作图 / 当日机会 / 空间情绪">⟳ 刷新</button>
-    <span class="dinfo" id="hsel-info"></span>
+    <button id="reset-zoom" title="恢复默认比例（一屏铺满）">复原比例</button>
   </div>
 </header>
 
 <!-- ============ 空间情绪图 ============ -->
 <section class="page on" id="page-market">
   <div class="card">
-    <div class="dpick" id="dp-market"></div>
     <div class="mkt-sticky" id="mkt-sticky">
       <h3>空间情绪图 <button class="hd-open" id="sp-handover" title="全市场空间龙头新旧交接：最近断板龙头 vs 最新龙头 K线叠加">🔀 新旧龙头交接</button></h3>
       <div id="chart-market" style="border-radius:10px;overflow:hidden"></div>
@@ -905,8 +922,8 @@
 <!-- ============ 题材炒作图 ============ -->
 <section class="page" id="page-theme">
   <div class="card">
-    <h3>题材炒作图 <span class="sub">板块有连板且涨停 >3 只即纳入 · 金框 = 有赚钱效应的题材</span></h3>
-    <div class="dpick" id="dp-theme"></div>
+    <h3>题材炒作图 <span id="dp-stg-theme"></span>
+      <span class="sub">板块有连板且涨停 >3 只即纳入 · 金框 = 有赚钱效应的题材</span></h3>
     <div class="trange" id="theme-range"></div>
     <div class="tlegend" id="theme-legend"></div>
     <div class="scroll" id="theme-list"></div>
@@ -917,12 +934,6 @@
 <section class="page" id="page-ladder">
   <div class="card">
     <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
-    <div class="ch-bar">
-      <button id="ld-prev" class="ch-go">◀ 上一交易日</button>
-      <select id="ld-date" style="background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;padding:3px 6px"></select>
-      <button id="ld-next" class="ch-go">下一交易日 ▶</button>
-      <button id="ld-today" class="ch-go">今日</button>
-    </div>
     <div class="scroll" id="ladder-list"></div>
   </div>
 </section>
@@ -935,19 +946,22 @@
       <button class="ep-w on" data-w="1">近 1 日</button>
       <button class="ep-w" data-w="3">近 3 日</button>
       <button class="ep-w" data-w="5">近 5 日</button>
-      <span class="ep-lb" style="margin-left:10px">回测截止日</span>
-      <button id="ep-prev" class="ep-go" title="往前一个交易日">◀</button>
-      <select id="ep-date" class="ep-sel" title="选择历史交易日作为统计截止日（窗口以该日为终点往回数）"></select>
-      <button id="ep-next" class="ep-go" title="往后一个交易日">▶</button>
-      <button id="ep-latest" class="ep-go" title="回到最新交易日">最新</button>
       <span class="sub" id="ep-range" style="margin-left:10px"></span>
     </div>
     <div id="es-root"></div>
     <h4 class="ep-h" id="ep-fb-h">昨日梯队 → 今日反馈</h4>
     <div id="ep-fb"></div>
-    <h4 class="ep-h">题材首封时间记录图 <span class="sub">横轴＝首次封板时间，纵轴＝题材，点上标个股名（点大＝板位高）</span></h4>
+    <h4 class="ep-h">题材首封时间图 <span class="sub">横轴＝首次封板时间 · 可缩放 / 拖动看全（仅此图）</span></h4>
+    <div class="seal-bar">
+      <span class="ep-lb">显示比例</span>
+      <button class="seal-z" data-z="-1" title="缩小时间轴">－</button>
+      <span id="seal-zt" class="seal-zt">100%</span>
+      <button class="seal-z" data-z="1" title="放大时间轴">＋</button>
+      <button id="seal-fit" class="seal-z2">适应宽度</button>
+      <span class="sub">按住图内拖动可左右平移</span>
+    </div>
     <div id="ep-seal" class="ep-chart"></div>
-    <h4 class="ep-h">多题材热力图 · 跨题材归类 <span class="sub">同一只股同时属于多个题材的热度叠加</span></h4>
+    <h4 class="ep-h">多题材热力表 <span class="sub">每行一个题材 · 每列一个交易日 · 格内＝当日涨停家数与梯队</span></h4>
     <div id="ep-heat" class="ep-chart"></div>
     <div id="ep-cross"></div>
   </div>
@@ -1345,7 +1359,6 @@ function focusChartDate(date){
     if(info && d) info.textContent = fmtDate(d.date)+' 空间高度'+(d.spaceTop||0)+'板 '+
       d.ztCount+'家涨停'+(d.suppress!=null? ' · 空间压制'+d.suppress+'板':'')+
       (d.stage? ' · '+d.stage:'');
-    syncHistNav(date);
   }, 60);
 }
 /* 轻提示（跳转后题材不可见时说明原因） */
@@ -1634,6 +1647,7 @@ function renderTheme(){
   document.getElementById('theme-range').querySelectorAll('button').forEach(b=>{
     b.onclick = ()=>{ THEME_RANGE = +b.dataset.n; renderTheme(); };
   });
+  paintDpStage('theme', dts[dts.length-1] || '');     // v70：标题旁的市场阶段徽标
 
   /* v51：图例 = 「时间段内题材炒作次数统计」。旧版按全期 order 排、默认只列 top18、
      横滚且隐藏滚动条 → 用户看不到「哪个题材炒作多少次」。改为：按当前时间段内出现次数
@@ -1662,8 +1676,8 @@ function renderTheme(){
     html += '<div class="trow" data-d="'+d+'"><div class="tdate num">'+fmtDate(d)+
       (srcMap[d]==='ths'?'<span class="src-ths">※同花顺</span>':'')+'</div><div class="tcards">';
     if(!themes.length){
-      html += '<span style="color:'+C.dim2+';font-size:12px;padding:2px 0">'+
-        '当日无「有连板且涨停 >3 只」的题材</span>';
+      // v70：用户口径「没有符合的题材，显示一个『无』字就行」
+      html += '<span style="color:'+C.dim2+';font-size:12px;padding:2px 0">无</span>';
     }
     const earnSet = {};
     ((R.money||{})[d]||[]).forEach(g=>{ if(g.theme) earnSet[tName(g.theme)]=1; });
@@ -1920,29 +1934,36 @@ function openThPop(nm, ev, fromD){
     '<span class="note">每次入链 = 当日板块有 ≥3 板个股且不止一只涨停股；'+
       '本次展示自 '+fmtDate(chain.length?chain[0].d:occ[0])+' 往前回溯</span>'+
     '</div>';
-  const rows = chain.map(c=>{
-    const b = c.b, stocks = b.stocks||[];
-    const leader = stocks.length? stocks.slice().sort((a,b)=>b.boards-a.boards)[0] : null;
-    const boards = [...new Set(stocks.map(s=>s.boards))].sort((a,b)=>b-a);
-    const lad = boards.length>1? boards.join('-')+'梯队' :
-                (boards.length? boards[0]+'板梯队':'');
+  /* v70：改为「连板梯队」格式——每天一列（左→右按时间升序），列内按板位分行，
+     个股带首封时间与涨停形态；整块可左右拖动横向查看。 */
+  const colsArr = chain.slice().reverse();
+  const cols = colsArr.map((c, ci)=>{
+    const b = c.b, stocks = (b.stocks||[]).slice();
+    const byB = {};
+    stocks.forEach(s=>{ const bd = s.boards||1; (byB[bd] || (byB[bd]=[])).push(s); });
+    const boards = Object.keys(byB).map(Number).sort((a,b)=>b-a);
     const st = stages[c.d]||'';
-    return '<div class="drow">'+
-      '<span class="dt num">'+fmtDate(c.d)+'</span>'+
-      (st? '<span class="stg4" style="color:'+STAGE4_COL[st]+'">'+st+'</span>':'')+
-      '<span class="ct">涨停<b>'+b.count+'</b>只</span>'+
-      (lad? '<span class="lad">'+lad+'</span>':'')+
-      (leader? '<span class="ld" data-c="'+leader.code+'" data-n="'+leader.name+'" '+
-        'data-d="'+c.d+'" title="点击查看 '+leader.name+' 日K（箭头指 '+fmtDate(c.d)+'）">'+
-        '龙头：<b>'+leader.name+'</b><em>'+leader.boards+'板</em></span>':'')+
-      '</div>';
+    const lv = boards.map(bd=>'<div class="thlv"><span class="lbd">'+bd+'板</span><span class="stks">'+
+      byB[bd].sort((a,b)=> String(sealOf(a)||'99').localeCompare(String(sealOf(b)||'99')))
+        .map(s=>'<span class="thstk" data-c="'+s.code+'" data-n="'+s.name+'" data-d="'+c.d+'" '+
+          'title="'+s.name+'：'+bd+'板 · 首封 '+(sealOf(s)||'—')+(s.s? ' · '+s.s:'')+
+          '（'+fmtDate(c.d)+'）｜点看日K">'+s.name+
+          '<span class="tt">'+(sealOf(s)||'')+'</span>'+(s.s? '<em>'+s.s+'</em>':'')+'</span>').join('')+
+      '</span></div>').join('');
+    return '<div class="thcol'+(ci===colsArr.length-1? ' newest':'')+'">'+
+      '<div class="thcol-hd"><span>'+fmtDate(c.d)+' · '+b.count+'只</span>'+
+      (st? '<span class="stg4" style="color:'+STAGE4_COL[st]+'">'+st+'</span>':'')+'</div>'+
+      (lv || '<div style="color:'+C.dim2+';font-size:10px">当日无梯队个股</div>')+'</div>';
   }).join('');
   const HO=(window.REVIEW.handover||{}).theme||{};
   const hoBtn = HO[nm] && HO[nm].length
     ? '<button class="hd-open" data-kind="theme" data-th="'+nm+'" title="新旧龙头交接：最近断板龙头 vs 最新龙头 K线叠加">🔀 新旧交接</button>' : '';
   pop.innerHTML = '<span class="popx">✕</span><h4>'+nm+' · 连续炒作线路图'+hoBtn+'</h4>'+
     stat +
-    (rows || '<div class="drow" style="color:'+C.dim+'">该题材近期无入链记录</div>');
+    '<div class="thscroll" id="thscroll">'+
+    (cols || '<div style="color:'+C.dim+'">该题材近期无入链记录</div>')+'</div>'+
+    '<div class="seal-note">每日一列（左→右按时间升序）· 列内按板位分行（板位从高到低）· '+
+    '个股后为首次封板时间与涨停形态 · 按住图内左右拖动查看更早的炒作 · 点个股看日K</div>';
   pop.style.display = 'block';
   const hob=pop.querySelector('.hd-open');
   if(hob) hob.onclick=e=>{ e.stopPropagation(); openHandover('theme',nm,e,fromD||chain[0]&&chain[0].d); };
@@ -1952,8 +1973,22 @@ function openThPop(nm, ev, fromD){
   let y = Math.min((ev&&ev.clientY||H/2)-40, H-pop.offsetHeight-8);
   pop.style.left = Math.max(8,x)+'px'; pop.style.top = Math.max(8,y)+'px';
   pop.querySelector('.popx').onclick = ()=>{ pop.style.display='none'; };
-  // 龙头点击 → 日K
-  pop.querySelectorAll('.ld').forEach(el=>{
+  // v70：横向拖动（左右拉看更早的炒作）
+  const sc = pop.querySelector('#thscroll');
+  if(sc){
+    let dg = null;
+    sc.addEventListener('mousedown', e=>{
+      if(e.target.closest('.thstk')) return;         // 点个股不触发拖动
+      dg = {x:e.clientX, l:sc.scrollLeft}; sc.classList.add('dragging'); e.preventDefault();
+    });
+    sc.addEventListener('mousemove', e=>{ if(dg) sc.scrollLeft = dg.l - (e.clientX - dg.x); });
+    const stop = ()=>{ dg = null; sc.classList.remove('dragging'); };
+    sc.addEventListener('mouseleave', stop);
+    window.addEventListener('mouseup', stop);
+    sc.scrollLeft = sc.scrollWidth;                  // 默认停在最新（最右）
+  }
+  // 个股点击 → 日K
+  pop.querySelectorAll('.thstk').forEach(el=>{
     el.onclick = e=>{
       e.stopPropagation();
       showK(el.dataset.c, el.dataset.n, e, el.dataset.d);
@@ -2189,13 +2224,9 @@ let LADDER_DATE = null;
 function renderLadder(date){
   const R = window.REVIEW, LB = R.lb||{};
   const all = (R.dates||[]).slice().sort();
-  // v48：日期选择改为与复盘决策一致的「上/下拉/下/今日」ch-bar 形式，可定位任意交易日
-  const sel = document.getElementById('ld-date');
-  if(sel.options.length !== all.length)
-    sel.innerHTML = all.slice().reverse().map(d=>'<option value="'+d+'">'+fmtDate(d)+'</option>').join('');
+  // v70：日期选择控件已删除，固定展示最新交易日（date 参数仅供内部调用/校验）
   if(!date || !all.includes(date)) date = LADDER_DATE && all.includes(LADDER_DATE) ? LADDER_DATE : all[all.length-1];
   LADDER_DATE = date;
-  sel.value = date;
   const list = document.getElementById('ladder-list');
   if(!date){
     list.innerHTML = '<div style="color:'+C.dim+'">暂无连板数据</div>';
@@ -3639,42 +3670,7 @@ async function showK(code, name, e, atDate, trade){
       style:{text:fmtDate(h.d)+' '+(RV_MSHORT[h.m]||h.m)+'｜'+(h.why||'符合买入条件'),
              fill:'rgba(255,255,255,.42)', font:'11px sans-serif'}}))
   }] : [];
-  /* v67：赚钱效应日K标记——👛=t-1日(买入日)、✔=t日(换手连板赚钱日)。
-     数据来自赚钱效应全量事件池（earnStreak eventsAll），按 code 建索引。 */
-  const WN_EV = (window.__WNEVMAP || (window.__WNEVMAP = (()=>{
-    const m = {}, R = window.REVIEW||{};
-    ((R.earnStreak||{}).eventsAll||[]).forEach(ev=>{
-      if(!ev||!ev.code) return;
-      (m[ev.code] = m[ev.code]||[]).push({d0:ev.d1, d:ev.d, kind:'win'});
-    });
-    return m;
-  })()))[code] || [];
-  const WN_SEEN = {};
-  /* v58：赚钱日=红色勾勾 ✔、亏钱日=绿色交叉 ✘（内联 SVG path，配色用户口径） */
-  const WN_CHECK='path://M1 6.5 L4.6 10 L13 1.5 L15.4 4 L4.6 14.6 Z';
-  const WN_CROSS='path://M0 1.5 L1.5 0 L8 6.5 L14.5 0 L16 1.5 L9.5 8 L16 14.5 L14.5 16 L8 9.5 L1.5 16 L0 14.5 L6.5 8 Z';
-  WN_EV.forEach(ev=>{
-    const win=ev.kind==='win';
-    [[ev.d0,'wallet'],[ev.d, win?'check':'cross']].forEach(([dt,ic])=>{
-      if(!dt || WN_SEEN[dt+ic]) return;
-      const bi = dates.indexOf(dt);
-      if(bi<0) return;
-      WN_SEEN[dt+ic]=1;
-      if(ic==='wallet'){
-        kMarks.push({coord:[dt, K[bi][3]], symbol:'circle', symbolSize:4.5,
-          itemStyle:{color:'rgba(224,176,112,.9)'},
-          label:{show:true, formatter:'👛', position:'bottom', distance:5, fontSize:12}});
-      }else if(ic==='check'){
-        kMarks.push({coord:[dt, K[bi][3]], symbol:WN_CHECK, symbolSize:13,
-          symbolOffset:[0,4], itemStyle:{color:'#f5455c'},
-          label:{show:false}});
-      }else{
-        kMarks.push({coord:[dt, K[bi][3]], symbol:WN_CROSS, symbolSize:13,
-          symbolOffset:[0,4], itemStyle:{color:'#2ebd85'},
-          label:{show:false}});
-      }
-    });
-  });
+  /* v70：日K上的赚钱效应标记（👛 买入日 / ✔ 赚钱日 / ✘ 亏钱日）已取消显示 */
   const TIPOFF = kChart.__tipOff || (kChart.__tipOff = {x:0, y:0});
   kChart.setOption({
     backgroundColor:'transparent',
@@ -3845,39 +3841,11 @@ document.addEventListener('click', e=>{
   if(kChart)   kChart.dispatchAction({type:'hideTip'});
 });
 
-/* ================= 历史定位：全局「确定」+ 每个模块独立日期选择 ================= */
-let histDate = null;
-const MODS = ['market','theme','ladder'];  // v46：恢复连板梯队页（赚钱效应/当日机会仍取消）
-const MOD_DATE = {};               // 每个模块各自选定的日期，互不影响
-
-/* 空间情绪模块：主图窗口对准该日 + 摘要 + 明细表跳转 */
-function focusMarket(date){
-  const R = window.REVIEW, days = R.stages;
-  const idx = days.findIndex(x=>x.date===date);
-  if(idx >= 0 && mktChart){
-    const dz = (mktChart.getOption().dataZoom||[])[0] || {start:0,end:100};
-    let cnt = Math.max(3, Math.round((dz.end-dz.start)/100*days.length));
-    cnt = Math.min(cnt, days.length);
-    let s = 100*(idx-cnt+1)/days.length, e = 100*(idx+1)/days.length;
-    if(s < 0){ s = 0; e = 100*cnt/days.length; }
-    mktChart.dispatchAction({type:'dataZoom', start:s, end:e});
-  }
-  const info = document.getElementById('hsel-info');
-  if(info && idx >= 0){
-    const d = days[idx];
-    info.textContent = fmtDate(d.date)+' 空间高度'+(d.spaceTop||0)+'板 '+d.ztCount+'家涨停'+
-      (d.suppress!=null? ' · 空间压制'+d.suppress+'板':'')+(d.stage? ' · '+d.stage:'');
-  }
-  jumpTableTo(date);
-}
-/* 目标日期不在当前「近1月/近3月」范围时自动放宽，保证该日一定有行可跳 */
-function ensureRange(mod, date){
-  const all = window.REVIEW.dates.slice().sort();
-  const i = all.indexOf(date);
-  if(i < 0) return;
-  const need = all.length - i;
-  if(mod==='theme' && THEME_RANGE < need) THEME_RANGE = need<=90 ? 90 : 9999;
-}
+/* ================= v70：取消所有历史日期选择 =================
+   用户口径：「现在每个模块都设置了时间选择的日期，那历史数据的时间选择那一项全部给我删掉。」
+   → 顶部全局「历史数据」行、各模块 dpick、连板梯队日期条、今日复盘回看控件全部删除，
+     每个模块固定展示最新交易日；只保留「统计窗口 1/3/5 日」与题材页「近1月/3月/全年」这类范围开关。 */
+/* 明细表跳转后高亮（保留：点空间情绪明细表行时仍用） */
 function scrollFlash(selector){
   const el = document.querySelector(selector);
   if(!el) return;
@@ -3889,7 +3857,6 @@ function scrollFlash(selector){
     setTimeout(()=>el.classList.remove('dp-flash'), 1700);
   }, 40);
 }
-/* 历史日期选定后：对应日期的数据行 / 题材卡持续高亮凸显（闪动之外保留底色） */
 function highlightDate(date){
   document.querySelectorAll('.dp-hl').forEach(el=>el.classList.remove('dp-hl'));
   if(!date) return;
@@ -3898,41 +3865,11 @@ function highlightDate(date){
     el.classList.add('dp-hl');
   });
 }
-/* 单个模块跳到指定日期（只影响该模块，其它模块保持各自已选日期） */
-function focusModule(mod, date){
-  if(!date || !(window.REVIEW.dates||[]).includes(date)) return;
-  MOD_DATE[mod] = date;
-  const host = document.getElementById('dp-'+mod);
-  if(host && host.__setDate) host.__setDate(date);
-  if(mod==='market')       focusMarket(date);
-  else if(mod==='theme'){  ensureRange('theme', date); renderTheme(); scrollFlash('#theme-list .trow[data-d="'+date+'"]'); }
-  else if(mod==='ladder'){ renderLadder(date); }
-  highlightDate(date);          // 必须在重绘之后，否则新 DOM 上没有高亮
-}
-/* 顶部「确定」：所有独立模块一起跳到对应日期的数据 */
-function jumpToDate(date){
-  if(!date) return;
-  syncHistNav(date);
-  MODS.forEach(m=>focusModule(m, date));
-}
-function syncHistNav(date){
-  const y=document.getElementById('hy'), m=document.getElementById('hm'), d=document.getElementById('hd');
-  if(!y || !date) return;
-  histDate = date;
-  y.value = date.slice(0,4);
-  const ms=[...new Set(window.REVIEW.dates.filter(x=>x.startsWith(date.slice(0,4)))
-    .map(x=>x.slice(4,6)))].sort();
-  m.innerHTML = ms.map(v=>'<option value="'+v+'">'+(+v)+'月</option>').join('');
-  m.value = date.slice(4,6);
-  const list = window.REVIEW.dates.filter(x=>x.startsWith(date.slice(0,6)));
-  d.innerHTML = list.map(v=>'<option value="'+v+'">'+(+v.slice(6))+'日</option>').join('');
-  d.value = date;
-}
-/* v67：题材炒作页日期旁显示当日市场阶段（空间龙头四阶段，与空间情绪图同源） */
+/* v67：题材炒作页显示当日市场阶段（空间龙头四阶段，与空间情绪图同源）。
+   日期选择器已删除，徽标改为挂在「题材炒作图」标题旁，永远指向最新交易日。 */
 function paintDpStage(mod, dt){
   const el = document.getElementById('dp-stg-'+mod);
   if(!el) return;
-  if(mod !== 'theme'){ el.innerHTML=''; return; }
   const st = ((window.REVIEW||{}).stages||[]).find(x=>x.date===dt) || {};
   const STG = {'节点':'#9fe3e0','补涨':'#ffd24a','突破':'#f5455c','主升':'#a55eea'};
   const s = st.stage || '';
@@ -3943,73 +3880,7 @@ function paintDpStage(mod, dt){
       '" title="当日市场阶段（空间龙头四阶段，与空间情绪图同源）">市场阶段 · '+s+'</span>'
     : '';
 }
-/* 生成一个模块独立的「年 / 月 / 日 + 确定」控件 */
-function buildDPick(mod){
-  const host = document.getElementById('dp-'+mod);
-  if(!host) return;
-  const ds = (window.REVIEW.dates||[]).slice().sort();
-  const years = [...new Set(ds.map(x=>x.slice(0,4)))].sort();
-  host.innerHTML = '<span class="dp-lb">本模块日期</span>'+
-    '<select class="dp-y">'+years.map(v=>'<option value="'+v+'">'+v+'年</option>').join('')+'</select>'+
-    '<select class="dp-m"></select><select class="dp-d"></select>'+
-    '<button class="dp-go">确定</button><span class="dp-now"></span>'+
-    '<span class="dp-stg" id="dp-stg-'+mod+'"></span>';
-  const y=host.querySelector('.dp-y'), m=host.querySelector('.dp-m'),
-        d=host.querySelector('.dp-d'), go=host.querySelector('.dp-go'),
-        now=host.querySelector('.dp-now');
-  const fillM = keep=>{
-    const ms=[...new Set(ds.filter(x=>x.startsWith(y.value)).map(x=>x.slice(4,6)))].sort();
-    m.innerHTML=ms.map(v=>'<option value="'+v+'">'+(+v)+'月</option>').join('');
-    if(keep && ms.includes(keep)) m.value=keep;
-    fillD();
-  };
-  const fillD = keep=>{
-    const list=ds.filter(x=>x.startsWith(y.value+m.value));
-    d.innerHTML=list.map(v=>'<option value="'+v+'">'+(+v.slice(6))+'日</option>').join('');
-    if(keep && list.includes(keep)) d.value=keep;
-  };
-  y.value = years[years.length-1];
-  fillM(); fillD();
-  y.onchange = ()=>fillM();
-  m.onchange = ()=>fillD();
-  host.__setDate = dt=>{
-    if(!dt || !ds.includes(dt)) return;
-    y.value=dt.slice(0,4); fillM(dt.slice(4,6)); fillD(dt);
-    now.textContent='当前 '+fmtDate(dt);
-    MOD_DATE[mod]=dt;
-    paintDpStage(mod, dt);       // v67：题材页日期旁显示当日市场阶段
-  };
-  go.onclick = ()=>focusModule(mod, d.value);
-  const initD = ds[ds.length-1];         // 模块默认最新交易日
-  host.__setDate(initD);
-}
-function initHistNav(){
-  const ds = window.REVIEW.dates;
-  const y=document.getElementById('hy'), m=document.getElementById('hm'), d=document.getElementById('hd');
-  const years=[...new Set(ds.map(x=>x.slice(0,4)))].sort();
-  y.innerHTML = years.map(v=>'<option value="'+v+'">'+v+'年</option>').join('');
-  y.value = years[years.length-1];
-  const fillM = keep=>{
-    const ms=[...new Set(ds.filter(x=>x.startsWith(y.value)).map(x=>x.slice(4,6)))].sort();
-    m.innerHTML = ms.map(v=>'<option value="'+v+'">'+(+v)+'月</option>').join('');
-    if(keep && ms.includes(keep)) m.value = keep;
-    fillD();
-  };
-  const fillD = keep=>{
-    const list = ds.filter(x=>x.startsWith(y.value + m.value));
-    d.innerHTML = list.map(v=>'<option value="'+v+'">'+(+v.slice(6))+'日</option>').join('');
-    if(keep && list.includes(keep)) d.value = keep;
-  };
-  fillM(); fillD();
-  // 不再 onChange 立即跳转：必须点「确定」才生效
-  y.onchange = ()=>fillM();
-  m.onchange = ()=>fillD();
-  document.getElementById('hsel-go').onclick = ()=>jumpToDate(d.value);
-  document.getElementById('today-btn').onclick = ()=>jumpToDate(ds[ds.length-1]);
-  MODS.forEach(buildDPick);
-  syncHistNav(ds[ds.length-1]);
-  focusMarket(ds[ds.length-1]);        // 初始只刷新摘要/明细表，不重复渲染其它页
-}
+function latestDate(){ const ds=((window.REVIEW||{}).dates||[]).slice().sort(); return ds[ds.length-1]||''; }
 
 /* ================= 复盘决策页（v38 简化，v42 扩展） =================
    ① 今日市场阶段 + 交易机会判断：上一空间龙头断板后无大亏（跌停/连续杀跌）
@@ -4019,67 +3890,77 @@ function initHistNav(){
    ③（v41/v42）昨日涨停 → 今日赚钱效应：只列有具体题材的板块，每组给个股明细
       （今日连板高度 / 涨停时间 / 涨跌幅，可点日K），识别人气板块；
    ④（v42）活跃股池：近 10 日涨停 ≥5 次、近两日无跌停，按题材分组排列。 */
-/* ================= v67 赚钱效应统计（今日复盘页重建） ================= */
-let EP_W = 1;
-let EP_END = null;                 // v68：历史回测截止日（null＝最新交易日）
-const EP_COL = v => v==null ? C.dim2 : (v>0 ? C.up : C.down);
-const EP_SGN = (v,d) => v==null ? '—' : (v>0?'+':'')+v.toFixed(d==null?2:d)+'%';
-
-/* v68：回测日期下拉——全部交易日（倒序），选中日即统计窗口的终点 */
-function epFillDates(end){
-  const sel = document.getElementById('ep-date');
-  if(!sel) return;
-  const ds = ((window.REVIEW||{}).dates||[]).slice().sort();
-  if(sel.options.length !== ds.length)
-    sel.innerHTML = ds.slice().reverse().map(d=>'<option value="'+d+'">'+fmtDate(d)+'</option>').join('');
-  sel.value = end;
-}
-function epStepDate(n){
-  const ds = ((window.REVIEW||{}).dates||[]).slice().sort();
-  if(!ds.length) return;
-  const cur = EP_END && ds.includes(EP_END) ? EP_END : ds[ds.length-1];
-  const i = ds.indexOf(cur);
-  EP_END = ds[Math.max(0, Math.min(ds.length-1, i+n))];
-  paintEarn();
-}
-
-/* ================= v69 赚钱效应页：极简名单 + 昨日梯队传导 + 首封记录图 + 多题材热力图 ================= */
-function epDays(){ return ((window.REVIEW||{}).dates||[]).slice().sort(); }
-function epEndDate(){
-  const ds = epDays(), last = ds[ds.length-1] || '';
-  return (EP_END && ds.includes(EP_END)) ? EP_END : last;
-}
+/* ================= v70 赚钱效应页（今日复盘） =================
+   v70 用户口径改动：
+   ① 个股显示涨停时间；炸板显示「炸板」（抓到首封时间也一起显示）
+   ② 赚钱效应个股的题材后带当日该题材梯队（4-2-1 / 3-1-1）
+   ③ 题材首封时间图左对齐、比例可缩放、可拖动（仅此图）
+   ④ 多题材热力图改为「每题材每天涨停家数与梯队」表图，左对齐
+   ⑤ 历史回看日期已删除，页面固定最新交易日 */
+let EP_W = 1;                      // 统计窗口（1/3/5 日）
+let SEAL_ZOOM = 100;               // 首封时间图宽度百分比（100＝适应容器宽度）
 const EP_NUM = v => v==null ? '—' : (v>0?'+':'')+v.toFixed(2)+'%';
 
-/* ① 赚钱效应名单：只列「个股 + 题材」（板位/缺口为小标，其余冗余列已删） */
+function epDays(){ return ((window.REVIEW||{}).dates||[]).slice().sort(); }
+function epEndDate(){ const ds = epDays(); return ds[ds.length-1] || ''; }
+
+/* 当日涨停：dayZT[d][code] = [name, 首封 HH:MM, 涨停形态] */
+function ztOf(d, code){
+  const m = (((window.REVIEW||{}).dayZT||{})[d] || {});
+  const v = m[String(code)];
+  return v ? {t: v[1] || '', s: v[2] || ''} : null;
+}
+/* 当日炸板：dayZB[d][code] = [name, 首封 HH:MM, 当日涨幅] */
+function zbOf(d, code){
+  const m = (((window.REVIEW||{}).dayZB||{})[d] || {});
+  const v = m[String(code)];
+  return v ? {t: v[1] || '', chg: v[2]} : null;
+}
+/* 个股当日状态小标：涨停 → 首封时间；炸板 → 「炸板 + 首封时间」；都不是返回空 */
+function stateTag(d, code){
+  const z = ztOf(d, code);
+  if(z) return '<i class="stk-zt" title="当日涨停 · 首封 '+(z.t||'—')+(z.s? ' · '+z.s : '')+'">'+
+    (z.t || '涨停')+'</i>';
+  const b = zbOf(d, code);
+  if(b) return '<i class="stk-zb" title="当日炸板（盘中曾涨停、收盘未封住）'+
+    (b.t? ' · 首封 '+b.t : '')+'">炸板'+(b.t? ' '+b.t : '')+'</i>';
+  return '';
+}
+/* 题材当日梯队字符串：优先 ladders.ladder，缺失用 ladderFull 板位集合现算 */
+function tierOf(d, nm){
+  if(!nm) return '';
+  const R = window.REVIEW || {};
+  const le = ((R.ladders||{})[d]||{})[tName(nm)];
+  if(le && le.ladder) return le.ladder;
+  const arr = (((R.ladderFull||{})[d]||{})[tName(nm)]) || [];
+  if(!arr.length) return '';
+  return [...new Set(arr.map(s=>s.boards||1))].sort((a,b)=>b-a).join('-');
+}
+
+/* ① 赚钱效应名单：个股（板位/缺口/当日状态） + 题材（当日梯队） */
 function paintEarn(){
   const root = document.getElementById('es-root');
   if(!root) return;
   const E = (window.REVIEW||{}).earnStreak || {};
   const evsAll = E.eventsAll || [];
-  const ds = epDays(), last = ds[ds.length-1] || '';
-  const end = epEndDate();
+  const ds = epDays(), end = epEndDate();
   const ei = ds.indexOf(end);
   const start = ds[Math.max(0, ei-EP_W+1)] || end;
-  epFillDates(end);
   document.querySelectorAll('.ep-w').forEach(b=>b.classList.toggle('on', +b.dataset.w===EP_W));
   const hd = document.getElementById('ep-hd'), rg = document.getElementById('ep-range');
-  if(hd) hd.textContent = '近 '+EP_W+' 个交易日 · 连续两日换手赚钱机会（3板+）'+
-    (end && end!==last ? ' · 回看 '+fmtDate(end) : '');
-  if(rg) rg.textContent = fmtDate(start)+' ~ '+fmtDate(end)+(end!==last ? '（历史回看）' : '');
+  if(hd) hd.textContent = '近 '+EP_W+' 个交易日 · 连续两日换手赚钱机会个股（3板或以上）';
+  if(rg) rg.textContent = fmtDate(start)+' ~ '+fmtDate(end);
 
   const best = {};
   for(const e of evsAll){
     if(e.d < start || e.d > end) continue;
     if(!best[e.code] || e.d > best[e.code].d) best[e.code] = e;
   }
-  const evs = Object.values(best).sort((a,b)=> b.d.localeCompare(a.d) || b.b-a.b || a.code.localeCompare(b.code));
+  const evs = Object.values(best)
+    .sort((a,b)=> b.d.localeCompare(a.d) || b.b-a.b || a.code.localeCompare(b.code));
   let h = '';
   if(!evs.length){
-    const ar = E.allRange || [], oor = ar.length && end && end < ar[0];
-    h = '<div class="sub" style="padding:10px 2px">'+fmtDate(start)+' ~ '+fmtDate(end)+
-      ' 暂无达标个股。'+(oor? '<br><span style="color:'+C.gold+'">赚钱效应事件池仅覆盖近 140 个交易日（'+
-        fmtDate(ar[0])+' 起）。</span>':'')+'</div>';
+    h = '<div class="sub" style="padding:10px 2px">'+fmtDate(start)+' ~ '+fmtDate(end)+' 暂无达标个股。</div>';
   } else {
     const by = {};
     evs.forEach(e=>{ (by[e.d]||(by[e.d]=[])).push(e); });
@@ -4088,12 +3969,13 @@ function paintEarn(){
       h += '<div class="ep-dayh">'+fmtDate(d)+' · 达标 <b>'+arr.length+'</b> 只</div><div class="ep-rows">'+
         arr.map(e=>{
           const g = e.gapT ? '<i class="gap">缺口</i>' : (e.gap1 ? '<i class="gapi">前日缺口</i>' : '');
+          const tier = e.theme ? tierOf(e.d, e.theme) : '';
           return '<span class="ep-ch" data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+e.d+'" '+
             'title="'+e.name+' '+e.b+'板 · 点看日K（箭头指 '+fmtDate(e.d)+'）">'+
-            '<b>'+e.name+'</b><em class="b">'+e.b+'板</em>'+g+
+            '<b>'+e.name+'</b><em class="b">'+e.b+'板</em>'+g+stateTag(e.d, e.code)+
             '<span class="th" data-th="'+(e.theme||'')+'" data-d="'+e.d+'"'+
             (e.theme? ' title="点看 '+fmtDate(e.d)+'「'+e.theme+'」当日梯队"':' title="当日无复盘题材归类"')+'>'+
-            (e.theme||'—')+'</span></span>';
+            (e.theme||'—')+(tier? '<em class="tier">'+tier+'</em>':'')+'</span></span>';
         }).join('')+'</div>';
     });
   }
@@ -4107,13 +3989,12 @@ function paintEarn(){
       openLadPop(el.dataset.th, el.dataset.d, ev);
     };
   });
-  /* 下面三块都跟随「回看日期」 */
   paintRelay(end);
   paintSeal(end);
   paintHeat(end);
 }
 
-/* ② 昨日梯队 → 今日反馈：龙头（最高板）/ 助攻（次级连板）/ 跟风（首板）逐股涨幅与晋级 */
+/* ② 昨日梯队 → 今日反馈：龙头（最高板）/ 助攻（次级连板）/ 跟风（首板）逐股涨幅 + 晋级 + 当日状态 */
 function paintRelay(d){
   const host = document.getElementById('ep-fb');
   if(!host) return;
@@ -4125,9 +4006,8 @@ function paintRelay(d){
     (dp? fmtDate(dp)+' 梯队 → '+fmtDate(d)+' 表现' : '')+
     ' · 龙头＝最高板 / 助攻＝低于龙头的连板 / 跟风＝首板</span>';
   if(!rows.length){
-    const ar = F.allRange || [];
     host.innerHTML = '<div class="sub" style="padding:8px 2px">'+
-      (dp? '无昨日梯队数据'+(ar.length? '（反馈数据覆盖 '+fmtDate(ar[0])+' 起）' : '') : '无上一交易日')+'</div>';
+      (dp? '无昨日梯队数据' : '无上一交易日')+'</div>';
     return;
   }
   host.innerHTML = rows.map(r=>{
@@ -4138,7 +4018,7 @@ function paintRelay(d){
         return '<span class="fbst" data-c="'+x[1]+'" data-n="'+x[0]+'" data-d="'+d+'" '+
           'title="'+x[0]+'：昨日 '+x[2]+' 板 → 今日 '+EP_NUM(x[3])+'（'+(x[4]===1?'晋级':(x[4]===0?'未晋级':'无数据'))+'）｜点看日K">'+
           x[0]+'<em class="y">'+x[2]+'板</em>'+
-          '<em class="c" style="color:'+col+'">'+EP_NUM(x[3])+'</em>'+mark+'</span>';
+          '<em class="c" style="color:'+col+'">'+EP_NUM(x[3])+'</em>'+mark+stateTag(d, x[1])+'</span>';
       }).join('');
       return '<div class="fbl"><span class="fbrole r'+Math.min(l.b,4)+'">'+l.role+'</span>'+
         '<span class="fbb">'+l.b+'板</span>'+
@@ -4154,14 +4034,16 @@ function paintRelay(d){
   });
 }
 
-/* ③ 题材按时间首封记录图（纯 CSS 时间轨道，避免 echarts 精简构建对 scatter 的兼容问题） */
+/* ③ 题材首封时间图（纯 CSS 时间轨道）——左对齐 + 可缩放 + 可拖动（仅此图） */
 function paintSeal(d){
   const host = document.getElementById('ep-seal');
   if(!host) return;
+  const zt = document.getElementById('seal-zt');
+  if(zt) zt.textContent = SEAL_ZOOM + '%';
   const LF = ((window.REVIEW||{}).ladderFull||{})[d] || {};
   const ths = Object.keys(LF).map(nm=>({nm:nm, arr:(LF[nm]||[]).filter(s=>s && s.t)}))
     .filter(x=>x.arr.length).sort((a,b)=> b.arr.length-a.arr.length || a.nm.localeCompare(b.nm))
-    .slice(0, 12);
+    .slice(0, 14);
   if(!ths.length){
     host.style.height = 'auto';
     host.innerHTML = '<div class="sub" style="padding:8px 2px">'+fmtDate(d)+' 当日无梯队涨停记录</div>';
@@ -4171,12 +4053,12 @@ function paintSeal(d){
   const pct = t=>{ const p = String(t||'').split(':'); const m=(+p[0]||0)*60+(+p[1]||0);
     return Math.max(0, Math.min(100, (m-T0)/(T1-T0)*100)); };
   const tick = m=>{ const h=Math.floor(m/60), mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; };
-  /* 轴刻度 */
   let axis = '';
   for(let m=T0; m<=T1; m+=30){
     axis += '<span class="tick'+(m%(60*2)?'':' maj')+'" style="left:'+((m-T0)/(T1-T0)*100)+'%">'+tick(m)+'</span>';
   }
-  let h = '<div class="seal-axis">'+axis+'</div>';
+  let h = '<div class="seal-scroll" id="seal-scroll"><div class="seal-wrap" style="width:'+SEAL_ZOOM+'%">'+
+    '<div class="seal-axis">'+axis+'</div>';
   ths.forEach(x=>{
     const col = T_COLOR[tName(x.nm)] || C.blue;
     /* 同一题材内时间相近的个股换子行，避免标签重叠 */
@@ -4199,23 +4081,41 @@ function paintSeal(d){
     h += '<div class="seal-row"><span class="seal-th" style="color:'+col+'">'+x.nm+
       '<em>'+x.arr.length+'</em></span><div class="seal-track">'+rows+'</div></div>';
   });
-  h += '<div class="seal-note">横轴＝首次封板时间（09:15–15:00）；同一题材内时间相近的个股分行摆放；'+
-    '金色描边＝≥2板（连板）；点个股名看日K。</div>';
+  h += '</div></div>'+
+    '<div class="seal-note">横轴＝首次封板时间（09:15–15:00）；同一题材内时间相近的个股分行摆放；'+
+    '金色描边＝≥2板（连板）；点个股名看日K。比例 ' + SEAL_ZOOM + '%（可放大后拖动查看）。</div>';
   host.innerHTML = h;
+  /* 拖动平移（仅此图；元素每次重绘，直接绑定） */
+  const sc = host.querySelector('#seal-scroll');
+  if(sc){
+    let drag = null;
+    sc.addEventListener('mousedown', ev=>{
+      drag = {x: ev.clientX, l: sc.scrollLeft};
+      sc.classList.add('dragging');
+      ev.preventDefault();
+    });
+    sc.addEventListener('mousemove', ev=>{
+      if(!drag) return;
+      sc.scrollLeft = drag.l - (ev.clientX - drag.x);
+    });
+    const stop = ()=>{ drag = null; sc.classList.remove('dragging'); };
+    sc.addEventListener('mouseleave', stop);
+    window.addEventListener('mouseup', stop);
+  }
   host.querySelectorAll('.seal-chip').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation();
       if(el.dataset.c) showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
 }
 
-/* ④ 多题材热力图（题材 × 交易日，纯 CSS 网格）+ 跨题材归类（题材漂移） */
+/* ④ 多题材热力表（行＝题材，列＝交易日，格内＝涨停家数 + 梯队）+ 跨题材归类 */
 function paintHeat(d){
   const host = document.getElementById('ep-heat'), cross = document.getElementById('ep-cross');
   if(!host) return;
   const R = window.REVIEW || {};
   const ds = epDays();
   const ei = ds.indexOf(d);
-  if(ei < 0){ host.innerHTML=''; return; }
+  if(ei < 0){ host.innerHTML = ''; return; }
   const LF = R.ladderFull || {};
   const HC = 12, CC = 20;
   const hd = ds.slice(Math.max(0, ei-HC+1), ei+1);
@@ -4246,7 +4146,7 @@ function paintHeat(d){
       .sort((a,b)=> Object.keys(codeTh[b]).length - Object.keys(codeTh[a]).length);
     if(!multi.length){
       cross.innerHTML = '<div class="sub" style="padding:6px 2px">近 '+cd.length+
-        ' 个交易日无个股被多个题材炒过（每只股当日只归一个题材）。</div>';
+        ' 个交易日无个股被多个题材炒过。</div>';
     } else {
       const grp = {};
       multi.forEach(c=>{
@@ -4255,69 +4155,66 @@ function paintHeat(d){
       });
       const keys = Object.keys(grp).sort((a,b)=> grp[b].length-grp[a].length || a.localeCompare(b));
       cross.innerHTML = '<div class="cross-hd">跨题材归类 · 近 '+cd.length+' 个交易日有 '+
-        multi.length+' 只个股被 ≥2 个题材炒过（题材漂移＝同一批股换故事，是热点的“底座”）</div>'+
+        multi.length+' 只个股被 ≥2 个题材炒过</div>'+
         keys.map(k=>'<div class="cross-row"><span class="cth">'+k+'</span><span class="cst">'+
           grp[k].map(n=>'<i>'+n+'</i>').join('')+'</span></div>').join('');
     }
   }
 
-  /* 热力网格：行＝题材（窗口内涨停家数 top12），列＝最近 12 个交易日 */
-  const rowTh = Object.keys(thCnt).sort((a,b)=> thCnt[b]-thCnt[a] || a.localeCompare(b)).slice(0, 12);
+  const rowTh = Object.keys(thCnt).sort((a,b)=> thCnt[b]-thCnt[a] || a.localeCompare(b)).slice(0, 14);
   if(!rowTh.length){
     host.style.height = 'auto';
-    host.innerHTML = '<div class="sub" style="padding:8px 2px">'+fmtDate(d)+' 近端无题材涨停记录，热力图不展示。</div>';
+    host.innerHTML = '<div class="sub" style="padding:8px 2px">'+fmtDate(d)+' 近端无题材涨停记录。</div>';
     return;
   }
   let mx = 1;
   rowTh.forEach(nm=> hd.forEach(day=>{ const v=(thDay[nm]||{})[day]||0; if(v>mx) mx=v; }));
-  let head = '<div class="ht-corner">题材＼日</div>'+
-    hd.map(x=>'<div class="ht-colh">'+fmtDate(x).slice(0,5)+'</div>').join('');
-  let body = '';
+  /* 每天全市场涨停家数（dayZT 覆盖近 25 日，足够 12 列） */
+  const ztCnt = x=> Object.keys(((R.dayZT||{})[x])||{}).length;
+  let html = '<div class="ht-tbl-wrap"><table class="ht-tbl"><thead><tr>'+
+    '<th class="ht-th">题材＼日</th>'+
+    hd.map(x=>'<th class="ht-ch">'+fmtDate(x)+'</th>').join('')+'</tr></thead><tbody>';
   rowTh.forEach(nm=>{
     const col = T_COLOR[tName(nm)] || C.blue;
-    body += '<div class="ht-rh" title="'+nm+'：窗口内共涨停 '+thCnt[nm]+' 只" style="color:'+col+'">'+nm+'</div>';
+    html += '<tr><th class="ht-rh" style="color:'+col+'" title="'+nm+'：窗口内共涨停 '+thCnt[nm]+' 只">'+nm+'</th>';
     hd.forEach(day=>{
       const v = (thDay[nm]||{})[day] || 0;
-      const a = v ? (0.25 + 0.75*v/mx) : 0;
-      body += '<div class="ht-cell" style="'+(v? 'background:'+col+';opacity:'+a.toFixed(2):'')+
-        '" title="'+nm+' · '+fmtDate(day)+'：涨停 '+v+' 只">'+(v||'')+'</div>';
+      if(!v){ html += '<td class="ht-cell"></td>'; return; }
+      const tier = tierOf(day, nm);
+      const a = (0.18 + 0.72*v/mx).toFixed(2);
+      html += '<td class="ht-cell" style="background:'+col+';opacity:'+a+
+        '" title="'+nm+' · '+fmtDate(day)+'：涨停 '+v+' 只'+(tier? ' · 梯队 '+tier : '')+'">'+
+        '<b>'+v+'</b>'+(tier? '<i>'+tier+'</i>':'')+'</td>';
     });
+    html += '</tr>';
   });
-  const cols = hd.length;
-  host.innerHTML = '<div class="ht-grid" style="grid-template-columns:96px repeat('+cols+',1fr)">'+
-    head + body + '</div>'+
-    '<div class="seal-note">色块越亮＝当日该题材涨停家数越多；行按窗口内涨停总数排序（top12）。</div>';
+  html += '<tr class="ht-sum"><th class="ht-rh">全市场涨停</th>'+
+    hd.map(x=>'<td class="ht-cell ht-tot">'+(ztCnt(x)||'')+'</td>').join('')+'</tr>';
+  html += '</tbody></table></div>'+
+    '<div class="seal-note">行＝题材（按窗口内涨停总数排序，top14）· 列＝最近 '+hd.length+
+    ' 个交易日 · 格内上行为当日该题材涨停家数、下行为梯队（板位从高到低）· 底色越亮家数越多；'+
+    '末行为当日全市场涨停家数。</div>';
+  host.style.height = 'auto';
+  host.innerHTML = html;
 }
+
+/* 首封时间图缩放控件（－/＋/适应宽度） */
+(function initSealZoom(){
+  const setZ = z=>{ SEAL_ZOOM = Math.max(60, Math.min(600, z)); paintSeal(epEndDate()); };
+  document.querySelectorAll('.seal-z').forEach(b=>{
+    b.onclick = ()=> setZ(SEAL_ZOOM + (+b.dataset.z)*20);
+  });
+  const fit = document.getElementById('seal-fit');
+  if(fit) fit.onclick = ()=> setZ(100);
+})();
 
 document.querySelectorAll('.ep-w').forEach(b=>{
   b.onclick = ()=>{ EP_W = +b.dataset.w; paintEarn(); };
 });
-/* v68：历史回测——上一日 / 下一日 / 最新 / 直接选日期 */
-(function initEpNav(){
-  const p = document.getElementById('ep-prev'), n = document.getElementById('ep-next'),
-        t = document.getElementById('ep-latest'), s = document.getElementById('ep-date');
-  if(p) p.onclick = ()=>epStepDate(-1);
-  if(n) n.onclick = ()=>epStepDate(1);
-  if(t) t.onclick = ()=>{ EP_END = null; paintEarn(); };
-  if(s) s.onchange = ()=>{ EP_END = s.value; paintEarn(); };
-})();
 
 /* v66：旧决策页死代码（renderDecision/paintDecision/paintCyclePanel/dcStep）已删除 */
 
-/* 连板梯队日期导航（v48：与复盘决策同形式） */
-function ldStep(n){
-  const ds=(window.REVIEW.dates||[]).slice().sort(), i=ds.indexOf(LADDER_DATE);
-  LADDER_DATE=ds[Math.max(0,Math.min(ds.length-1,i+n))];
-  document.getElementById('ld-date').value=LADDER_DATE;
-  renderLadder(LADDER_DATE);
-}
-document.getElementById('ld-date').onchange=e=>{ LADDER_DATE=e.target.value; renderLadder(LADDER_DATE); };
-document.getElementById('ld-prev').onclick=()=>ldStep(-1);
-document.getElementById('ld-next').onclick=()=>ldStep(1);
-document.getElementById('ld-today').onclick=()=>{
-  LADDER_DATE=(window.REVIEW.dates||[]).slice().sort().slice(-1)[0];
-  document.getElementById('ld-date').value=LADDER_DATE; renderLadder(LADDER_DATE);
-};
+/* 连板梯队日期导航：v70 已随日期选择控件一并删除（固定最新交易日） */
 
 /* 传导路径图浮层：昨日梯队分层 → 今日传导效果（B1） */
 function openTransPop(nm, d, ev){
@@ -4777,8 +4674,7 @@ window.checkNewData = checkNewData;      // 暴露给自动化回归 / 控制台
     fitK();                       // v68：视口变化后日K浮层重新收口（含位置夹回）
   });
 
-  /* ---- 历史定位下拉 ---- */
-  initHistNav();
+  /* ---- 历史定位下拉已取消（v70） ---- */
   /* ---- 右下角返回顶端（点击平滑滚回，顶部标题栏/导航固定可见） ---- */
   document.getElementById('backtop').onclick = ()=>{
     window.scrollTo({top:0, behavior:'smooth'});
