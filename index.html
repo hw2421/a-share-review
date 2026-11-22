@@ -4737,7 +4737,7 @@ function paintYesterdayRec(d){
       (e.ok===1?' · 兑现赚钱效应股':(e.ok===0?' · 未兑现':''))+' ｜点看日K';
     const tier = e.theme ? tierOf(dp, e.theme) : '';
     return '<span class="yr-card'+cls+'" data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+d+'" title="'+tip+'">'+
-      '<b>'+e.name+'</b><span class="yr-c">'+bTag+'</span>'+
+      '<b>'+e.name+'</b><span class="yr-c">'+bTag+'</span>'+shapeTag(dp, e.code, e.s)+
       '<span class="yr-chg" style="color:'+col(nx&&nx.chg)+'">'+fnum(nx&&nx.chg)+'</span>'+
       ztTag+mk+
       (e.theme? '<span class="yr-c" data-th="'+e.theme+'" data-dp="'+dp+'" style="color:#dcbafb">'+
@@ -5120,9 +5120,10 @@ function renderHist(){
           (s.gap!=null? (s.gap? '<i class="gp">缺口</i>':'<i class="gp ng">长腿</i>') : '')+
           stateTag(d, s.code)+'</span>';
       }).join('');
+      const tier = tierOf(d, t.th);
       thRows.push('<div class="hr-trow"><span class="hr-th" data-th="'+t.th+'" data-d="'+d+'" '+
-        'title="点看 '+fmtDate(d)+'「'+t.th+'」当日题材梯队">'+
-        t.th+'<em>'+live.length+'</em></span>'+
+        'title="'+fmtDate(d)+'「'+t.th+'」当日题材梯队'+(tier?' '+tier:'')+' · 涨停 '+live.length+' 只 · 点击查看梯队明细">'+
+        t.th+(tier? '<em>'+tier+'</em>':'')+'</span>'+
         '<div class="hr-stks">'+stks+'</div></div>');
     });
     const ths = thRows.length ? thRows.join('') : '<div class="hr-trow"><span class="hr-th" style="border-style:dashed">—</span>'+
