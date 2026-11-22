@@ -600,6 +600,30 @@
   details.kj>summary:hover{color:#9fc6ff}
   details.kj[open]>summary{color:#9fc6ff;margin-bottom:4px}
   details.kj .kjb{color:#8e9bb0;font-size:11px;line-height:1.8}
+  /* v84 赚钱效应系统折叠面板 */
+  details.sys{margin:8px 0 4px;border:1px solid #3a4a63;border-radius:8px;background:var(--card2)}
+  details.sys>summary{cursor:pointer;list-style:none;padding:9px 13px;color:#ffe29a;font-size:12px;font-weight:700;
+    background:linear-gradient(90deg,rgba(240,185,11,.15),transparent);border-radius:8px;letter-spacing:.3px}
+  details.sys>summary::-webkit-details-marker{display:none}
+  details.sys>summary:hover{color:#fff;background:linear-gradient(90deg,rgba(240,185,11,.26),transparent)}
+  details.sys[open]>summary{border-bottom:1px solid #3a4a63;border-radius:8px 8px 0 0}
+  .sysb{padding:12px 14px;color:var(--text);font-size:11.5px;line-height:1.75}
+  .sys-lead{color:#c8d4e6;margin-bottom:11px;padding:9px 11px;background:rgba(240,185,11,.07);
+    border-left:3px solid var(--gold);border-radius:4px}
+  .sys-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:10px}
+  .sys-sec{border:1px solid #2b3a56;border-radius:6px;padding:9px 11px;background:rgba(255,255,255,.02)}
+  .sys-sec h5{margin:0 0 6px;font-size:12px;color:#9fc6ff;display:flex;align-items:center;gap:6px}
+  .sys-sec h5 .sn{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
+    border-radius:50%;background:#2b3a56;color:#ffe29a;font-size:10px;font-weight:700}
+  .sys-sec p{margin:3px 0}
+  .sys-k{color:var(--gold);font-weight:600}
+  .sys-num{color:#ff9d8a;font-weight:700;font-variant-numeric:tabular-nums}
+  .sys-tbl{width:100%;border-collapse:collapse;margin-top:11px;font-size:11px}
+  .sys-tbl th,.sys-tbl td{border:1px solid #2b3a56;padding:4px 7px;text-align:center;font-variant-numeric:tabular-nums}
+  .sys-tbl th{background:#1b2740;color:#9fc6ff;font-weight:600}
+  .sys-tbl td.l{text-align:left}
+  .sys-tbl tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+  .sys-note{margin-top:9px;color:var(--dim2);font-size:10.5px;line-height:1.7}
   /* 涨停形态缩写（空间情绪明细表 / 决策页）：共用 .sp 配色，此处只补基础排版 */
   .mtable .sp,.dc-sp{font-style:normal;font-size:9px;margin-left:3px;border-radius:2px;
        padding:0 3px;font-weight:700;white-space:nowrap}
@@ -1087,6 +1111,58 @@
   <div class="card">
     <h3>历史复盘 <span class="sub">赚钱效应股逐日跟踪 · 断板起展示 3 日 · 点题材看当日梯队 · 点个股看日K</span></h3>
     <div id="hist-intro"></div>
+    <!-- v84 赚钱效应系统：择时选股 / 买入 / 卖出 / 逻辑 / 历史数据支撑，折叠显示 -->
+    <details class="sys" id="hist-system">
+      <summary>📘 赚钱效应系统（择时选股 · 买入条件 · 卖出条件 · 底层逻辑 · 历史数据支撑） ▾</summary>
+      <div class="sysb">
+        <div class="sys-lead">
+          <b>核心思想：</b>交易获利＝找到<b style="color:#ffe29a">带领市场/题材拉升的龙头</b>并参与。赚钱效应的本质是
+          <b>昨日买入者全部获利</b>（今日最低价＞昨日最高价），龙头通过示范效应带动跟风盘赚钱。
+          本系统把这套底层逻辑拆成「择时→选股→买入→卖出」四步，每一步都有全历史 3436 笔赚钱效应股的回测支撑。
+        </div>
+        <div class="sys-grid">
+          <div class="sys-sec">
+            <h5><span class="sn">1</span>择时 · 看市场阶段</h5>
+            <p>四阶段：<span class="sys-k">突破 / 主升 / 补涨 / 节点</span>，在明细表日期与空间情绪表可见。</p>
+            <p><b>突破、主升</b>期进攻（赚钱效应扩散）；<b>补涨</b>期降低预期、快进快出；<b>节点</b>期兑现防守、严控仓位。</p>
+            <p>全历史 3436 笔分布：节点 1217 / 主升 880 / 补涨 809 / 突破 530。</p>
+          </div>
+          <div class="sys-sec">
+            <h5><span class="sn">2</span>选股 · 三层共振</h5>
+            <p><b>个股层</b>：连续两日换手涨停（买得进）、3板以上、当日最低＞昨高（<span class="sys-k">缺口标</span>优选）；看形态（赚钱/长腿/赚T）。</p>
+            <p><b>题材层</b>：优先<span class="sys-k">题材龙头</span>（梯队最高板）与助攻多的题材，示范效应才带得动跟风盘。</p>
+            <p><b>空间层</b>：叠加当日空间龙头（最高板）。三层共振为最优买点。</p>
+          </div>
+          <div class="sys-sec">
+            <h5><span class="sn">3</span>买入 · 达标日收盘介入</h5>
+            <p>标的<span class="sys-k">达标当日收盘价</span>买入（换手涨停可成交）；一字板买不进则放弃。</p>
+            <p>今日用「明日赚钱效应候选」环节提前锁定观察名单，次日竞价不弱、题材有助攻再确认。</p>
+            <p>数据：达标日收盘买入成功率 <span class="sys-num">50.7%</span>、均溢价 <span class="sys-num">+5.57%</span>；
+              次日开盘追高降至 39.0%／+0.61%——<b>不追高</b>。</p>
+          </div>
+          <div class="sys-sec">
+            <h5><span class="sn">4</span>卖出 · 涨停持仓 / 断板卖出</h5>
+            <p>买入后每日<b>收盘涨停就继续持有</b>；一旦断板（收盘不涨停，<span class="sys-k">含盘中触板但收盘炸板未封</span>）当日收盘卖出。</p>
+            <p>平均持仓 <span class="sys-num">2.72</span> 日（最长 17 日）；不加止损、靠断板纪律离场。</p>
+            <p>炸板收盘卖成功率 <span class="sys-num">69.7%</span>／均 +10.58%，明显强于普通断板卖 42.1%／+3.32%。</p>
+          </div>
+        </div>
+        <table class="sys-tbl">
+          <thead><tr><th class="l">历史回测口径（全历史 3436 笔赚钱效应股）</th><th>笔数</th><th>赚钱成功率</th><th>平均溢价</th><th>中位溢价</th><th>平均持仓</th></tr></thead>
+          <tbody>
+            <tr><td class="l">主口径 · 达标日收盘买入 → 断板卖出</td><td>3436</td><td class="sys-num">50.7%</td><td class="sys-num">+5.57%</td><td>+0.26%</td><td>2.72日</td></tr>
+            <tr><td class="l">对照 · 次日开盘追高买入（一字豁免732）</td><td>2704</td><td>39.0%</td><td>+0.61%</td><td>-1.83%</td><td>1.52日</td></tr>
+            <tr><td class="l">稳健 · 剔除早年数据噪音（2020起，日K完整）</td><td>3021</td><td class="sys-num">51.2%</td><td class="sys-num">+4.73%</td><td>+0.38%</td><td>2.73日</td></tr>
+            <tr><td class="l">稳健 · 同一波连板去重（2020起）</td><td>2267</td><td class="sys-num">50.4%</td><td class="sys-num">+4.46%</td><td>+0.19%</td><td>2.69日</td></tr>
+          </tbody>
+        </table>
+        <div class="sys-note">
+          底层逻辑（v77）：3板以上 + 连续两日换手涨停（非一字）+ <b>当日最低价＞昨日最高价</b>＝昨日任意价位买入者今日全部获利。
+          收益分布：≤-7% 占19%、-7~0% 占23%、0~10% 占35%、10~30% 占15%、&gt;30% 占8%——约五成胜率、靠右尾连板盈利，
+          须严格执行断板纪律。数据为历史统计（未计手续费/冲击成本），不构成投资建议。回测明细见 output/earn_hold_*.json，口径记录见 README §85。
+        </div>
+      </div>
+    </details>
     <div class="ep-bar">
       <span class="ep-lb">跳转日期</span>
       <select id="hist-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
