@@ -1416,6 +1416,7 @@ data = {
     "dayZB": DAY_ZB,                # v70 近25日炸板池：{d:{code:[name,首封HH:MM,当日涨幅]}}
     "zbTheme": DAY_ZBT,             # v72 炸板股题材映射：{d:{code:题材}}（仅当日梯队题材）
     "gapMap": GAP_MAP,              # v76 个股涨停形式：{d:{code:1缺口/0长腿}}
+    "nameMap": _NAME_ALL,           # v78 个股搜索：{code: 名称} 全量映射
     "histReview": HIST_REVIEW,      # v73 历史复盘：赚钱效应股断板跟踪 + 空间龙头叠加
     "lb": lb,                       # 日期 -> 当日连板股（2板+，含题材）
     "themeSource": {d: theme_source.get(d, "tgb") for d in theme_dates},
