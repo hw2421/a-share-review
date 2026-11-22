@@ -310,17 +310,16 @@
   /* ---------- 每模块独立日期选择（年月日 + 确定） ---------- */
   .dp-flash{animation:dpflash 1.6s ease}
   @keyframes dpflash{0%,100%{background:transparent}20%,60%{background:rgba(240,185,11,.22)}}
-  /* v79：搜索定位小条——该股在当前模块出现的全部日期，点日期逐个回看 */
-  #loc-tip{position:fixed;right:16px;top:calc(var(--hdr,46px) + 8px);z-index:129;display:none;
-           max-width:min(520px,calc(100vw - 32px));background:#17233a;border:1px solid var(--gold);
-           border-radius:7px;padding:5px 9px;font-size:11px;color:#cfe0ff;
-           box-shadow:0 6px 24px rgba(0,0,0,.5)}
-  #loc-tip .lt-h{color:var(--gold);font-weight:700;margin-right:4px}
-  #loc-tip .lt-l a{color:#a8ccff;margin-right:6px;cursor:pointer;text-decoration:underline}
-  #loc-tip .lt-l a:hover{color:#fff}
-  #loc-tip .lt-m{color:var(--dim2)}
-  #loc-tip .lt-x{float:right;color:#9aa6b8;cursor:pointer;padding-left:8px}
-  #loc-tip .lt-x:hover{color:#fff}
+  /* v80：Office 风格查找——全部匹配持续高亮 + 上一处/下一处按钮 + 计数 */
+  #find-bar{display:none;align-items:center;gap:2px;margin-left:4px;white-space:nowrap}
+  #find-bar.on{display:inline-flex}
+  #find-bar button{background:var(--card2);border:1px solid var(--line);color:#cfe0ff;
+           border-radius:5px;font-size:9.5px;padding:2px 5px;cursor:pointer;line-height:1.2}
+  #find-bar button:hover{border-color:#3d8bff;color:#fff}
+  #find-cnt{font-size:10.5px;color:var(--gold);min-width:34px;text-align:center;font-weight:700}
+  .find-hl{outline:2px solid rgba(240,185,11,.85);background:rgba(240,185,11,.16);border-radius:4px}
+  .find-cur{outline:3px solid #ff9d00!important;background:rgba(255,157,0,.32)!important;
+            box-shadow:0 0 12px rgba(255,157,0,.6);border-radius:4px}
   /* 历史日期选取后：对应日期的数据行/卡片持续高亮凸显（闪动之外还留底色） */
   .dp-hl{background:rgba(240,185,11,.22)!important;
          box-shadow:inset 0 0 0 2px rgba(240,185,11,.9),0 0 10px rgba(240,185,11,.55);
@@ -981,6 +980,12 @@
     </nav>
     <span class="srch" id="srch">
       <input id="stk-q" type="text" placeholder="🔍 搜个股（名称/代码）" autocomplete="off">
+      <span id="find-bar">
+        <span id="find-cnt">1/1</span>
+        <button id="find-prev" title="上一个结果（Shift+Enter / ↑）">▲</button>
+        <button id="find-next" title="下一个结果（Enter / ↓）">▼</button>
+        <button id="find-x" title="清除查找高亮（Esc）">✕</button>
+      </span>
       <div id="stk-q-list"></div>
     </span>
     <span class="upd" id="upd">--</span>
@@ -1137,64 +1142,52 @@ function kjNote(body, title){
   return '<details class="kj"><summary>'+(title||'口径说明')+' ▾</summary>'+
          '<div class="kjb">'+body+'</div></details>';
 }
-/* v79：搜索个股 → 定位当前模块明细表中该股出现过的日期位置（滚动 + 高亮），
-   多处出现时顶部弹出日期清单（点日期逐个回看）；当前模块找不到该股时回退为弹日K。
-   v79b：各模块明细表属性不统一（空间情绪 stk-cell 用 data-code，其余用 data-c），全部兼容。 */
-function locDates(hosts){
-  return hosts.map(h=>h.dataset.dt || h.dataset.d || '').filter(Boolean);
+/* v80：Office 风格查找个股——收集当前模块明细表中该股出现过的全部位置，
+   全部持续高亮，搜索框旁工具条（计数 / 上一处 ▲ / 下一处 ▼ / 清除 ✕）循环跳转；
+   当前模块无该股时回退弹日K。 */
+let FIND = null;                     // {hosts:[], idx}
+function findClear(){
+  document.querySelectorAll('.find-hl, .find-cur')
+    .forEach(el=>el.classList.remove('find-hl', 'find-cur'));
+  FIND = null;
+  const bar = document.getElementById('find-bar');
+  if(bar) bar.classList.remove('on');
 }
-function locToast(hosts){
-  let t = document.getElementById('loc-tip');
-  if(!t){
-    t = document.createElement('div'); t.id = 'loc-tip';
-    t.innerHTML = '<span class="lt-h"></span><span class="lt-l"></span><span class="lt-x">✕</span>';
-    document.body.appendChild(t);
-    t.querySelector('.lt-x').onclick = ()=>t.style.display='none';
-  }
-  const ds = locDates(hosts);
-  const uniq = [...new Set(ds)];
-  t.querySelector('.lt-h').textContent = '本模块出现 '+uniq.length+' 处：';
-  t.querySelector('.lt-l').innerHTML = uniq.slice(0, 12).map((d,i)=>
-    '<a data-i="'+i+'">'+d.slice(4,6)+'-'+d.slice(6,8)+'</a>').join('') +
-    (uniq.length > 12 ? '<span class="lt-m">…等'+uniq.length+'处</span>' : '');
-  t.querySelectorAll('.lt-l a').forEach(a=>{
-    a.onclick = ()=>{
-      const d = uniq[+a.dataset.i];
-      const h = hosts.find(x=>(x.dataset.dt || x.dataset.d) === d);
-      if(h){
-        window.scrollTo(0, Math.max(0, h.getBoundingClientRect().top + window.scrollY - 92));
-        h.classList.remove('dp-flash'); void h.offsetWidth; h.classList.add('dp-flash');
-        setTimeout(()=>h.classList.remove('dp-flash'), 1700);
-      }
-    };
-  });
-  t.style.display = 'block';
+function findRowOf(el){
+  return el.closest('tr[data-dt]') || el.closest('.hr-day') ||
+         el.closest('.tcard') || el;
+}
+function findGo(i){
+  if(!FIND || !FIND.hosts.length) return;
+  const L = FIND.hosts.length;
+  FIND.idx = ((i % L) + L) % L;      // 循环跳转
+  document.querySelectorAll('.find-cur').forEach(el=>el.classList.remove('find-cur'));
+  const h = FIND.hosts[FIND.idx];
+  h.classList.add('find-cur');
+  window.scrollTo(0, Math.max(0, h.getBoundingClientRect().top + window.scrollY - 92));
+  const cnt = document.getElementById('find-cnt');
+  if(cnt) cnt.textContent = (FIND.idx+1)+'/'+L;
 }
 function locateStock(c, n, ev){
+  findClear();
   const page = [...document.querySelectorAll('.page')].find(p=>p.classList.contains('on'));
-  if(page){
-    const sel = '[data-c="'+c+'"], [data-code="'+c+'"], [data-name="'+n+'"]';
-    const els = [...page.querySelectorAll(sel)];
-    if(els.length){
-      /* 行容器：明细表行 > 历史复盘日期卡 > 题材卡 > 元素本身（去重保留文档序） */
-      const hosts = [];
-      els.forEach(el=>{
-        const h = el.closest('tr[data-dt]') || el.closest('.hr-day') ||
-                  el.closest('.tcard') || el;
-        if(!hosts.includes(h)) hosts.push(h);
-      });
-      const first = hosts[0];
-      window.scrollTo(0, Math.max(0, first.getBoundingClientRect().top + window.scrollY - 92));
-      hosts.forEach(h=>{
-        h.classList.remove('dp-flash'); void h.offsetWidth; h.classList.add('dp-flash');
-      });
-      setTimeout(()=>hosts.forEach(h=>h.classList.remove('dp-flash')), 1700);
-      if(locDates(hosts).length > 1) locToast(hosts);
-      return true;
-    }
+  const els = page ? [...page.querySelectorAll(
+      '[data-c="'+c+'"], [data-code="'+c+'"], [data-name="'+n+'"]')] : [];
+  if(!els.length){
+    showK(c, n, ev);                 // 当前模块明细表无该股 → 回退弹日K
+    return false;
   }
-  showK(c, n, ev);
-  return false;
+  const hosts = [];
+  els.forEach(el=>{
+    const h = findRowOf(el);
+    if(!hosts.includes(h)) hosts.push(h);
+  });
+  hosts.forEach(h=>h.classList.add('find-hl'));
+  FIND = {hosts, idx:-1};
+  const bar = document.getElementById('find-bar');
+  if(bar) bar.classList.add('on');
+  findGo(0);
+  return true;
 }
 /* v78 全站个股搜索：header 输入名称/代码 → 过滤 nameMap → 点选定位/弹日K */
 (function initStkSearch(){
@@ -1225,16 +1218,31 @@ function locateStock(c, n, ev){
       };
     });
   };
-  inp.oninput = ()=>render(inp.value);
+  inp.oninput = ()=>{ findClear(); render(inp.value); };
   inp.onfocus = ()=>{ if(inp.value) render(inp.value); };
   inp.onkeydown = ev=>{
     if(ev.key === 'Enter'){
-      const first = lst.querySelector('.q-it');
-      if(first) first.click();
+      ev.preventDefault();
+      const dropOpen = lst.style.display === 'block' && lst.querySelector('.q-it');
+      if(dropOpen){                              // 有联想下拉 → 选第一条进入查找
+        lst.querySelector('.q-it').click();
+      } else if(FIND){                           // 查找中 → Enter 下一个 / Shift+Enter 上一个
+        findGo(ev.shiftKey ? FIND.idx-1 : FIND.idx+1);
+      }
     } else if(ev.key === 'Escape'){
-      lst.style.display='none'; inp.blur();
+      findClear(); lst.style.display='none'; inp.blur();
+    } else if(FIND && (ev.key === 'ArrowUp' || ev.key === 'ArrowDown')){
+      ev.preventDefault();
+      findGo(ev.key === 'ArrowUp' ? FIND.idx-1 : FIND.idx+1);
     }
   };
+  /* v80：查找工具条按钮（计数 / 上一处 / 下一处 / 清除） */
+  const fb = document.getElementById('find-bar');
+  if(fb){
+    document.getElementById('find-prev').onclick = ()=>{ if(FIND) findGo(FIND.idx-1); };
+    document.getElementById('find-next').onclick = ()=>{ if(FIND) findGo(FIND.idx+1); };
+    document.getElementById('find-x').onclick = ()=>{ findClear(); };
+  }
   document.addEventListener('click', ev=>{
     if(!ev.target.closest('#srch')) lst.style.display='none';
   });
@@ -4889,7 +4897,7 @@ function switchTab(t){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+t));
   hideK();
-  const _lt = document.getElementById('loc-tip'); if(_lt) _lt.style.display = 'none';
+  findClear();                                   // v80：切页退出查找模式
   document.getElementById('sup-pop').style.display='none';
   document.getElementById('thpop').style.display='none';
   document.getElementById('ladpop').style.display='none';
