@@ -3732,6 +3732,12 @@ function tipDrag(chart){
     document.addEventListener('mousedown', e=>{
       if(pop.style.display !== 'block') return;
       if(pop.contains(e.target)) return;
+      /* v92 层级返回：日K(kpop)及其上层画面(分时mppop/交接hdpop)是叠加在第二层浮层之上的子画面，
+         点它们内部（含关闭✕与拖动）不算点击第二层外部，避免关日K时把第二层一起关掉跨级跳回第一层。 */
+      if(['kpop','mppop','hdpop'].some(cid=>{
+        const cp=document.getElementById(cid);
+        return cp && cp.style.display==='block' && cp.contains(e.target);
+      })) return;
       if(id==='sup-pop' && e.target.closest && e.target.closest('.sup-cell')) return;  // 交给单元格点击重新打开
       if(id==='thpop' && e.target.closest && e.target.closest('.tcard')) return;       // 交给题材卡点击重新打开
       pop.style.display = 'none';
