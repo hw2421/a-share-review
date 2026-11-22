@@ -209,6 +209,12 @@
   #thpop .thstk:hover{border-color:#78b0ff;background:#24365c}
   #thpop .thstk em{font-style:normal;font-size:8.5px;color:#ffd24a;margin-left:2px}
   #thpop .thstk .tt{font-size:8.5px;color:#8b9bb5;margin-left:3px}
+  /* v88：线路图个股涨停形态徽标（复用 .sp 七色，覆盖上面通用 em 的金色） */
+  #thpop .thstk em.sp{font-style:normal;font-size:8.5px;margin-left:3px;border-radius:2px;
+        padding:0 3px;font-weight:700;white-space:nowrap}
+  #thpop .seal-note{color:var(--dim2);font-size:10px;line-height:1.7;margin-top:7px;
+        border-top:1px dashed #26354f;padding-top:6px}
+  #thpop .seal-note .sp-legend{white-space:nowrap;margin-right:6px}
   #thpop .drow{display:flex;align-items:center;gap:8px;padding:3px 0;
                border-bottom:1px solid rgba(120,140,170,.15);cursor:auto}
   #thpop .drow:last-child{border-bottom:none}
@@ -252,6 +258,7 @@
   .sp.sp-lt{background:rgba(46,189,133,.22);color:#8ce3bf}
   .sp.sp-zq{background:rgba(255,122,69,.22);color:#ffbd9e}
   .sp.sp-dk{background:#26303f;color:#9aa6b8}
+  .sp.sp-na{background:#26303f;color:#7f8b9c;border:1px dashed #3a4a63}
   /* 涨停时间（首次封板）：早盘偏金、尾盘偏灰，一眼看出封板质量 */
   #ladpop .s em.st{font-style:normal;font-size:9px;margin-left:3px;
         font-variant-numeric:tabular-nums;color:var(--gold)}
@@ -2395,19 +2402,34 @@ function openThPop(nm, ev, fromD){
     '</div>';
   /* v70：改为「连板梯队」格式——每天一列（左→右按时间升序），列内按板位分行，
      个股带首封时间与涨停形态；整块可左右拖动横向查看。 */
+  const LF = (R.ladderFull||{});
   const colsArr = chain.slice().reverse();
+  // v88：数据源改用 ladderFull 完整涨停清单（100% 命中线路图题材，含形态 s/首封 t），
+  // 并把每只涨停个股的涨停形态按七色徽标标记；早年日K缺失算不出形态的显示「?」占位。
+  let missShape = 0, fullStk = 0, slimStk = 0;
   const cols = colsArr.map((c, ci)=>{
-    const b = c.b, stocks = (b.stocks||[]).slice();
+    const b = c.b;
+    const full = LF[c.d] && LF[c.d][nm];       // 完整清单（所有涨停个股）
+    const stocks = (full && full.length ? full : (b.stocks||[])).slice();
+    if(full && full.length) fullStk += full.length; else slimStk += (b.stocks||[]).length;
     const byB = {};
     stocks.forEach(s=>{ const bd = s.boards||1; (byB[bd] || (byB[bd]=[])).push(s); });
     const boards = Object.keys(byB).map(Number).sort((a,b)=>b-a);
     const st = stages[c.d]||'';
     const lv = boards.map(bd=>'<div class="thlv"><span class="lbd">'+bd+'板</span><span class="stks">'+
       byB[bd].sort((a,b)=> String(sealOf(a)||'99').localeCompare(String(sealOf(b)||'99')))
-        .map(s=>'<span class="thstk" data-c="'+s.code+'" data-n="'+s.name+'" data-d="'+c.d+'" '+
-          'title="'+s.name+'：'+bd+'板 · 首封 '+(sealOf(s)||'—')+(s.s? ' · '+s.s:'')+
-          '（'+fmtDate(c.d)+'）｜点看日K">'+s.name+
-          '<span class="tt">'+(sealOf(s)||'')+'</span>'+(s.s? '<em>'+s.s+'</em>':'')+'</span>').join('')+
+        .map(s=>{
+          const seal = sealOf(s), sp = s.s || '';
+          if(!sp) missShape++;
+          const tip = s.name+'：'+bd+'板 · 首封 '+(seal||'—')+
+            ' · 涨停形态 '+(sp||'无日K数据')+
+            '（'+fmtDate(c.d)+'）｜点看日K';
+          return '<span class="thstk" data-c="'+s.code+'" data-n="'+s.name+'" data-d="'+c.d+'" '+
+            'title="'+tip+'">'+s.name+
+            (seal? '<span class="tt">'+seal+'</span>':'')+
+            (sp? '<em class="sp '+shapeCls(sp)+'">'+sp+'</em>'
+               : '<em class="sp sp-na" title="早年日K缺失，无法判定形态">?</em>')+'</span>';
+        }).join('')+
       '</span></div>').join('');
     return '<div class="thcol'+(ci===colsArr.length-1? ' newest':'')+'">'+
       '<div class="thcol-hd"><span>'+fmtDate(c.d)+' · '+b.count+'只</span>'+
@@ -2417,12 +2439,18 @@ function openThPop(nm, ev, fromD){
   const HO=(window.REVIEW.handover||{}).theme||{};
   const hoBtn = HO[nm] && HO[nm].length
     ? '<button class="hd-open" data-kind="theme" data-th="'+nm+'" title="新旧龙头交接：最近断板龙头 vs 最新龙头 K线叠加">🔀 新旧交接</button>' : '';
+  const legend = ['一字','地天','赚T','赚钱','普通','长腿','低开'].map(s=>
+    '<span class="sp-legend"><em class="sp '+shapeCls(s)+'">'+s+'</em></span>').join('');
+  const covNote = missShape
+    ? ' · <span style="color:#ffb38a">'+missShape+' 只早年日K缺失标「?」</span>' : '';
   pop.innerHTML = '<span class="popx">✕</span><h4>'+nm+' · 连续炒作线路图'+hoBtn+'</h4>'+
     stat +
     '<div class="thscroll" id="thscroll">'+
     (cols || '<div style="color:'+C.dim+'">该题材近期无入链记录</div>')+'</div>'+
     '<div class="seal-note">每日一列（左→右按时间升序）· 列内按板位分行（板位从高到低）· '+
-    '个股后为首次封板时间与涨停形态 · 按住图内左右拖动查看更早的炒作 · 点个股看日K</div>';
+    '每只涨停个股后为<strong style="color:#ffd24a">首次封板时间</strong> + '+
+    '<strong style="color:#ffd24a">涨停形态</strong>：'+legend+' · '+
+    '按住图内左右拖动查看更早炒作 · 点个股看日K'+covNote+'</div>';
   pop.style.display = 'block';
   const hob=pop.querySelector('.hd-open');
   if(hob) hob.onclick=e=>{ e.stopPropagation(); openHandover('theme',nm,e,fromD||chain[0]&&chain[0].d); };
