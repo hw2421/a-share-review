@@ -624,6 +624,23 @@
   .sys-tbl td.l{text-align:left}
   .sys-tbl tr:nth-child(even) td{background:rgba(255,255,255,.02)}
   .sys-note{margin-top:9px;color:var(--dim2);font-size:10.5px;line-height:1.7}
+  /* v85 赚钱效应股特征与捕捉详解 */
+  .fx-sub{color:#ffe29a;font-size:12px;font-weight:700;margin:15px 0 7px;padding-left:8px;border-left:3px solid #f0b90b}
+  .fx-formula{background:rgba(240,185,11,.09);border:1px dashed #f0b90b88;border-radius:6px;
+              padding:9px 12px;margin:8px 0;color:#ffe29a;font-size:11.5px;font-weight:700;line-height:1.9}
+  .fx-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:9px;margin:8px 0}
+  .fx-step{border:1px solid #2b3a56;border-radius:6px;padding:9px 11px;background:rgba(59,130,246,.06)}
+  .fx-step h6{margin:0 0 5px;font-size:11.5px;color:#9fc6ff}
+  .fx-step .fx-tag{display:inline-block;background:#f0b90b22;color:#ffe29a;border-radius:4px;padding:0 5px;font-size:10px;margin-right:4px}
+  .fx-tbl{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+  .fx-tbl th,.fx-tbl td{border:1px solid #2b3a56;padding:4px 7px;text-align:center;font-variant-numeric:tabular-nums;vertical-align:top}
+  .fx-tbl th{background:#1b2740;color:#9fc6ff;font-weight:600}
+  .fx-tbl td.l{text-align:left;line-height:1.6}
+  .fx-tbl tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+  .fx-warn{margin-top:10px;padding:8px 11px;background:rgba(198,40,40,.1);border:1px solid #c6282866;
+           border-radius:6px;color:#ffb3b3;font-size:10.5px;line-height:1.7}
+  .fx-good{color:#7ee0a0;font-weight:600}
+  .fx-bad{color:#ff9d8a;font-weight:600}
   /* 涨停形态缩写（空间情绪明细表 / 决策页）：共用 .sp 配色，此处只补基础排版 */
   .mtable .sp,.dc-sp{font-style:normal;font-size:9px;margin-left:3px;border-radius:2px;
        padding:0 3px;font-weight:700;white-space:nowrap}
@@ -1160,6 +1177,129 @@
           底层逻辑（v77）：3板以上 + 连续两日换手涨停（非一字）+ <b>当日最低价＞昨日最高价</b>＝昨日任意价位买入者今日全部获利。
           收益分布：≤-7% 占19%、-7~0% 占23%、0~10% 占35%、10~30% 占15%、&gt;30% 占8%——约五成胜率、靠右尾连板盈利，
           须严格执行断板纪律。数据为历史统计（未计手续费/冲击成本），不构成投资建议。回测明细见 output/earn_hold_*.json，口径记录见 README §85。
+        </div>
+      </div>
+    </details>
+    <!-- v85 赚钱效应股特征与捕捉详解：底层逻辑/特征体系/捕捉流程/六轮买点数据/风险，折叠显示 -->
+    <details class="sys" id="hist-feature">
+      <summary>🔬 赚钱效应股 · 特征与捕捉详解（底层逻辑 · 三层特征 · 捕捉五步 · 六轮买点数据 · 风险说明） ▾</summary>
+      <div class="sysb">
+        <div class="sys-lead">
+          <b>一句话总纲：</b>交易获利的核心是找到<span style="color:#ffe29a">带领市场/题材拉升、通过示范效应带动跟风盘赚钱的龙头</span>并参与。
+          赚钱效应股就是这套"示范效应"最纯粹的载体——它让<b>前一天所有买入者都获利</b>，于是资金愿意一再来、题材得以延续。
+          下面按「它是什么 → 长什么样 → 怎么抓 → 数据验证 → 有什么风险」逐层拆解，每一条结论都标注了逻辑与全历史数据出处。
+        </div>
+
+        <div class="fx-sub">一、底层定义：什么是赚钱效应股（以及为什么这样定义）</div>
+        <div class="sys-sec">
+          <p><b>因果逻辑：</b>涨停只是"果"，<span class="sys-k">接力资金的真实盈亏才是"因"</span>。一只股之所以能连续拉升，是因为前一天买它的人赚到了钱、愿意继续买或推荐，形成正反馈。所以我们不追"涨停"这个表象，而紧盯"买入者是否获利"这个本质。</p>
+          <div class="fx-formula">赚钱效应股 ＝ 3板以上 ∩ 连续两日「换手」涨停 ∩ <b>当日最低价 ＞ 昨日最高价</b>（真跳空缺口）</div>
+          <p><b>逐条逻辑：</b></p>
+          <p>① <span class="sys-k">连续两日换手涨停（非一字）</span>——"买得进"才有意义。一字板买不到，是纸面机会；换手板说明有真实换手、资金能参与。</p>
+          <p>② <span class="sys-k">当日最低 ＞ 昨日最高（缺口）</span>——这是判定"昨日买入者全部获利"的硬标准：昨日无论谁在什么价位买（最高不超过昨高），今日最低价都比它高，<b>昨日买入者无一亏损</b>，示范效应最强。缺口越大，获利越厚、越安全。</p>
+          <p>③ <span class="sys-k">3板以上</span>——走出辨识度，才能吸引市场注意、汇聚接力资金；低板位缺乏号召力。</p>
+          <p>④ 两日都必须换手——排除"昨日一字、今日一字"的锁死状态，保证"昨日买入者"是真实可成交的群体。</p>
+        </div>
+
+        <div class="fx-sub">二、特征体系：三层共振（个股 / 题材 / 空间 × 市场阶段）</div>
+        <div class="sys-grid">
+          <div class="sys-sec">
+            <h5><span class="sn">A</span>个股层特征</h5>
+            <p>· <b>形态</b>：赚钱板为主，兼有长腿（下影长、承接强）、赚T（缺口后日内换手），形态见明细表标记。</p>
+            <p>· <b>缺口</b>：缺口标（当日最低＞昨高）是核心，缺口越厚越优。</p>
+            <p>· <b>板位</b>：板位越高、溢价越高——3板均 +4.28% → 7板 +11.36% → 12板 +20.52%（右尾效应）。</p>
+            <p>· <b>首封时间</b>：早盘快速封板（首封时间早）通常强于尾盘勉强封板。</p>
+          </div>
+          <div class="sys-sec">
+            <h5><span class="sn">B</span>题材层特征</h5>
+            <p>· <b>题材龙头</b>：题材梯队最高板，靠示范效应带跟风盘；有题材归因的 2062 笔中<b>题材龙头 1419 笔（68.8%）</b>。</p>
+            <p>· <b>助攻数</b>：梯队中低于本股板位的助攻个股越多，越可能是"板块行为"而非"个股独舞"，持续性更强。</p>
+            <p>· <b>题材延续</b>：当日该题材有涨停梯队、且龙头晋级，赚钱效应从个股扩散到题材。</p>
+          </div>
+          <div class="sys-sec">
+            <h5><span class="sn">C</span>空间层特征</h5>
+            <p>· <b>空间龙头</b>：当日全市场最高板（且≥3板）。全历史 3436 笔中空间龙头 <span class="sys-num">938</span> 笔（27.3%）。</p>
+            <p>· <b>上一位断板空间龙头</b>的反馈（历史复盘叠加显示）：若前龙头断板后仍正反馈，说明空间未死、情绪健康。</p>
+            <p>· 空间 + 题材 + 个股三层共振＝最优捕捉窗口。</p>
+          </div>
+          <div class="sys-sec">
+            <h5><span class="sn">D</span>市场阶段特征</h5>
+            <p>四阶段：<span class="sys-k">突破 / 主升 / 补涨 / 节点</span>。全历史分布：节点 1217 / 主升 880 / 补涨 809 / 突破 530。</p>
+            <p>· <b>突破、主升</b>：赚钱效应扩散期，积极进攻、可重仓龙头。</p>
+            <p>· <b>补涨</b>：低位轮动、快进快出、降低预期。</p>
+            <p>· <b>节点</b>：高位兑现、情绪退潮，防守为主、严控仓位。</p>
+          </div>
+        </div>
+
+        <div class="fx-sub">三、可量化特征清单（盘后筛选照此逐条打分）</div>
+        <table class="fx-tbl">
+          <thead><tr><th class="l">特征维度</th><th class="l">量化标准</th><th class="l">为什么重要（逻辑）</th><th>数据支撑</th></tr></thead>
+          <tbody>
+            <tr><td class="l">换手涨停</td><td class="l">非一字、当日可成交</td><td class="l">买得进才有意义，排除纸面机会</td><td>入选强制条件</td></tr>
+            <tr><td class="l">真缺口</td><td class="l">今日最低 ＞ 昨日最高</td><td class="l">昨日买入者全部获利的硬标准</td><td>入选强制条件</td></tr>
+            <tr><td class="l">板位≥3</td><td class="l">连续涨停板数</td><td class="l">辨识度、号召力；越高溢价越厚</td><td>12板均+20.52%</td></tr>
+            <tr><td class="l">题材龙头</td><td class="l">梯队最高板</td><td class="l">示范效应带跟风盘</td><td>68.8%</td></tr>
+            <tr><td class="l">助攻数</td><td class="l">梯队内低于本股板位的家数</td><td class="l">板块行为＞个股独舞，持续性更强</td><td>明细可查</td></tr>
+            <tr><td class="l">空间龙头</td><td class="l">全市场最高板且≥3</td><td class="l">市场总龙头、情绪标杆</td><td>27.3%</td></tr>
+            <tr><td class="l">市场阶段</td><td class="l">突破/主升/补涨/节点</td><td class="l">决定进攻力度与仓位</td><td>四阶段分布见上</td></tr>
+            <tr><td class="l">昨日量能</td><td class="l">昨日量 vs 前日量</td><td class="l">次要微调：缩量胜率略高、放量赔率略高</td><td>52.5% vs 49.5%</td></tr>
+          </tbody>
+        </table>
+
+        <div class="fx-sub">四、捕捉五步流程（从发现到离场的完整闭环）</div>
+        <div class="fx-flow">
+          <div class="fx-step"><h6>① 盘后筛名单</h6><span class="fx-tag">选股</span>按三层特征打分，筛出换手涨停＋缺口＋≥3板；用"明日赚钱效应候选"环节提前锁定观察池（今日≥2板换手股，明日跳空晋级即达标）。</div>
+          <div class="fx-step"><h6>② 次日竞价确认</h6><span class="fx-tag">确认</span>名单只是候选，不是买点。竞价不弱、题材有助攻、空间未死才进入买入；一致高开过猛（≥9%）反而回避。</div>
+          <div class="fx-step"><h6>③ 达标收盘介入</h6><span class="fx-tag">买入</span>达标当日收盘价买入（换手板可成交），这是全历史验证的最优买点；一字买不进就放弃，不追。</div>
+          <div class="fx-step"><h6>④ 涨停持仓</h6><span class="fx-tag">持有</span>买入后每日收盘涨停就继续持有，不限天数；让利润奔跑，靠右尾连板贡献收益。</div>
+          <div class="fx-step"><h6>⑤ 断板卖出</h6><span class="fx-tag">卖出</span>收盘不涨停即当日收盘卖出；盘中触板但收盘炸板未封也算断板卖出。不加止损、纯靠纪律离场。</div>
+        </div>
+
+        <div class="fx-sub">五、六轮买点数据对比（全历史回测，为什么这样买）</div>
+        <table class="fx-tbl">
+          <thead><tr><th class="l">买入方式（卖出规则均相同）</th><th>笔数</th><th>成功率</th><th>平均溢价</th><th>中位溢价</th><th>结论</th></tr></thead>
+          <tbody>
+            <tr><td class="l"><b>①达标日收盘买入（主口径）</b></td><td>3436</td><td class="sys-num">50.7%</td><td class="sys-num">+5.57%</td><td>+0.26%</td><td class="l fx-good">最优买点</td></tr>
+            <tr><td class="l">②全量次日开盘买入</td><td>2704</td><td>39.0%</td><td>+0.61%</td><td>-1.83%</td><td class="l fx-bad">追高显著变差</td></tr>
+            <tr><td class="l">③放量达标 → 次日开盘买</td><td>1507</td><td>42.7%</td><td>+1.52%</td><td>-1.02%</td><td class="l">放量优于缩量</td></tr>
+            <tr><td class="l">④缩量达标 → 次日开盘买</td><td>1197</td><td>34.3%</td><td>-0.54%</td><td>-2.80%</td><td class="l fx-bad">负期望，回避</td></tr>
+            <tr><td class="l">⑤放量＋今高开＞0 买入</td><td>856</td><td>41.0%</td><td>+1.10%</td><td>-1.55%</td><td class="l fx-bad">追高开更差</td></tr>
+            <tr><td class="l">⑥放量＋今不高开（平/低开）</td><td>651</td><td class="sys-num">45.0%</td><td class="sys-num">+2.08%</td><td>-0.13%</td><td class="l fx-good">低吸更优</td></tr>
+          </tbody>
+        </table>
+        <p class="sys-note" style="margin-top:4px">① vs ②：达标日收盘 50.7% 远超次日追高 39.0%——<b>不要等次日追高</b>。③ vs ④：放量优于缩量——<b>放量是买点、缩量是回避信号</b>。⑤ vs ⑥：高开越大越差（≥9% 近涨停仅 27.6%／-0.94%，低开＜-2% 达 47.5%／+3.10%）——<b>不追一致预期的高开</b>。昨日量能（放量49.5% vs 缩量52.5%）差异小，属次要变量。</p>
+
+        <div class="fx-sub">六、卖出纪律与收益本质（为什么"五成胜率也能赚"）</div>
+        <div class="sys-grid">
+          <div class="sys-sec">
+            <h5><span class="sn">卖</span>断板卖出的价值</h5>
+            <p>炸板收盘卖（盘中触板未封）：成功率 <span class="sys-num">69.7%</span>／均 <span class="sys-num">+10.58%</span>；</p>
+            <p>普通断板卖：42.1%／+3.32%。盘中冲过涨停给了溢价离场机会，这类卖点显著更强。</p>
+            <p>平均持仓 2.72 日（最长 17 日）——持股短、周转快。</p>
+          </div>
+          <div class="sys-sec">
+            <h5><span class="sn">益</span>右尾盈利的分布</h5>
+            <p>收益分布：≤-7% 占19%、-7~0% 占23%、0~10% 占35%、10~30% 占15%、&gt;30% 占8%。</p>
+            <p>盈亏比 payoff <span class="sys-num">2.69</span>、资金盈亏比 PF <span class="sys-num">3.21</span>：平均赚 15.96% / 平均亏 5.94%。</p>
+            <p>约五成胜率、中位仅 +0.26%，靠少数连板大涨拉高均值——<b>必须严格纪律、不 early 下车、不止盈太早</b>。</p>
+          </div>
+        </div>
+
+        <div class="fx-sub">七、风险提示与数据说明（务必先读）</div>
+        <div class="fx-warn">
+          <b>① 数据覆盖限制：</b>底层涨停池 2017–2025 完整，但早年日K缓存缺失——2017 年仅 183 只股有日K（达标覆盖率约 2.3%）、2018 年 242 只（9.3%）、2019 年 2679 只（31.3%），2020 起才 99–100% 完整。因此 <b>2017–2019 笔数偏低是数据可得性所致，不代表当年赚钱效应弱</b>；全历史 3436 笔中 2017 年 +63% 均值被江南嘉捷（360借壳）单一超级牛股重复计入扭曲，看趋势请用 2020 起稳健口径（3021 笔 51.2%／+4.73%）。<br>
+          <b>② 统计口径：</b>收益＝卖出价/买入价−1，未计手续费、滑点、冲击成本；一字豁免；末端未断板剔除。<br>
+          <b>③ 本质风险：</b>这是"大数定律＋右尾盈利"策略，单笔胜率仅约五成、中位接近 0，连续亏损期可能较长，必须严格执行断板纪律、控制仓位。历史统计不代表未来，<b>本内容仅为方法整理，不构成任何投资建议</b>。
+        </div>
+
+        <div class="fx-sub">八、一页速查清单</div>
+        <div class="sys-sec">
+          <p>✦ <b>选</b>：换手涨停（买得进）＋ 真缺口（昨买者全赚）＋ ≥3板（有辨识度）＋ 题材龙头/助攻多 ＋ 空间龙头 ＋ 突破/主升阶段。</p>
+          <p>✦ <b>等</b>：今日候选 → 次日竞价确认（题材助攻、空间未死、不高开过猛）；名单≠买点。</p>
+          <p>✦ <b>买</b>：达标当日<b>收盘价</b>介入（全历史最优 50.7%／+5.57%）；一字放弃、不追高、缩量回避。</p>
+          <p>✦ <b>持</b>：收盘涨停就持有，让利润奔跑（右尾贡献收益）。</p>
+          <p>✦ <b>卖</b>：断板（含触板炸板收盘）当日收盘卖出，不加止损、靠纪律；平均持仓 2.72 日。</p>
+          <p class="sys-note" style="margin-top:6px">数据来源：全历史 3436 笔赚钱效应股（2017-03-06 ~ 2026-11-16，与站点同口径）。六轮买点明细见 output/earn_hold_*.json、highopen_stat.json、shrink_next_stat.json、prevvol_buy_stat.json；口径记录见 README §85–§87。</p>
         </div>
       </div>
     </details>
