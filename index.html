@@ -26,20 +26,7 @@
             -webkit-background-clip:text;background-clip:text;color:transparent;
             filter:drop-shadow(0 0 8px rgba(240,185,11,.5))}
   header .upd{color:var(--dim);font-size:11px;margin-left:auto;white-space:nowrap}
-  /* v78 全站个股搜索：header 搜索框 + 结果下拉 */
-  .srch{position:relative;display:inline-flex;margin-left:10px}
-  .srch input{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:6px;
-              padding:3px 9px;font-size:11.5px;width:170px;color-scheme:dark}
-  .srch input:focus{border-color:#3d8bff;outline:none}
-  #stk-q-list{position:absolute;top:100%;left:0;z-index:130;min-width:210px;max-height:min(420px,60vh);
-              overflow-y:auto;background:#141c2e;border:1px solid var(--blue);border-radius:6px;
-              display:none;box-shadow:0 8px 24px rgba(0,0,0,.6)}
-  #stk-q-list .q-it{padding:4px 10px;font-size:11.5px;cursor:pointer;display:flex;
-                    justify-content:space-between;gap:10px;align-items:center}
-  #stk-q-list .q-it:hover{background:#1b2740;color:#fff}
-  #stk-q-list .q-it em{font-style:normal;color:var(--dim2);font-size:10px;
-                       font-variant-numeric:tabular-nums}
-  #stk-q-list .q-none{padding:6px 10px;font-size:11px;color:var(--dim2)}
+  /* v82：个股搜索（v78~v80）已删除；保留通用查找按钮 #find-open */
   header .alert{background:#c62828;color:#fff;border-radius:10px;padding:1px 9px;
                 font-size:11px;white-space:nowrap;max-width:52vw;overflow:hidden;
                 text-overflow:ellipsis;display:none}
@@ -310,16 +297,6 @@
   /* ---------- 每模块独立日期选择（年月日 + 确定） ---------- */
   .dp-flash{animation:dpflash 1.6s ease}
   @keyframes dpflash{0%,100%{background:transparent}20%,60%{background:rgba(240,185,11,.22)}}
-  /* v80：Office 风格查找——全部匹配持续高亮 + 上一处/下一处按钮 + 计数 */
-  #find-bar{display:none;align-items:center;gap:2px;margin-left:4px;white-space:nowrap}
-  #find-bar.on{display:inline-flex}
-  #find-bar button{background:var(--card2);border:1px solid var(--line);color:#cfe0ff;
-           border-radius:5px;font-size:9.5px;padding:2px 5px;cursor:pointer;line-height:1.2}
-  #find-bar button:hover{border-color:#3d8bff;color:#fff}
-  #find-cnt{font-size:10.5px;color:var(--gold);min-width:34px;text-align:center;font-weight:700}
-  .find-hl{outline:2px solid rgba(240,185,11,.85);background:rgba(240,185,11,.16);border-radius:4px}
-  .find-cur{outline:3px solid #ff9d00!important;background:rgba(255,157,0,.32)!important;
-            box-shadow:0 0 12px rgba(255,157,0,.6);border-radius:4px}
   /* v81：Office 风格通用查找——查找按钮 + 浮层 + 全文高亮 + 上一条/下一条 */
   #find-open{background:linear-gradient(180deg,#22406e,#182a49);border:1px solid #3d6bb5;
              color:#e8f0ff;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;
@@ -795,8 +772,6 @@
     header .htop{gap:5px;row-gap:2px}
     header h1{font-size:16px;letter-spacing:2px}
     .brand{padding:0 0 2px}
-    .srch{margin-left:0}
-    .srch input{width:118px;font-size:11px}
     header .upd{font-size:10px}
     nav{width:100%;order:-1}                 /* 导航独占最顶首行 */
     nav button{flex:1 1 0;padding:3px 1px;font-size:9.5px;text-align:center}
@@ -1018,16 +993,6 @@
       <button data-t="decision">今日复盘</button>
       <button data-t="hist">历史复盘</button>
     </nav>
-    <span class="srch" id="srch">
-      <input id="stk-q" type="text" placeholder="🔍 搜个股（名称/代码）" autocomplete="off">
-      <span id="find-bar">
-        <span id="find-cnt">1/1</span>
-        <button id="find-prev" title="上一个结果（Shift+Enter / ↑）">▲</button>
-        <button id="find-next" title="下一个结果（Enter / ↓）">▼</button>
-        <button id="find-x" title="清除查找高亮（Esc）">✕</button>
-      </span>
-      <div id="stk-q-list"></div>
-    </span>
     <span class="upd" id="upd">--</span>
     <span class="alert" id="alert" title="点击查看详情"></span>
     <button id="refresh-btn" title="回源检查最新数据并自动重载 + 拉取当天涨停池，同步题材炒作图 / 当日机会 / 空间情绪">⟳ 刷新</button>
@@ -1194,111 +1159,8 @@ function kjNote(body, title){
   return '<details class="kj"><summary>'+(title||'口径说明')+' ▾</summary>'+
          '<div class="kjb">'+body+'</div></details>';
 }
-/* v80：Office 风格查找个股——收集当前模块明细表中该股出现过的全部位置，
-   全部持续高亮，搜索框旁工具条（计数 / 上一处 ▲ / 下一处 ▼ / 清除 ✕）循环跳转；
-   当前模块无该股时回退弹日K。 */
-let FIND = null;                     // {hosts:[], idx}
-function findClear(){
-  document.querySelectorAll('.find-hl, .find-cur')
-    .forEach(el=>el.classList.remove('find-hl', 'find-cur'));
-  FIND = null;
-  const bar = document.getElementById('find-bar');
-  if(bar) bar.classList.remove('on');
-}
-function findRowOf(el){
-  return el.closest('tr[data-dt]') || el.closest('.hr-day') ||
-         el.closest('.tcard') || el;
-}
-function findGo(i){
-  if(!FIND || !FIND.hosts.length) return;
-  const L = FIND.hosts.length;
-  FIND.idx = ((i % L) + L) % L;      // 循环跳转
-  document.querySelectorAll('.find-cur').forEach(el=>el.classList.remove('find-cur'));
-  const h = FIND.hosts[FIND.idx];
-  h.classList.add('find-cur');
-  window.scrollTo(0, Math.max(0, h.getBoundingClientRect().top + window.scrollY - 92));
-  const cnt = document.getElementById('find-cnt');
-  if(cnt) cnt.textContent = (FIND.idx+1)+'/'+L;
-}
-function locateStock(c, n, ev){
-  findClear();
-  const page = [...document.querySelectorAll('.page')].find(p=>p.classList.contains('on'));
-  const els = page ? [...page.querySelectorAll(
-      '[data-c="'+c+'"], [data-code="'+c+'"], [data-name="'+n+'"]')] : [];
-  if(!els.length){
-    showK(c, n, ev);                 // 当前模块明细表无该股 → 回退弹日K
-    return false;
-  }
-  const hosts = [];
-  els.forEach(el=>{
-    const h = findRowOf(el);
-    if(!hosts.includes(h)) hosts.push(h);
-  });
-  hosts.forEach(h=>h.classList.add('find-hl'));
-  FIND = {hosts, idx:-1};
-  const bar = document.getElementById('find-bar');
-  if(bar) bar.classList.add('on');
-  findGo(0);
-  return true;
-}
-/* v78 全站个股搜索：header 输入名称/代码 → 过滤 nameMap → 点选定位/弹日K */
-(function initStkSearch(){
-  const inp = document.getElementById('stk-q'), lst = document.getElementById('stk-q-list');
-  if(!inp || !lst) return;
-  let items = null;
-  const ensure = ()=>{
-    if(items) return;
-    items = Object.entries(((window.REVIEW||{}).nameMap)||{}).map(([c,n])=>({c, n}));
-  };
-  const render = q=>{
-    const qq = (q||'').trim();
-    if(!qq.length){ lst.style.display='none'; lst.innerHTML=''; return; }
-    ensure();
-    let hits = /^\d+$/.test(qq)
-      ? items.filter(x=>x.c.startsWith(qq))
-      : items.filter(x=>x.n.toLowerCase().includes(qq.toLowerCase()));
-    hits = hits.slice(0, 15);
-    lst.innerHTML = hits.length
-      ? hits.map(x=>'<div class="q-it" data-c="'+x.c+'" data-n="'+x.n+'"><span>'+x.n+'</span><em>'+x.c+'</em></div>').join('')
-      : '<div class="q-none">无匹配个股</div>';
-    lst.style.display = 'block';
-    lst.querySelectorAll('.q-it').forEach(el=>{
-      el.onclick = ev=>{
-        ev.stopPropagation();
-        lst.style.display='none'; inp.value='';
-        locateStock(el.dataset.c, el.dataset.n, ev);
-      };
-    });
-  };
-  inp.oninput = ()=>{ findClear(); render(inp.value); };
-  inp.onfocus = ()=>{ if(inp.value) render(inp.value); };
-  inp.onkeydown = ev=>{
-    if(ev.key === 'Enter'){
-      ev.preventDefault();
-      const dropOpen = lst.style.display === 'block' && lst.querySelector('.q-it');
-      if(dropOpen){                              // 有联想下拉 → 选第一条进入查找
-        lst.querySelector('.q-it').click();
-      } else if(FIND){                           // 查找中 → Enter 下一个 / Shift+Enter 上一个
-        findGo(ev.shiftKey ? FIND.idx-1 : FIND.idx+1);
-      }
-    } else if(ev.key === 'Escape'){
-      findClear(); lst.style.display='none'; inp.blur();
-    } else if(FIND && (ev.key === 'ArrowUp' || ev.key === 'ArrowDown')){
-      ev.preventDefault();
-      findGo(ev.key === 'ArrowUp' ? FIND.idx-1 : FIND.idx+1);
-    }
-  };
-  /* v80：查找工具条按钮（计数 / 上一处 / 下一处 / 清除） */
-  const fb = document.getElementById('find-bar');
-  if(fb){
-    document.getElementById('find-prev').onclick = ()=>{ if(FIND) findGo(FIND.idx-1); };
-    document.getElementById('find-next').onclick = ()=>{ if(FIND) findGo(FIND.idx+1); };
-    document.getElementById('find-x').onclick = ()=>{ findClear(); };
-  }
-  document.addEventListener('click', ev=>{
-    if(!ev.target.closest('#srch')) lst.style.display='none';
-  });
-})();
+/* v82：删除 v78~v80「搜索个股」功能（用户决定：交易核心是找龙头并参与，非按名字搜个股）。
+   保留 v81 通用页面查找（查找任意文字）。数据侧 nameMap 保留不影响。 */
 /* v81：Office 风格通用查找——遍历当前页文本节点，全部匹配高亮，逐处跳转。
    优先用 CSS Custom Highlight API（不改 DOM、不影响个股点击）；不支持时回退 mark 包裹。 */
 (function initOfficeFind(){
@@ -1323,7 +1185,7 @@ function locateStock(c, n, ev){
       acceptNode(n){
         if(!n.nodeValue||!n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
         const p=n.parentElement;
-        if(!p||p.closest('script,style,#ofind,#stk-q-list,#stk-q,nav')) return NodeFilter.FILTER_REJECT;
+        if(!p||p.closest('script,style,#ofind,nav')) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       }
     });
@@ -5089,7 +4951,13 @@ function switchTab(t){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+t));
   hideK();
-  findClear();                                   // v80：切页退出查找模式
+  /* v82：切页关闭 v81 通用查找面板并清高亮（个股搜索已删除） */
+  (function(){
+    var p=document.getElementById('ofind'), b=document.getElementById('find-open');
+    if(p) p.classList.remove('on'); if(b) b.classList.remove('on');
+    try{ if(window.CSS&&CSS.highlights){CSS.highlights.delete('ofhit');CSS.highlights.delete('ofcur');} }catch(e){}
+    document.querySelectorAll('mark.of-m').forEach(function(m){m.replaceWith(document.createTextNode(m.textContent));});
+  })();
   document.getElementById('sup-pop').style.display='none';
   document.getElementById('thpop').style.display='none';
   document.getElementById('ladpop').style.display='none';
