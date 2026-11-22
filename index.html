@@ -860,6 +860,18 @@
                border-radius:3px;padding:0 3px}
   .ep-ch .th{font-size:10.5px;color:#dcbafb;border:1px solid #6a4a9288;border-radius:4px;padding:0 4px}
   .ep-ch .th:hover{background:#2a1c44;color:#fff}
+  /* v82 明日赚钱效应候选：兑现状态标 + 汇总条 */
+  .nx-sum{font-size:11px;color:var(--dim2);margin:2px 0 6px}
+  .nx-sum b{color:var(--gold)}
+  .ep-ch.nx-ok{border-color:rgba(46,189,133,.6);background:rgba(46,189,133,.08)}
+  .ep-ch.nx-no{border-color:#2b3a56;opacity:.72}
+  .ep-ch i.ok2{font-style:normal;font-size:9px;color:#0c1a12;background:#2ebd85;
+               border-radius:3px;padding:0 4px;font-weight:800}
+  .ep-ch i.no2{font-style:normal;font-size:9px;color:var(--dim2);border:1px solid #2b3a56;
+               border-radius:3px;padding:0 4px}
+  .ep-ch i.wt2{font-style:normal;font-size:9px;color:#0c1a12;background:var(--gold);
+               border-radius:3px;padding:0 4px;font-weight:800}
+  .ep-ch i.hi2{font-style:normal;font-size:9.5px;color:#9fb0cc;margin-left:2px}
   /* v70 个股当日状态：涨停（首封时间）/ 炸板（含首封时间） */
   .stk-zt{font-style:normal;font-size:9px;color:#ffd24a;background:rgba(240,185,11,.14);
           border:1px solid rgba(240,185,11,.42);border-radius:3px;padding:0 3px;font-weight:700;
@@ -1093,6 +1105,8 @@
       <span class="sub" id="ep-range" style="margin-left:10px"></span>
     </div>
     <div id="es-root"></div>
+    <h4 class="ep-h" id="ep-nx-h">明日赚钱效应候选 <span class="sub" id="ep-nx-sub"></span></h4>
+    <div id="ep-nx"></div>
     <h4 class="ep-h" id="ep-fb-h">昨日梯队 → 今日反馈</h4>
     <div id="ep-fb"></div>
     <h4 class="ep-h">今日新增梯队 <span class="sub">昨日无梯队、今日新形成题材梯队的板块（与题材炒作入链题材同源）</span></h4>
@@ -4514,8 +4528,56 @@ function paintEarn(){
     };
   });
   paintRelay(end);
+  paintNextEarn(end);
   paintNewLad(end);
   paintHeat(end);
+}
+
+/* v82 明日赚钱效应候选：今日换手涨停≥2板，明日高开涨停（换手+跳空+晋级≥3板）即兑现 */
+function paintNextEarn(d){
+  const host = document.getElementById('ep-nx');
+  if(!host) return;
+  const N = ((window.REVIEW||{}).nextEarn)||{};
+  const head = document.getElementById('ep-nx-h'), sub = document.getElementById('ep-nx-sub');
+  const arr = (N.byDate||{})[d] || [];
+  const ds = epDays(), isToday = !d || d===ds[ds.length-1];
+  if(sub) sub.textContent = isToday
+    ? '今日换手涨停≥2板 · 明日「换手涨停＋最低价＞今最高＋晋级≥3板」即成赚钱效应股（今日买入者全部获利）'
+    : fmtDate(d)+' 候选 · 历史兑现回看';
+  if(!arr.length){
+    host.innerHTML = '<div class="sub" style="padding:6px 2px">'+fmtDate(d)+' 无换手涨停的 ≥2 板候选个股。</div>';
+    return;
+  }
+  const done = arr.filter(e=>e.ok!==null), hit = done.filter(e=>e.ok===1).length;
+  const sum = isToday
+    ? '<div class="nx-sum">今日候选 <b>'+arr.length+'</b> 只 · 明日兑现待验证（点个股看日K、点题材看当日梯队）</div>'
+    : '<div class="nx-sum">候选 <b>'+arr.length+'</b> 只 · 明日兑现 <b>'+hit+'/'+done.length+'</b>'+
+      (done.length? '（'+Math.round(hit/done.length*100)+'%）':'')+' · 灰显＝未兑现</div>';
+  const cards = arr.map(e=>{
+    const g = e.gap===1 ? '<i class="gap">缺口</i>' : '';
+    const mk = e.ok===1 ? '<i class="ok2">✓兑现'+(e.b1?' '+e.b1+'板':'')+'</i>'
+             : (e.ok===0 ? '<i class="no2">未兑现</i>' : '<i class="wt2">待验证</i>');
+    const tier = e.theme ? tierOf(d, e.theme) : '';
+    const cls = e.ok===1 ? ' nx-ok' : (e.ok===0 ? ' nx-no' : '');
+    return '<span class="ep-ch nx'+cls+'" data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+d+'" '+
+      'title="'+e.name+' 今日 '+e.b+'板'+' · 明日最低需＞今高 '+(e.hi?e.hi.toFixed(2):'—')+
+      ' 元且换手涨停晋级≥3板 → 兑现赚钱效应 ｜点看日K">'+
+      '<b>'+e.name+'</b><em class="b">'+e.b+'板</em>'+g+
+      (e.t?'<i class="hi2">'+e.t+'</i>':'')+mk+
+      '<span class="th" data-th="'+(e.theme||'')+'" data-d="'+d+'"'+
+      (e.theme? ' title="点看 '+fmtDate(d)+'「'+e.theme+'」当日梯队"':' title="当日无复盘题材归类"')+'>'+
+      (e.theme||'—')+(tier? '<em class="tier">'+tier+'</em>':'')+'</span></span>';
+  }).join('');
+  host.innerHTML = sum+'<div class="ep-rows">'+cards+'</div>';
+  host.querySelectorAll('.ep-ch').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
+  });
+  host.querySelectorAll('.ep-ch .th').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation();
+      if(!el.dataset.th){ toast('该股当日无复盘题材归类'); return; }
+      openLadPop(el.dataset.th, el.dataset.d, ev);
+    };
+  });
 }
 
 /* ② 昨日梯队 → 今日反馈：龙头（最高板）/ 助攻（次级连板）/ 跟风（首板）逐股涨幅 + 晋级 + 当日状态 */

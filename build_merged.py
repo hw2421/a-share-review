@@ -864,6 +864,21 @@ for _d in _ZT_DAYS:
 print("v76 个股涨停形式映射（gapMap）：%d 天 / %d 个股票日（缺口 %d）"
       % (len(GAP_MAP), sum(len(v) for v in GAP_MAP.values()),
          sum(1 for v in GAP_MAP.values() for g in v.values() if g)))
+# ---- 5.6.27d v82 明日赚钱效应候选（今日换手涨停≥2板 → 明日高开涨停晋级≥3板即兑现） ----
+import next_earn as NE
+NEXT_EARN = NE.compute(dates, pools, fd.yizi_map(pools), KBARS, theme_at,
+                       (EARN_STREAK or {}).get("eventsAll") or [], _up_shape,
+                       NAME=_NAME_ALL, ALL_N=140)
+# 回填今日缺口标（与 gapMap 同口径，供候选 chip 显示形态）
+for _d, _arr in NEXT_EARN["byDate"].items():
+    _gm = GAP_MAP.get(_d) or {}
+    for _e in _arr:
+        if _e["code"] in _gm:
+            _e["gap"] = _gm[_e["code"]]
+print("v82 明日赚钱效应候选：%d 天 / %d 条候选（今日样本 %d 只）"
+      % (len(NEXT_EARN["days"]),
+         sum(len(v) for v in NEXT_EARN["byDate"].values()),
+         len(NEXT_EARN["byDate"].get(dates[-1], []))))
 # ---- 5.6.27c v73 历史复盘（赚钱效应股按日期/题材/高度排列 + 断板3日跟踪 +
 #      空间龙头与上一个断板空间龙头叠加，3日不涨停移除） ----
 import hist_review as HR
@@ -1410,6 +1425,7 @@ data = {
     "ladderFull": ladder_full,       # 日期 -> 题材 -> 当日梯队完整涨停个股（题材卡点梯队浮层）
     "stockTheme": carry,            # 个股 -> 最近一次归属题材（刷新时补当天题材用）
     "earnStreak": EARN_STREAK,      # v67 赚钱效应统计：连续两日换手赚钱机会个股（3板+）
+    "nextEarn": NEXT_EARN,          # v82 明日赚钱效应候选：今日换手涨停≥2板→明日高开晋级≥3板即兑现
     "brkTrack": BRK_TRACK,          # v67 高位断板跟踪：昨日≥3板断板 → 跟踪3日涨跌幅
     "relayFb": RELAY_FB,            # v69 昨日梯队 → 今日盈亏传导（逐股涨幅 + 是否晋级，按龙头/助攻/跟风分层）
     "dayZT": DAY_ZT,                # v74 近25日全量涨停股：{d:{code:[名称,首封,形态,板位,题材兜底]}}
