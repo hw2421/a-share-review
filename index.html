@@ -677,7 +677,7 @@
   #kpop .kx{position:absolute;top:2px;right:6px;z-index:3;color:var(--dim);
             font-size:17px;cursor:pointer;line-height:1;padding:6px}
   #kpop .kx:hover{color:var(--text)}
-  #kpop .kc{position:absolute;left:0;right:0;top:0;bottom:66px}
+  #kpop .kc{position:absolute;left:0;right:0;top:0;bottom:var(--klh,66px)}
   /* v51：分时走势浮层——点日K任一蜡烛弹出该日分时；只显示时间/价/涨幅，不显示开收价浮窗 */
   #mppop{position:fixed;z-index:130;width:min(920px,94vw);height:min(460px,70vh);
          background:#10182a;border:1px solid var(--gold);border-radius:10px;display:none;
@@ -690,16 +690,17 @@
   #mppop .mpx:hover{color:var(--text)}
   #mppop .mpc{position:absolute;left:0;right:0;top:26px;bottom:0}
   #mppop .mpnote{position:absolute;left:12px;bottom:6px;z-index:3;color:var(--dim2);font-size:9.5px}
-  /* 当日题材梯队：弹窗底部条，点梯队个股直接切换日K */
-  #kpop .klad{position:absolute;left:0;right:0;bottom:0;height:64px;z-index:5;
-        background:rgba(12,19,34,.96);border-top:1px solid #26334a;padding:5px 8px;
-        overflow-x:auto;overflow-y:hidden;white-space:nowrap;font-size:10px;color:var(--dim2)}
-  #kpop .klad .kl-h{color:var(--gold);font-weight:800;margin-right:8px}
-  #kpop .klad .kl-s{display:inline-block;background:#1b2740;border:1px solid #33456a;
-        color:#cfe0ff;border-radius:4px;padding:2px 6px;margin-right:5px;cursor:pointer}
+  /* 当日题材梯队：弹窗底部条（v79 竖向显示、纵向滚动，不再横向拖动），点梯队个股直接切换日K */
+  #kpop{--klh:clamp(96px,20vh,150px)}
+  #kpop .klad{position:absolute;left:0;right:0;bottom:0;height:var(--klh);z-index:5;
+        background:rgba(12,19,34,.96);border-top:1px solid #26334a;padding:5px 10px;
+        overflow-x:hidden;overflow-y:auto;font-size:10px;color:var(--dim2)}
+  #kpop .klad .kl-h{display:block;color:var(--gold);font-weight:800;margin:0 0 4px}
+  #kpop .klad .kl-s{display:block;background:#1b2740;border:1px solid #33456a;
+        color:#cfe0ff;border-radius:4px;padding:2px 8px;margin:0 0 4px;cursor:pointer}
   #kpop .klad .kl-s:hover{background:#28508f;color:#fff}
   #kpop .klad .kl-s b{color:#ffe08a}
-  #kpop .klad .kl-t{color:#7f8ea6;margin-left:2px}
+  #kpop .klad .kl-t{color:#7f8ea6;margin-left:6px}
   /* 右下角：返回顶端（半透明，固定不动） */
   #backtop{position:fixed;right:16px;bottom:22px;z-index:80;height:32px;padding:0 14px;
            border-radius:16px;border:1px solid rgba(61,139,255,.7);
@@ -1029,7 +1030,10 @@
       <button class="ep-w" data-w="5">近 5 日</button>
       <span class="ep-lb" style="margin-left:10px">回看截止日</span>
       <button id="ep-prev" class="ep-go" title="往前一个交易日">◀</button>
-      <select id="ep-date" class="ep-sel" title="选择历史交易日作为统计截止日（窗口以该日为终点往回数）"></select>
+      <select id="ep-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
+      <select id="ep-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
+      <select id="ep-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
+      <button id="ep-go" class="ep-go" title="跳转到所选截止日">确定</button>
       <button id="ep-next" class="ep-go" title="往后一个交易日">▶</button>
       <button id="ep-latest" class="ep-go" title="回到最新交易日">最新</button>
       <span class="sub" id="ep-range" style="margin-left:10px"></span>
@@ -1122,7 +1126,26 @@ function kjNote(body, title){
   return '<details class="kj"><summary>'+(title||'口径说明')+' ▾</summary>'+
          '<div class="kjb">'+body+'</div></details>';
 }
-/* v78 全站个股搜索：header 输入名称/代码 → 过滤 nameMap → 点选弹日K */
+/* v79：搜索个股 → 定位当前模块下该股出现过的日期位置（滚动 + 高亮），
+   当前模块找不到该股时回退为弹日K */
+function locateStock(c, n, ev){
+  const page = [...document.querySelectorAll('.page')].find(p=>p.classList.contains('on'));
+  if(page){
+    const els = [...page.querySelectorAll('[data-c="'+c+'"]')];
+    if(els.length){
+      const t = els[0];                       // 文档序第一个＝模块内最靠上（最新日期）的出现位置
+      const card = t.closest('.hr-day') || t;  // 历史复盘定位到日期卡片，其余模块定位到个股本身
+      const yy = card.getBoundingClientRect().top + window.scrollY - 92;
+      window.scrollTo(0, Math.max(0, yy));
+      card.classList.remove('dp-flash'); void card.offsetWidth; card.classList.add('dp-flash');
+      setTimeout(()=>card.classList.remove('dp-flash'), 1700);
+      return true;
+    }
+  }
+  showK(c, n, ev);
+  return false;
+}
+/* v78 全站个股搜索：header 输入名称/代码 → 过滤 nameMap → 点选定位/弹日K */
 (function initStkSearch(){
   const inp = document.getElementById('stk-q'), lst = document.getElementById('stk-q-list');
   if(!inp || !lst) return;
@@ -1147,7 +1170,7 @@ function kjNote(body, title){
       el.onclick = ev=>{
         ev.stopPropagation();
         lst.style.display='none'; inp.value='';
-        showK(el.dataset.c, el.dataset.n, ev);
+        locateStock(el.dataset.c, el.dataset.n, ev);
       };
     });
   };
@@ -3916,7 +3939,9 @@ function positionK(e){
   if(!e || e.clientX==null || e.clientY==null) return;
   const [cx, cy] = landXY(e);
   const [W, H] = landWH();
-  let x = cx+16, y = cy-140;
+  /* v79：弹窗向右靠齐（贴视口右缘），纵向跟随点击位置 */
+  let x = W - pop.offsetWidth - 10;
+  let y = cy-140;
   x = Math.max(8, Math.min(x, W-pop.offsetWidth-8));
   y = Math.max(8, Math.min(y, H-pop.offsetHeight-8));
   pop.style.left = x+'px'; pop.style.top = y+'px';
@@ -4170,14 +4195,25 @@ function epEndDate(){
   const ds = epDays(), last = ds[ds.length-1] || '';
   return (EP_END && ds.includes(EP_END)) ? EP_END : last;
 }
-/* v71：回看截止日下拉（全部交易日倒序）+ 前后步进 */
-function epFillDates(end){
-  const sel = document.getElementById('ep-date');
-  if(!sel) return;
+/* v79：回看截止日 年/月/日 三级下拉（与历史复盘同思路，保留已选年/月不跳变） */
+function epFillDPick(){
+  const yEl = document.getElementById('ep-y'), mEl = document.getElementById('ep-m'),
+        dEl = document.getElementById('ep-d');
+  if(!yEl) return;
   const ds = epDays();
-  if(sel.options.length !== ds.length)
-    sel.innerHTML = ds.slice().reverse().map(d=>'<option value="'+d+'">'+fmtDate(d)+'</option>').join('');
-  sel.value = end;
+  const cur = EP_END || ds[ds.length-1] || '';
+  const years = [...new Set(ds.map(x=>x.slice(0,4)))].sort().reverse();
+  const cy = yEl.value && years.includes(yEl.value) ? yEl.value
+    : (cur && years.includes(cur.slice(0,4)) ? cur.slice(0,4) : years[0]);
+  const months = [...new Set(ds.filter(x=>x.slice(0,4)===cy).map(x=>x.slice(4,6)))].sort().reverse();
+  const cm = mEl.value && months.includes(mEl.value) ? mEl.value
+    : (cur && cur.slice(0,4)===cy && months.includes(cur.slice(4,6)) ? cur.slice(4,6) : months[0]);
+  const days = ds.filter(x=>x.slice(0,6)===cy+cm).map(x=>x.slice(6,8)).sort().reverse();
+  const cd = dEl.value && days.includes(dEl.value) ? dEl.value
+    : (cur && cur.slice(0,6)===cy+cm && days.includes(cur.slice(6,8)) ? cur.slice(6,8) : days[0]);
+  yEl.innerHTML = years.map(v=>'<option value="'+v+'"'+(v===cy?' selected':'')+'>'+v+'</option>').join('');
+  mEl.innerHTML = months.map(v=>'<option value="'+v+'"'+(v===cm?' selected':'')+'>'+v+'</option>').join('');
+  dEl.innerHTML = days.map(v=>'<option value="'+v+'"'+(v===cd?' selected':'')+'>'+v+'</option>').join('');
 }
 function epStepDate(n){
   const ds = epDays();
@@ -4241,7 +4277,7 @@ function paintEarn(){
   const end = epEndDate();
   const ei = ds.indexOf(end);
   const start = ds[Math.max(0, ei-EP_W+1)] || end;
-  epFillDates(end);
+  epFillDPick();
   document.querySelectorAll('.ep-w').forEach(b=>b.classList.toggle('on', +b.dataset.w===EP_W));
   const hd = document.getElementById('ep-hd'), rg = document.getElementById('ep-range');
   if(hd) hd.textContent = '近 '+EP_W+' 个交易日 · 赚钱效应股：3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日最高价（昨日买入者全部获利）'+
@@ -4521,14 +4557,20 @@ function paintHeat(d){
 document.querySelectorAll('.ep-w').forEach(b=>{
   b.onclick = ()=>{ EP_W = +b.dataset.w; paintEarn(); };
 });
-/* v71：回看截止日控件（◀ / 下拉 / ▶ / 最新） */
+/* v79：回看截止日控件（◀ / 年月日 / 确定 / ▶ / 最新） */
 (function initEpNav(){
   const p = document.getElementById('ep-prev'), n = document.getElementById('ep-next'),
-        lt = document.getElementById('ep-latest'), sel = document.getElementById('ep-date');
+        lt = document.getElementById('ep-latest'), go = document.getElementById('ep-go'),
+        y = document.getElementById('ep-y'), m = document.getElementById('ep-m'),
+        d = document.getElementById('ep-d');
+  const sel = ()=> y && (y.value + (m? m.value:'') + (d? d.value:''));
   if(p) p.onclick = ()=>epStepDate(-1);
   if(n) n.onclick = ()=>epStepDate(1);
   if(lt) lt.onclick = ()=>{ EP_END = null; paintEarn(); };
-  if(sel) sel.onchange = ()=>{ EP_END = sel.value; paintEarn(); };
+  if(go) go.onclick = ()=>{ EP_END = sel(); paintEarn(); };
+  if(y) y.onchange = ()=>epFillDPick();
+  if(m) m.onchange = ()=>epFillDPick();
+  if(d) d.onchange = ()=>{ EP_END = sel(); paintEarn(); };
 })();
 
 /* ================= v73 历史复盘 =================
