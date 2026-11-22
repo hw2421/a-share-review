@@ -900,7 +900,7 @@
   .yr-card .yr-chg{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
   .yr-card i{font-style:normal;font-size:9px;border-radius:3px;padding:0 4px;font-weight:700}
   .yr-card i.zt{color:#ffd24a;background:rgba(240,185,11,.16);border:1px solid rgba(240,185,11,.4)}
-  .yr-card i.sh{color:#ff9d8a;background:rgba(255,90,70,.12);border:1px solid rgba(255,90,70,.35)}
+  .yr-card i.zb{color:#ff9d8a;background:rgba(255,90,70,.12);border:1px solid rgba(255,90,70,.35)}
   .yr-card i.hit{color:#0c1a12;background:#2ebd85}
   .yr-card i.miss{color:var(--dim2);border:1px solid #2b3a56}
   .yr-card i.na{color:var(--dim2);border:1px dashed #3a4a63}
@@ -4631,7 +4631,8 @@ function paintEarn(){
 }
 
 /* v86 昨日推荐股 → 今日表现：站在今日 d，取昨日 dp 的「明日赚钱效应候选」，
-   用候选自带 nx（次日＝今日表现，全量日K算）显示今日涨幅/开盘/最高/涨停/触板/兑现。 */
+   用候选自带 nx（次日＝今日表现，全量日K算）显示今日涨幅/开盘/最高/涨停/炸板/兑现。
+   v87：盘中触及涨停但收盘未封（nx.sh 且非涨停）显示为「炸板」（原「触板」）。 */
 function paintYesterdayRec(d){
   const host = document.getElementById('ep-yrec');
   if(!host) return;
@@ -4649,11 +4650,11 @@ function paintYesterdayRec(d){
   }
   const fnum = v => (v==null? '—' : (v>0?'+':'')+v.toFixed(2)+'%');
   const col = v => (v==null? 'var(--dim2)' : (v>=0? C.up : C.down));
-  let ztN=0, shN=0, hitN=0, done=0, chgSum=0, chgN=0;
+  let ztN=0, zbN=0, hitN=0, done=0, chgSum=0, chgN=0;
   const cards = arr.map(e=>{
     const nx = e.nx;
     if(nx){
-      if(nx.zt || e.ok===1) ztN++; if(nx.sh && !(nx.zt||e.ok===1)) shN++;
+      if(nx.zt || e.ok===1) ztN++; if(nx.sh && !(nx.zt||e.ok===1)) zbN++;
       if(nx.chg!=null){chgSum+=nx.chg; chgN++;}
     }
     if(e.ok!==null){ done++; if(e.ok===1) hitN++; }
@@ -4661,11 +4662,11 @@ function paintYesterdayRec(d){
     const mk = e.ok===1 ? '<i class="hit">✓兑现'+(e.b1?' '+e.b1+'板':'')+'</i>'
              : (e.ok===0 ? '<i class="miss">未兑现</i>' : '<i class="na">待验证</i>');
     const isZt = (nx&&nx.zt) || e.ok===1;   // 兑现必涨停（兼容涨停价四舍五入边界）
-    const ztTag = isZt ? '<i class="zt">涨停</i>' : (nx&&nx.sh ? '<i class="sh">触板</i>' : '');
+    const ztTag = isZt ? '<i class="zt">涨停</i>' : (nx&&nx.sh ? '<i class="zb">炸板</i>' : '');
     const cls = nx&&nx.chg!=null ? (nx.chg>=0?' up':' dn') : '';
     const tip = e.name+'：'+fmtDate(dp)+' 推荐（'+bTag+(e.theme?' · '+e.theme:'')+'）→ '+
       (nx ? (fmtDate(d)+' 开盘 '+fnum(nx.op)+' / 最高 '+fnum(nx.high)+' / 最低 '+fnum(nx.low)+
-             ' / 收盘 '+fnum(nx.chg)+(nx.zt?' 收涨停':(nx.sh?' 盘中触板未封':'')))
+             ' / 收盘 '+fnum(nx.chg)+(nx.zt?' 收涨停':(nx.sh?' 盘中触及涨停后炸板未封':'')))
           : '今日无行情数据')+
       (e.ok===1?' · 兑现赚钱效应股':(e.ok===0?' · 未兑现':''))+' ｜点看日K';
     const tier = e.theme ? tierOf(dp, e.theme) : '';
@@ -4680,7 +4681,7 @@ function paintYesterdayRec(d){
   const avg = chgN? (chgSum/chgN) : null;
   const sum = '<div class="yr-sum">昨日推荐 <b>'+arr.length+'</b> 只 → 今日：'+
     '平均涨幅 <b style="color:'+col(avg)+'">'+fnum(avg)+'</b>'+
-    ' · 涨停 <b>'+ztN+'</b> · 盘中触板 <b>'+shN+'</b>'+
+    ' · 涨停 <b>'+ztN+'</b> · 盘中炸板 <b>'+zbN+'</b>'+
     ' · 兑现赚钱效应 <b>'+hitN+'/'+done+'</b>'+(done?'（'+Math.round(hitN/done*100)+'%）':'')+
     ' <span style="color:var(--dim2)">｜点个股看日K、点题材看昨日梯队</span></div>';
   host.innerHTML = sum + '<div>'+cards+'</div>';
