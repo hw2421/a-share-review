@@ -1179,17 +1179,24 @@
     border-radius:6px;padding:4px 10px;font-size:10.5px;cursor:pointer}
   .ew-filters button:hover{border-color:#3d8bff}
   .ew-filters button.active{background:#1b4a90;border-color:#78b0ff;color:#fff;font-weight:700}
-  .ew-list{display:flex;flex-direction:column;gap:7px;margin-top:2px}
-  .ew-row{border:1px solid #2b3a56;border-radius:8px;padding:7px 10px;background:#141d2f}
-  .ew-rowmain{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;font-size:11px;color:var(--dim)}
-  .ew-rowname{font-size:13px;color:var(--text);font-weight:700;white-space:nowrap}
-  .ew-rowname small{color:var(--dim2);font-size:9.5px;font-weight:400;margin-left:3px}
+  .ew-list{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+  .ew-row{border:1px solid #2b3a56;border-radius:8px;padding:6px 9px;background:#141d2f}
+  /* v104：主信息单行（名称+高度+形态+题材），整体缩小字体 */
+  .ew-rowmain{display:flex;flex-wrap:nowrap;align-items:center;gap:4px 7px;font-size:10px;color:var(--dim);
+    white-space:nowrap;overflow-x:auto;scrollbar-width:thin}
+  .ew-rowname{font-size:11px;color:var(--text);font-weight:700;cursor:pointer;white-space:nowrap}
+  .ew-rowname:hover{color:#9dc6ff;text-decoration:underline}
+  .ew-rowname small{color:var(--dim2);font-size:9px;font-weight:400;margin-left:2px}
+  .ew-rowf{white-space:nowrap}
   .ew-rowf b{color:var(--gold)}
-  .ew-rowf .sp{margin-left:1px}
+  .ew-rowf .sp{margin-left:1px;font-size:9px}
   .ew-rowsep{color:#3a4a63}
-  .ew-rowfolds{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-  .ew-det{flex:1 1 210px;min-width:0;border:1px solid #263550;border-radius:6px;background:#101828}
-  .ew-det summary{cursor:pointer;list-style:none;padding:4px 8px;font-size:10px;color:#9dc6ff;font-weight:700;user-select:none}
+  .ew-rowth{cursor:pointer}
+  .ew-rowth:hover{text-decoration:underline}
+  /* v104：三个折叠项强制同一行 */
+  .ew-rowfolds{display:flex;flex-wrap:nowrap;gap:5px;margin-top:5px}
+  .ew-det{flex:1 1 0;min-width:0;border:1px solid #263550;border-radius:6px;background:#101828}
+  .ew-det summary{cursor:pointer;list-style:none;padding:3px 7px;font-size:9.5px;color:#9dc6ff;font-weight:700;user-select:none;white-space:nowrap}
   .ew-det summary::-webkit-details-marker{display:none}
   .ew-det summary::before{content:'▸ ';color:#7fb0ff}
   .ew-det[open] summary::before{content:'▾ '}
@@ -1200,9 +1207,9 @@
   .ew-role.space{background:rgba(240,185,11,.16);color:#ffd24a;border:1px solid rgba(240,185,11,.35)}
   .ew-role.theme{background:rgba(165,94,234,.16);color:#cf9df5;border:1px solid rgba(165,94,234,.35)}
   .ew-role.rebound{background:rgba(46,189,133,.16);color:#7fe0b8;border:1px solid rgba(46,189,133,.35)}
-  .ew-ev span{background:rgba(61,139,255,.1);color:#9dc6ff;border-radius:4px;padding:1px 5px;font-size:10px}
-  .ew-risk span{background:rgba(240,185,11,.1);color:#ffd98a;border-radius:4px;padding:1px 5px;font-size:10px}
-  .ew-confirm span{border:1px dashed #3a4a63;color:var(--dim);border-radius:4px;padding:1px 5px;font-size:10px}
+  .ew-ev span{background:rgba(61,139,255,.1);color:#9dc6ff;border-radius:4px;padding:1px 5px;font-size:9.5px}
+  .ew-risk span{background:rgba(240,185,11,.1);color:#ffd98a;border-radius:4px;padding:1px 5px;font-size:9.5px}
+  .ew-confirm span{border:1px dashed #3a4a63;color:var(--dim);border-radius:4px;padding:1px 5px;font-size:9.5px}
   .ew-det .ew-ev:empty::after,.ew-det .ew-risk:empty::after,.ew-det .ew-confirm:empty::after{content:'—';color:var(--dim2)}
   .ew-note{margin-top:7px;color:var(--dim2);font-size:9.5px;line-height:1.6}
   .ew-empty{padding:10px 2px;color:var(--dim2);font-size:11px}
@@ -5364,7 +5371,7 @@ function ewRenderWhere(end){
     '<span>涨停 <b>'+count2(d.zt)+'</b> 只</span><span>昨涨停今红盘 <b>'+(d.sentiment.r2b==null?'—':Math.round(d.sentiment.r2b*100)+'%')+'</b></span></div>';
   const filters='<div class="ew-filters">'+types.map(t=>'<button data-ewrole="'+t+'" class="'+(ewRoleFilter===t?'active':'')+'">'+t+' '+(t==='全部'?cands.length:cands.filter(x=>x.roles.has(t)).length)+'</button>').join('')+'</div>';
   const roleClass=r=>r==='空间龙头'?'space':r==='题材龙头'?'theme':'rebound';
-  /* v103 行式：个股名称(身份标记) - 高度 - 涨停形态 - 题材情况 - 入选依据(折叠) - 风险提示(折叠) - 次日确认(折叠) */
+  /* v104 行式单行：名称(可点K线)-身份标记-高度-形态-题材(可点梯队) ｜ 三折叠同一行 */
   const list=shown.map(c=>{
     const roles=[...c.roles].map(r=>'<span class="ew-role '+roleClass(r)+'">'+r+'</span>').join('');
     const ev=c.evidence.map(x=>'<span>'+escHtml(x)+'</span>').join('');
@@ -5372,23 +5379,41 @@ function ewRenderWhere(end){
     const conf=['竞价不弱','所属题材有助攻','高位亏钱效应缓和'].map(x=>'<span>'+x+'</span>').join('');
     const themes=[...c.themes].filter(Boolean).map(th=>{
       const tier=tierOf(end, th);
-      return escHtml(th)+(tier?' <span style="color:var(--dim2)">'+escHtml(tier)+'</span>':'');
+      return '<span class="ew-rowth" data-th="'+escHtml(th)+'" title="点看「'+escHtml(th)+'」题材梯队">'+escHtml(th)+
+        (tier?' <span style="color:var(--dim2)">'+escHtml(tier)+'</span>':'')+'</span>';
     }).join(' / ')||'未归类';
     return '<article class="ew-row"><div class="ew-rowmain">'+
-      '<span class="ew-rowname"><strong>'+escHtml(c.name)+'</strong><small>'+escHtml(c.code)+'</small></span>'+
+      '<span class="ew-rowname" data-c="'+escHtml(c.code)+'" data-n="'+escHtml(c.name)+'" data-sh="'+escHtml(c.shape||'')+'" title="点看 '+escHtml(c.name)+' 日K（含题材梯队/涨停形态/涨停时间）">'+
+        '<strong>'+escHtml(c.name)+'</strong><small>'+escHtml(c.code)+'</small></span>'+
       '<span class="ew-roles">'+roles+'</span>'+
       '<span class="ew-rowsep">·</span><span class="ew-rowf">高度 <b>'+count2(c.b)+'板</b></span>'+
       '<span class="ew-rowsep">·</span><span class="ew-rowf">形态 '+shapeTag(end,c.code,c.shape)+'</span>'+
-      '<span class="ew-rowsep">·</span><span class="ew-rowf">题材 <b>'+themes+'</b></span>'+
+      '<span class="ew-rowsep">·</span><span class="ew-rowf">题材 '+themes+'</span>'+
       '</div><div class="ew-rowfolds">'+
       '<details class="ew-det"><summary>入选依据</summary><div class="ew-ev">'+ev+'</div></details>'+
       '<details class="ew-det"><summary>风险提示</summary><div class="ew-risk">'+risks+'</div></details>'+
       '<details class="ew-det"><summary>次日确认</summary><div class="ew-confirm">'+conf+'</div></details>'+
-      '</div></div></article>';
+      '</div></article>';
   }).join('');
   host.innerHTML=ctx+filters+(list?'<div class="ew-list">'+list+'</div>':'<div class="ew-empty">所选交易日无 3 板及以上的候选股。</div>')+
-    '<div class="ew-note">仅展示 3 板及以上个股；身份标记、入选依据、风险提示、次日确认口径不变。候选名单是盘后复盘结果，非次日上涨概率。</div>';
+    '<div class="ew-note">仅展示 3 板及以上个股；点个股名称看日K（含题材梯队/涨停形态/涨停时间），点题材看题材梯队。候选名单是盘后复盘结果，非次日上涨概率。</div>';
   host.querySelectorAll('[data-ewrole]').forEach(b=>{ b.onclick=()=>{ ewRoleFilter=b.dataset.ewrole; ewRenderWhere(end); }; });
+  host.querySelectorAll('.ew-rowname').forEach(el=>{
+    el.onclick=ev=>{ ev.stopPropagation(); ewOpenK(el.dataset.c, el.dataset.n, ev, end, el.dataset.sh); };
+  });
+  host.querySelectorAll('.ew-rowth').forEach(el=>{
+    el.onclick=ev=>{ ev.stopPropagation(); openLadPop(el.dataset.th, end, ev); };
+  });
+}
+/* v104：点个股名称→日K弹窗（底部自动带题材梯队/涨停时间），标题补涨停形态徽标 */
+async function ewOpenK(code, name, ev, end, shape){
+  await showK(code, name, ev, end);
+  const pop = document.getElementById('kpop');
+  const t = document.getElementById('kpop-t');
+  if(pop && pop.style.display==='block' && t && !t.querySelector('.ew-ksp')){
+    const sh = shapeOf(end, code, shape);
+    if(sh) t.insertAdjacentHTML('beforeend', ' <em class="sp ew-ksp '+shapeCls(sh.s)+'" style="margin-left:6px" title="涨停形态">形态 '+escHtml(sh.s)+'</em>');
+  }
 }
 const escHtml=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 const count2=x=>ewIsNum(x)?x:'—';

@@ -3056,3 +3056,17 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
 - 实测(Chromium)：KPI=0；11-23 两行均5板、11-20 两行4板、11-19 三行3板(全≥3板)；
   每行3个折叠默认关闭、点击可展开且内容完整(依据/风险/次日确认)；形态徽标长腿/一字/普通正常；
   身份筛选可切；5页签无回归、0 JS 报错。截图 v103_where.png / v103_where_open.png。纯前端迭代，数据零改动。
+
+
+### 107. v104 赚钱效应在哪：三折叠同一行 + 名称与高度同行 + 缩小字体 + 名称看K线/题材看梯队
+- 用户要求：①入选依据/风险提示/次日确认三个折叠都放在一行；②个股高度与个股名称放同一行；③缩小字体；
+  ④点击个股名称显示对应日K（弹窗内含个股题材梯队情况、涨停形态、涨停时间）；⑤点击题材名显示题材梯队情况。
+- CSS：.ew-rowmain 改 flex-wrap:nowrap + font-size:10px（原11px），.ew-rowname 13→11px 加 cursor:pointer/hover下划线，
+  .ew-rowfolds 改 flex-wrap:nowrap（三折叠强制同一行），.ew-det 改 flex:1 1 0 等宽，summary 10→9.5px，
+  折叠内 span 10→9.5px；新增 .ew-rowth 题材可点样式。
+- JS：渲染行内个股名加 data-c/data-n/data-sh 并绑定 ewOpenK；题材名拆成 .ew-rowth 带 data-th 绑定 openLadPop(th,end,ev)；
+  顺手修掉旧的 </div></div></article> 多余一层 div。新增 ewOpenK()：await showK(code,name,ev,end) 后往 #kpop-t
+  补「形态 徽标」(shapeOf+shapeCls)；K线弹窗底部 renderKLad 本就带题材梯队完整清单+涨停时间，故梯队/时间自动带出。
+- 实测(Chromium)：三折叠 top 全=428 同一行；3行均3板(≥3板保持)；名称top405/高度top406 同行(基线差1px)；
+  字体10px；点名称→K弹窗标题「盛剑科技 日K 共130根 形态 长腿」+底部「光刻机3板梯队8只」含09:25涨停时间；
+  点题材→题材梯队弹窗 display=block；5页签无回归、0 JS 报错。截图 v104_where.png / v104_kline.png。纯前端迭代，数据零改动。
