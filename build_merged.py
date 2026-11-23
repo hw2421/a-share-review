@@ -157,6 +157,45 @@ if os.path.exists(bf_f):                  # 新补抓（微博/移动版文章�
     except Exception as e:
         print("补抓题材读取失败：%s" % e)
 
+# ---- 3.1b v94 湖南人题材卡「原始个股归类」快照（补充全局题材库用）----
+# 上面的清洗规则「个股必须当日真实涨停才计入题材」会剔除一批个股：
+#   · 午间版/昨日复盘残留的个股（当日未涨停）
+#   · OCR 把涨停时间识别错位、池里对不上代码的个股
+# 这些个股在湖南人复盘题材卡里**明明有题材归类**（用户口径：所有数据都有、
+# 不可能缺失），只因当日未涨停被删，导致全局题材库 stockTheme 缺记录，前端
+# themeOf() 三级反查返回 null → 显示「无题材」。这里在清洗前先存全量快照，
+# 供 3.2 段补全 stockTheme（仅作兜底归类，不改 theme_at / 题材炒作图门槛）。
+import theme_alias as _TA_v94
+# 关键：theme_detail 在 3.1 段已被文章快照 / 补抓逐日「覆盖」（theme_detail[d]=ts），
+# 覆盖日会丢掉 Excel OCR 的原始个股清单；必须直接从三个原始源叠加收集，
+# 否则被覆盖日的个股归类会永久缺失（用户口径：所有数据都有、不可能缺失）。
+_RAW_CARD = {}          # code -> (最新日期, 题材名)，题材名已归一别名
+_FAKE_V94 = {"公告", "其他", "其他个股", "新股", "次新股", "其他概念",
+             "其他板块", "其他热点", "业绩", "业绩增长", "回购", "增持", "重组"}
+_SKIP_V94 = fd.NON_THEME | _FAKE_V94
+def _snapshot_card(_src):
+    for _d0, _ts0 in _src.items():
+        for _t0 in (_ts0 or []):
+            _nm0 = _TA_v94.ALIAS.get(_t0.get("name", ""), _t0.get("name", ""))
+            if _nm0 in _SKIP_V94:
+                continue
+            for _s0 in (_t0.get("stocks") or []):
+                _c0 = str(_s0.get("code") or "").strip()
+                if not _c0:
+                    continue
+                _prev = _RAW_CARD.get(_c0)
+                if _prev is None or _d0 > _prev[0]:
+                    _RAW_CARD[_c0] = (_d0, _nm0)
+_snapshot_card(ec.get("themes", {}))                 # Excel OCR 复盘长图
+_snapshot_card(article_cache)                        # 淘股吧/历史文章快照
+if os.path.exists(bf_f):                             # 微博/移动版补抓（最高优先级）
+    try:
+        _snapshot_card({d: (o or {}).get("themes") or [] for d, o in
+                        json.load(open(bf_f, encoding="utf-8")).items()})
+    except Exception:
+        pass
+print("v94 湖南人题材卡原始归类快照：%d 只个股" % len(_RAW_CARD))
+
 # 题材块清洗：
 #  1) 个股连板数按锚点递推结果校正（与空间口径一致）
 #  2) 同块内按代码去重（OCR 会重复识别同一行）
@@ -264,7 +303,18 @@ _REASON_KW = [
     ("深海", "深海科技"), ("房地产", "房地产"), ("地产", "房地产"),
     ("跨境电商", "跨境电商"), ("跨境支付", "跨境电商"),
     ("光模块", "光通信"), ("光通信", "光通信"),
-    ("人工智能", "AI应用"), ("AI应用", "AI应用"),
+    ("CPO", "光通信"), ("光芯片", "光通信"), ("MPO", "光通信"), ("硅光", "光通信"),
+    ("人工智能", "AI应用"), ("AI应用", "AI应用"), ("AI", "AI应用"),
+    ("数据要素", "AI应用"), ("具身", "机器人"), ("人形机器人", "机器人"),
+    ("钠电池", "锂电池"), ("固态电池", "固态电池"),
+    ("黄金", "黄金"), ("有色金属", "有色金属"), ("有色", "有色金属"),
+    ("物流", "物流"), ("航运", "航运"), ("钢铁", "钢铁"), ("铁矿", "钢铁"),
+    ("化工", "化工"), ("聚乳酸", "化工"), ("可降解", "化工"), ("乳酸", "化工"),
+    ("农业", "农业"), ("养殖", "农业"), ("生猪", "农业"), ("猪", "农业"),
+    ("石油", "石油"), ("油气", "石油"), ("天然气", "天然气"),
+    ("全钢巨胎", "汽车零部件"), ("汽车", "汽车产业链"),
+    ("传媒", "传媒"), ("出版", "传媒"), ("影视", "短剧"), ("微短剧", "短剧"),
+    ("卫星", "商业航天"), ("军工", "商业航天"),
 ]
 _all_names = {t["name"] for ts in theme_detail.values() for t in ts}
 
@@ -305,6 +355,30 @@ for _ts in theme_detail.values():
     for _t in _ts:
         _t.pop("_full", None)
 print("无复盘文章日：按真实涨停原因补题材映射 %d 个股票日" % n_reason)
+
+# ---- 3.2b v94 补全全局题材库 stockTheme（carry）----
+# 用户口径：湖南人复盘里所有出现过的个股都有题材归类，不可能缺失。
+# 只补 carry（个股→最近题材，前端 themeOf 第三级 / 全局兜底），
+# 不改 theme_at（当日严格映射）、不改 themeDetail / 题材炒作图入链门槛。
+# ① 原始题材卡快照补全（被「当日未涨停」清洗规则误删的个股）
+_n_card = 0
+for _c0, (_d0, _nm0) in sorted(_RAW_CARD.items(), key=lambda x: x[1][0]):
+    if _c0 not in carry:
+        carry[_c0] = _nm0
+        _n_card += 1
+# ② 涨停原因归一补全（当日有涨停原因但未入题材卡的个股，取最近一次可归类原因）
+_n_rsn = 0
+for _d0 in dates:
+    for _s0 in pools.get(_d0, []):
+        _c0 = str(_s0.get("code") or "").strip()
+        if not _c0 or _c0 in carry:
+            continue
+        _nm0 = reason_theme(_s0)
+        if _nm0:
+            carry[_c0] = _nm0
+            _n_rsn += 1
+print("v94 补全全局题材库 stockTheme：题材卡 %d 只 + 涨停原因 %d 只 = %d 只"
+      % (_n_card, _n_rsn, _n_card + _n_rsn))
 
 # ---- 3.3 每日题材梯队：当日涨停池 × 题材映射（这才是明细表「题材·梯队」的唯一数据源） ----
 # 旧实现用「当日文章块」算梯队，块不足 5 只被丢弃后前端回看 6 天，
