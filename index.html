@@ -1107,6 +1107,46 @@
   .ep-dim h5{margin:12px 0 2px;font-size:12px;color:#ffd24a}
   .ep-few{opacity:.42}
   @media(max-width:860px){.ep-2{grid-template-columns:1fr}}
+  /* ===== v99 统一日期两行条 / 介绍 i 折叠 / 今日复盘子模块配色 ===== */
+  .dbar{display:flex;flex-direction:column;gap:5px;margin:6px 0;align-items:stretch}
+  .dbar-r{width:100%}
+  .dbar-r{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;min-height:24px}
+  .dbar-r .ep-lb,.dbar-r .dp-lb{color:var(--dim2);font-size:11px;flex:none}
+  .dbar-r select{flex:none}
+  .dbar-r2 .dbtn,.dbar-r2 .dp-prev,.dbar-r2 .dp-today,.dbar-r2 .dp-next{
+    background:#1c2740;border:1px solid #2b3a56;color:var(--text);border-radius:5px;
+    padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;flex:none}
+  .dbar-r2 .dbtn:hover,.dbar-r2 .dp-prev:hover,.dbar-r2 .dp-today:hover,.dbar-r2 .dp-next:hover{background:#26395c;border-color:#5b7fb0}
+  .dbar-r2 .dbtn.today,.dbar-r2 .dp-today{background:linear-gradient(90deg,#1b4a90,#245ba8);border-color:#78b0ff;color:#fff;font-weight:700}
+  .dbar-r .dp-stg{flex:none}
+  /* 介绍 i 折叠 */
+  .info-i{display:inline-flex;align-items:center;justify-content:center;
+    width:17px;height:17px;line-height:1;border:1px solid var(--line);border-radius:50%;
+    background:none;color:var(--dim);font-size:11px;font-weight:800;cursor:pointer;
+    margin-left:6px;vertical-align:middle;padding:0}
+  .info-i:hover,.info-i.on{color:var(--gold);border-color:var(--gold);background:rgba(240,185,11,.1)}
+  .has-intro > .sub{display:none}
+  .has-intro.open > .sub{display:inline}
+  /* 今日复盘子模块配色（底色 + 标题字体色） */
+  .smod{border-radius:10px;padding:8px 11px;margin:10px 0;border:1px solid var(--line)}
+  .smod .ep-h{margin-top:0}
+  .smod-1{background:rgba(240,185,11,.05);border-color:rgba(240,185,11,.24)}
+  .smod-1 .ep-h{color:#ffd24a}
+  .smod-2{background:rgba(38,198,218,.05);border-color:rgba(38,198,218,.24)}
+  .smod-2 .ep-h{color:#7fe4f2}
+  .smod-3{background:rgba(255,158,100,.05);border-color:rgba(255,158,100,.24)}
+  .smod-3 .ep-h{color:#ffb884}
+  .smod-4{background:rgba(139,157,255,.05);border-color:rgba(139,157,255,.24)}
+  .smod-4 .ep-h{color:#aab7ff}
+  .smod-5{background:rgba(46,189,133,.05);border-color:rgba(46,189,133,.24)}
+  .smod-5 .ep-h{color:#7fe0b8}
+  .smod-6{background:rgba(224,64,151,.05);border-color:rgba(224,64,151,.24)}
+  .smod-6 .ep-h{color:#f79ed7}
+  .smod-7{background:rgba(165,94,234,.05);border-color:rgba(165,94,234,.24)}
+  .smod-7 .ep-cross-sum,.smod-7 .ep-cross-sum:before{color:#cf9df5}
+  .smod-7 .ep-cross-wrap{background:transparent}
+  .smod-8{background:rgba(61,139,255,.05);border-color:rgba(61,139,255,.24)}
+  .smod-8 .ep-h{color:#9dc6ff}
 </style>
 </head>
 <body>
@@ -1165,14 +1205,19 @@
 <section class="page" id="page-ladder">
   <div class="card">
     <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 每只标 <b style="color:#8ce3bf">换手</b>（当日最高价≠最低价，可参与）/ <b style="color:#ff9aa8">一字</b>（最高＝最低，全天封死买不进）· 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
-    <div class="ch-bar">
-      <button id="ld-prev" class="ch-go">◀ 上一交易日</button>
-      <select id="ld-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
-      <select id="ld-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
-      <select id="ld-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
-      <button id="ld-go" class="ch-go" title="跳转到所选交易日">确定</button>
-      <button id="ld-next" class="ch-go">下一交易日 ▶</button>
-      <button id="ld-today" class="ch-go">今日</button>
+    <div class="dbar">
+      <div class="dbar-r">
+        <span class="ep-lb">跳转日期</span>
+        <select id="ld-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
+        <select id="ld-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
+        <select id="ld-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
+        <button id="ld-go" class="ch-go" title="跳转到所选交易日">确定</button>
+      </div>
+      <div class="dbar-r dbar-r2">
+        <button id="ld-prev" class="dbtn">◀ 上一个交易日</button>
+        <button id="ld-today" class="dbtn today">今日</button>
+        <button id="ld-next" class="dbtn">下一个交易日 ▶</button>
+      </div>
     </div>
     <div class="scroll" id="ladder-list"></div>
   </div>
@@ -1181,20 +1226,24 @@
 <section class="page" id="page-decision">
   <div class="card">
     <h3>赚钱效应 <span id="dp-stg-decision"></span><span class="sub" id="ep-hd">近 1 个交易日 · 赚钱效应股：3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日最高价（昨日买入者全部获利）</span></h3>
-    <div class="ep-bar">
-      <span class="ep-lb">统计窗口</span>
-      <button class="ep-w on" data-w="1">近 1 日</button>
-      <button class="ep-w" data-w="3">近 3 日</button>
-      <button class="ep-w" data-w="5">近 5 日</button>
-      <span class="ep-lb" style="margin-left:10px">回看截止日</span>
-      <button id="ep-prev" class="ep-go" title="往前一个交易日">◀</button>
-      <select id="ep-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
-      <select id="ep-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
-      <select id="ep-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
-      <button id="ep-go" class="ep-go" title="跳转到所选截止日">确定</button>
-      <button id="ep-next" class="ep-go" title="往后一个交易日">▶</button>
-      <button id="ep-latest" class="ep-go" title="回到最新交易日">最新</button>
-      <span class="sub" id="ep-range" style="margin-left:10px"></span>
+    <div class="ep-bar dbar">
+      <div class="dbar-r">
+        <span class="ep-lb">回看截止日</span>
+        <select id="ep-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
+        <select id="ep-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
+        <select id="ep-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
+        <button id="ep-go" class="ep-go" title="跳转到所选截止日">确定</button>
+        <span class="ep-lb" style="margin-left:10px">统计窗口</span>
+        <button class="ep-w on" data-w="1">近 1 日</button>
+        <button class="ep-w" data-w="3">近 3 日</button>
+        <button class="ep-w" data-w="5">近 5 日</button>
+        <span class="sub" id="ep-range" style="margin-left:6px"></span>
+      </div>
+      <div class="dbar-r dbar-r2">
+        <button id="ep-prev" class="dbtn" title="往前一个交易日">◀ 上一个交易日</button>
+        <button id="ep-latest" class="dbtn today" title="回到最新交易日">今日</button>
+        <button id="ep-next" class="dbtn" title="往后一个交易日">下一个交易日 ▶</button>
+      </div>
     </div>
     <div id="es-root"></div>
     <h4 class="ep-h" id="ep-nx-h">明日赚钱效应候选 <span class="sub" id="ep-nx-sub"></span></h4>
@@ -1427,16 +1476,20 @@
         </div>
       </div>
     </details>
-    <div class="ep-bar">
-      <span class="ep-lb">跳转日期</span>
-      <select id="hist-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
-      <select id="hist-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
-      <select id="hist-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
-      <button id="hist-go" class="ep-go" title="跳转到所选日期（明细表滚动定位并高亮）">确定</button>
-      <button id="hist-prev" class="ep-go" title="往前一个交易日">◀</button>
-      <button id="hist-next" class="ep-go" title="往后一个交易日">▶</button>
-      <button id="hist-latest" class="ep-go" title="回到最新交易日">最新</button>
-      <span class="sub" style="margin-left:10px">明细表始终完整显示，选择日期仅定位高亮</span>
+    <div class="ep-bar dbar">
+      <div class="dbar-r">
+        <span class="ep-lb">跳转日期</span>
+        <select id="hist-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
+        <select id="hist-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
+        <select id="hist-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
+        <button id="hist-go" class="ep-go" title="跳转到所选日期（明细表滚动定位并高亮）">确定</button>
+        <span class="sub" style="margin-left:10px">明细表始终完整显示，选择日期仅定位高亮</span>
+      </div>
+      <div class="dbar-r dbar-r2">
+        <button id="hist-prev" class="dbtn" title="往前一个交易日">◀ 上一个交易日</button>
+        <button id="hist-latest" class="dbtn today" title="回到最新交易日">今日</button>
+        <button id="hist-next" class="dbtn" title="往后一个交易日">下一个交易日 ▶</button>
+      </div>
     </div>
     <div class="scroll" id="hist-list" style="max-height:none"></div>
   </div>
@@ -4557,11 +4610,20 @@ function buildDPick(mod){
   const ds = ((window.REVIEW||{}).dates||[]).slice().sort();
   if(!ds.length) return;
   const years = [...new Set(ds.map(x=>x.slice(0,4)))].sort();
-  host.innerHTML = '<span class="dp-lb">本模块日期</span>'+
-    '<select class="dp-y">'+years.map(v=>'<option value="'+v+'">'+v+'年</option>').join('')+'</select>'+
-    '<select class="dp-m"></select><select class="dp-d"></select>'+
-    '<button class="dp-go">确定</button><span class="dp-now"></span>'+
-    '<span class="dp-stg" id="dp-stg-'+mod+'"></span>';
+  host.className = 'dpick dbar';
+  host.innerHTML =
+    '<div class="dbar-r">'+
+      '<span class="dp-lb">本模块日期</span>'+
+      '<select class="dp-y">'+years.map(v=>'<option value="'+v+'">'+v+'年</option>').join('')+'</select>'+
+      '<select class="dp-m"></select><select class="dp-d"></select>'+
+      '<button class="dp-go">确定</button><span class="dp-now"></span>'+
+    '</div>'+
+    '<div class="dbar-r dbar-r2">'+
+      '<button class="dp-prev">◀ 上一个交易日</button>'+
+      '<button class="dp-today">今日</button>'+
+      '<button class="dp-next">下一个交易日 ▶</button>'+
+      '<span class="dp-stg" id="dp-stg-'+mod+'"></span>'+
+    '</div>';
   const y=host.querySelector('.dp-y'), m=host.querySelector('.dp-m'),
         d=host.querySelector('.dp-d'), go=host.querySelector('.dp-go'),
         now=host.querySelector('.dp-now');
@@ -4588,6 +4650,18 @@ function buildDPick(mod){
     paintDpStage(mod, dt);       // 题材页日期旁显示当日市场阶段
   };
   go.onclick = ()=>focusModule(mod, d.value);
+  // v99：第二行 上一/今日/下一 三日快捷切换
+  const step = n=>{
+    const cur = MOD_DATE[mod];
+    let i = ds.indexOf(cur);
+    if(i<0) i = ds.length-1;
+    const j = Math.max(0, Math.min(ds.length-1, i+n));
+    focusModule(mod, ds[j]);
+  };
+  const pb = host.querySelector('.dp-prev'), tb = host.querySelector('.dp-today'), nb = host.querySelector('.dp-next');
+  if(pb) pb.onclick = ()=>step(-1);
+  if(tb) tb.onclick = ()=>focusModule(mod, ds[ds.length-1]);
+  if(nb) nb.onclick = ()=>step(1);
   const initD = ds[ds.length-1];         // 模块默认最新交易日
   host.__setDate(initD);
 }
@@ -4603,6 +4677,25 @@ function focusModule(mod, date){
   highlightDate(date);          // 必须在重绘之后，否则新 DOM 上没有高亮
 }
 function initModuleDates(){ MODS.forEach(buildDPick); }
+
+/* v99：模块介绍文字折叠——给标题加 has-intro，插 i 图标，点击展开/收起。
+   幂等：innerHTML 被重绘覆盖掉 i 按钮后，重调用本函数会补回；open 状态保留在标题 class 上。 */
+function initInfoFolds(){
+  const sels='#page-market h3, #page-theme h3, #page-ladder h3, #page-decision h3, #page-decision h4.ep-h, #page-hist h3';
+  document.querySelectorAll(sels).forEach(h=>{
+    const sub = Array.prototype.find.call(h.children, c=>c.classList && c.classList.contains('sub'));
+    if(!sub) return;
+    h.classList.add('has-intro');
+    if(!h.querySelector(':scope > .info-i')){
+      const btn=document.createElement('button');
+      btn.className='info-i'; btn.type='button'; btn.textContent='i';
+      btn.title='点击展开/收起本模块介绍';
+      btn.onclick=()=>{ h.classList.toggle('open'); btn.classList.toggle('on', h.classList.contains('open')); };
+      h.insertBefore(btn, sub);
+    }
+    if(h.classList.contains('open')) h.querySelector(':scope > .info-i').classList.add('on');
+  });
+}
 
 /* ================= 复盘决策页（v38 简化，v42 扩展） =================
    ① 今日市场阶段 + 交易机会判断：上一空间龙头断板后无大亏（跌停/连续杀跌）
