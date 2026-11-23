@@ -3094,3 +3094,25 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
   toast 带来源，静态托管路径写「同花顺公开数据(实时/收盘涨停池)」，后端路径写 st.source。刷新按钮 title 更新说明。
 - 实测(Chromium)：顶栏徽标「同花顺公开数据(涨停池)」；反馈去重正确；0 JS 报错，截图 v105_verify.png/v105_yrec.png。
   Python py_compile 通过、phase_now/source_desc 单测通过、api/status 新增字段可查。
+
+
+### 109. v106 连板梯队名称两行+七类形态 / 今日日K补齐根治形态与赚钱效应空
+- 用户四点：①连板梯队个股名称显示不全，可分行；②涨停形态分七类重新配置（非简单一字/换手）；
+  ③为什么今天没有赚钱效应候选股；④中京电子没纳入赚钱效应在哪、PCB 为什么没入选。
+- 根因（数据层）：当日 20261123 的日K bar 在数据源缺失——同花顺 v6 日K / 新浪 1800 根接口
+  收盘后一段时间仍只到 11-20，导致 ladderFull/dayZT 形态 s 全空（连板梯队显示「?」、换手标「—」）、
+  earnStreak.eventsAll 今日达标 0 只、赚钱效应在哪形态全「?」。但腾讯实时接口 qt.gtimg.cn 收盘后即有
+  当日完整 OHLC。
+- 数据修复：新增 fill_today_kline.py——用腾讯实时接口（qt.gtimg.cn，字段 f[3]收/f[4]昨收/f[5]开/
+  f[33]高/f[34]低/f[36]量手，vol×100=股）批量抓当日涨停池+连板梯队个股 bar，写 .stock_kline_cache.json、
+  klines/klines_*.json 分片（只增不减同日覆盖）、data.json/data.js 的 klines；随后 build_merged 全量重建
+  （不设 SKIP_KLINES，新浪接口此时也已补上今日 bar），形态回填 24267 个股票日。
+- 重建结果：中京电子形态 赚T、真视通 普通、盛剑科技 长腿；今日赚钱效应达标 1 只＝中京电子(3板/赚T/缺口/PCB)。
+- ①名称两行：.lbstk 改 flex-wrap 两行布局，.nm 允许 white-space:normal + -webkit-line-clamp:2（word-break:break-all），
+  .lbstk-r 包第二行（首封时间+题材）；题材分布区 .lbdist 保持单行。实测 16 只名称截断 0（原 11 只截断）。
+- ②七类形态：连板梯队移除冗余的简单 handoverTag（一字/换手二分），统一用 shapeTag 七类徽标；
+  新增顶部七类图例条（一字/地天/赚T/赚钱/普通/长腿/低开）；h3 说明改为七类。实测 16 只全带形态、0「?」、
+  换手标 0；K线弹窗标题「中京电子赚T」带徽标。
+- ③④：补数据后今日主列表达标 1 只（中京电子），赚钱效应在哪 3 只候选（中京电子赚T/PCB 3-1、
+  真视通普通/国产算力、盛剑科技长腿/半导体）形态全正常无问号，PCB 正确入选。
+- 实测(Chromium)：5 页签正常、0 JS 错误；截图 v106_ladder.png / v106_where.png。

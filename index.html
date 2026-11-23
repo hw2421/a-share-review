@@ -812,12 +812,17 @@
   .lblevel .lv small{display:block;color:var(--dim2);font-size:8px;font-weight:400}
   .lblevel .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
                   gap:0;background:var(--card);flex:1 1 auto;min-width:0}
-  .lbstk{display:flex;align-items:center;justify-content:space-between;gap:3px;min-width:0;
+  /* v106：两行布局——第一行「名称(可两行)+七类形态徽标」，第二行「首封时间+题材」 */
+  .lbstk{display:flex;flex-wrap:wrap;align-items:center;align-content:center;
+         gap:1px 4px;min-width:0;
          background:var(--card);border-right:1px solid #2c3a54;
          border-bottom:1px solid #2c3a54;border-radius:0;padding:2px 5px;
-         font-size:10.5px;line-height:1.3;cursor:pointer}
+         font-size:10.5px;line-height:1.25;cursor:pointer}
   .lbstk:hover{background:#1c2740}
-  .lbstk .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lbstk .nm{flex:1 1 auto;min-width:0;font-weight:600;
+             white-space:normal;overflow:visible;text-overflow:clip;word-break:break-all;
+             display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .lbstk-r{flex:1 1 100%;display:flex;align-items:center;justify-content:space-between;gap:3px;min-width:0}
   .lbstk .th{flex:0 0 auto;font-size:9px;border-radius:3px;padding:0 3px;cursor:pointer;
              border:1px solid rgba(120,140,170,.35);color:var(--dim)}
   .lbstk .th:hover{color:#fff}
@@ -829,6 +834,8 @@
   .lbstk .ho.na{color:#7f8b9c;background:#26303f;border:1px dashed #3a4a63}
   .lblevel.lbdist{margin-top:5px}
   .lblevel.lbdist .lv{font-size:9.5px;color:var(--dim);line-height:1.4}
+  .lblevel.lbdist .lbstk{flex-wrap:nowrap;align-content:center}
+  .lblevel.lbdist .lbstk .nm{-webkit-line-clamp:1;white-space:nowrap}
   @media(max-width:760px){
     header{padding:3px 8px 4px;gap:2px}
     header .htop{gap:5px;row-gap:2px}
@@ -1275,7 +1282,7 @@
 <!-- ============ 连板梯队（当日连板个股 + 题材穿透） ============ -->
 <section class="page" id="page-ladder">
   <div class="card">
-    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 每只标 <b style="color:#8ce3bf">换手</b>（当日最高价≠最低价，可参与）/ <b style="color:#ff9aa8">一字</b>（最高＝最低，全天封死买不进）· 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
+    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 每只标 <b>七类涨停形态</b>（一字/地天/赚T/赚钱/普通/长腿/低开，颜色见下方图例）· 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
     <div class="dbar">
       <div class="dbar-r">
         <span class="ep-lb">跳转日期</span>
@@ -1290,6 +1297,10 @@
         <button id="ld-today" class="dbtn today">今日</button>
         <button id="ld-next" class="dbtn">下一个交易日 ▶</button>
       </div>
+    </div>
+    <div class="lb-legend" style="display:flex;flex-wrap:wrap;align-items:center;gap:3px 7px;font-size:9.5px;color:var(--dim2);padding:2px 4px 5px;border-bottom:1px solid #2c3a54">
+      <span>涨停形态：</span>
+      <span><em class="sp sp-yz">一字</em></span><span><em class="sp sp-dt">地天</em></span><span><em class="sp sp-zt">赚T</em></span><span><em class="sp sp-zq">赚钱</em></span><span><em class="sp sp-pt">普通</em></span><span><em class="sp sp-lt">长腿</em></span><span><em class="sp sp-dk">低开</em></span>
     </div>
     <div class="scroll" id="ladder-list"></div>
   </div>
@@ -3008,12 +3019,12 @@ function renderLadder(date){
           '" data-d="'+date+'" title="'+nm+' · 涨停时间 '+(tm||'—')+
           ' ｜ 点击看日K（箭头指 '+fmtDate(date)+'）">'+
           '<span class="nm">'+nm+'</span>'+shapeTag(date, code)+
-          handoverTag(date, code)+
+          '<span class="lbstk-r">'+
           (tm? '<span class="stime'+(tm>='14:00'?' late':'')+'" title="首次封板 '+tm+'">'+tm+'</span>':'')+
           '<span class="th" data-th="'+th+'" data-d="'+date+'" title="'+
           (th? '点击 → 题材炒作页「'+th+'」'+fmtDate(date)+'（闪动提示）' : '当日无题材归属')+
           '" style="color:'+(th? col : C.dim2)+';'+(th?'border-color:'+col+'55':'')+'">'+
-          (th||'—')+'</span></span>';
+          (th||'—')+'</span></span></span>';
       }).join('')+'</div></div>';
   });
   // 当日题材分布（v102：只有首板的题材不显示，仅保留当日有连板 maxB≥2 的题材；点标签 → 题材炒作页闪动定位）
