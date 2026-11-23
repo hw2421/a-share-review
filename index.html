@@ -996,8 +996,9 @@
                 padding:2px 4px;border:1px dashed #5a4380;border-radius:5px;background:rgba(165,94,234,.06);
                 display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%}
   .yrfb>summary::-webkit-details-marker{display:none}
-  .yrfb>summary:before{content:'▸ 昨日梯队今日反馈';font-weight:700}
-  .yrfb[open]>summary:before{content:'▾ 昨日梯队今日反馈'}
+  /* v109：文案「昨日梯队今日反馈」已在 HTML summary 内出现，:before 仅保留箭头，避免重复显示两次 */
+  .yrfb>summary:before{content:'▸ ';font-weight:700}
+  .yrfb[open]>summary:before{content:'▾ '}
   .yrfb>summary .sub{color:#9d86c4;font-size:9.5px}
   .yrfb[open]>summary{border-color:#b98bf5;background:rgba(165,94,234,.12)}
   .yrfb .fbcard{margin:5px 0 3px 0;font-size:10px}
@@ -1228,6 +1229,16 @@
   .ew-risk span{background:rgba(240,185,11,.1);color:#ffd98a;border-radius:4px;padding:1px 5px;font-size:9.5px}
   .ew-confirm span{border:1px dashed #3a4a63;color:var(--dim);border-radius:4px;padding:1px 5px;font-size:9.5px}
   .ew-det .ew-ev:empty::after,.ew-det .ew-risk:empty::after,.ew-det .ew-confirm:empty::after{content:'—';color:var(--dim2)}
+  /* v109：题材分组底色模块（明日候选 / 赚钱效应在哪共用，每题材一块底色） */
+  .thgrp{border:1px solid #2b3a56;border-radius:8px;padding:5px 9px;margin:6px 0}
+  .thgrp-h{display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:11px;flex-wrap:wrap}
+  .thgrp-th{font-weight:800;color:#eef3fc;cursor:pointer;white-space:nowrap}
+  .thgrp-th:hover{text-decoration:underline;color:#9dc6ff}
+  .thgrp-zt{color:#a8b8d4;font-size:9.5px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:0 6px}
+  .thgrp-body{display:flex;flex-wrap:wrap;gap:5px}
+  /* v109：明日候选字体缩小、单行显示不左右拖动 */
+  .ep-ch.nx-sm{font-size:10px;padding:2px 6px;gap:3px;white-space:nowrap;max-width:100%}
+  .ep-ch.nx-sm .th{font-size:9.5px}
   .ew-note{margin-top:7px;color:var(--dim2);font-size:9.5px;line-height:1.6}
   .ew-empty{padding:10px 2px;color:var(--dim2);font-size:11px}
 </style>
@@ -1340,7 +1351,7 @@
     <div class="smod smod-1" id="smod-earn"><div id="es-root"></div></div>
     <!-- v102 赚钱效应在哪：从上传复盘页移植（身份分类/证据分/入选依据/风险提示/次日确认），深色样式 -->
     <div class="smod smod-where" id="smod-where">
-      <h4 class="ep-h">赚钱效应在哪 <span class="sub">识别空间龙头 / 题材龙头 / 补涨核心 · 证据分反映入选依据完整度，用于盘后排序，不代表次日上涨概率</span></h4>
+      <h4 class="ep-h">赚钱效应在哪 <span class="sub">按题材整理当日涨停形态为「赚T / 赚钱」的个股 · 点个股看日K，点题材看当日梯队</span></h4>
       <div id="ew-root"></div>
     </div>
     <div class="smod smod-2" id="smod-nx">
@@ -5413,48 +5424,63 @@ function ewRenderWhere(end){
   if(!EW_SNAP) EW_SNAP=ewMakeSnapshot(R);
   const d = EW_SNAP ? EW_SNAP.days.find(x=>x.d===end) : null;
   if(!d){ host.innerHTML='<div class="ew-empty">该交易日暂无赚钱效应复盘快照。</div>'; return; }
-  const rows=ewThemeRows(d);
-  /* v103：只展示 3 板及以上个股；删掉候选股个数/两日换手确认等数字统计卡 */
-  const cands=ewClassify(d,rows).filter(c=>(c.b||0)>=3);
-  const types=['全部','空间龙头','题材龙头','补涨核心'];
-  if(!types.includes(ewRoleFilter))ewRoleFilter='全部';
-  const shown=ewRoleFilter==='全部'?cands:cands.filter(x=>x.roles.has(ewRoleFilter));
   const avg=(d.sentiment.r1!=null&&d.sentiment.r2b!=null)?Math.round((d.sentiment.r1*100+d.sentiment.r2b*100)/2):null;
   const status=d.feedback||d.negBreaks>=2?'风险扩散':avg!=null&&avg>=60?'赚钱扩散':'局部赚钱';
   const statColor=status==='风险扩散'?'var(--down)':status==='赚钱扩散'?'var(--up)':'var(--gold)';
   const ctx='<div class="ew-ctx"><span>赚钱效应状态 <b style="color:'+statColor+'">'+status+'</b></span>'+
     '<span>市场阶段 <b>'+escHtml(d.stage)+'</b></span><span>空间高度 <b>'+count2(d.height)+' 板</b></span>'+
     '<span>涨停 <b>'+count2(d.zt)+'</b> 只</span><span>昨涨停今红盘 <b>'+(d.sentiment.r2b==null?'—':Math.round(d.sentiment.r2b*100)+'%')+'</b></span></div>';
-  const filters='<div class="ew-filters">'+types.map(t=>'<button data-ewrole="'+t+'" class="'+(ewRoleFilter===t?'active':'')+'">'+t+' '+(t==='全部'?cands.length:cands.filter(x=>x.roles.has(t)).length)+'</button>').join('')+'</div>';
-  const roleClass=r=>r==='空间龙头'?'space':r==='题材龙头'?'theme':'rebound';
-  /* v104 行式单行：名称(可点K线)-身份标记-高度-形态-题材(可点梯队) ｜ 三折叠同一行 */
-  const list=shown.map(c=>{
-    const roles=[...c.roles].map(r=>'<span class="ew-role '+roleClass(r)+'">'+r+'</span>').join('');
-    const themes=[...c.themes].filter(Boolean).map(th=>{
-      const tier=tierOf(end, th), hot=earnThemeCount(end, th)>=2;
-      return '<span class="ew-rowth'+(hot?' earnhot':'')+'" data-th="'+escHtml(th)+'" title="点看「'+escHtml(th)+'」题材梯队'+
-        (hot?' · 当日 '+earnThemeCount(end,th)+' 只赚钱效应股（两日换手+缺口）':'')+'">'+escHtml(th)+
-        (tier?' <span style="color:var(--dim2)">'+escHtml(tier)+'</span>':'')+'</span>';
-    }).join(' / ')||'未归类';
-    const tm=c.t? '<i class="ew-time" title="当日首次封板时间">'+escHtml(c.t)+'</i>':'';
-    return '<article class="ew-row"><div class="ew-rowmain">'+
-      '<span class="ew-rowname" data-c="'+escHtml(c.code)+'" data-n="'+escHtml(c.name)+'" data-sh="'+escHtml(c.shape||'')+'" title="点看 '+escHtml(c.name)+' 日K（含题材梯队/涨停形态/涨停时间）">'+
-        '<strong>'+escHtml(c.name)+'</strong><small>'+escHtml(c.code)+'</small></span>'+
-      '<span class="ew-roles">'+roles+'</span>'+
-      '<span class="ew-rowsep">·</span><span class="ew-rowf">高度 <b>'+count2(c.b)+'板</b></span>'+
-      '<span class="ew-rowsep">·</span><span class="ew-rowf">形态 '+shapeTag(end,c.code,c.shape)+'</span>'+
-      tm+
-      '<span class="ew-rowsep">·</span><span class="ew-rowf ew-rowf-th">题材 '+themes+'</span>'+
-      '</div></article>';
-  }).join('');
-  host.innerHTML=ctx+filters+(list?'<div class="ew-list">'+list+'</div>':'<div class="ew-empty">所选交易日无 3 板及以上的候选股。</div>')+
-    '<div class="ew-note">仅展示 3 板及以上个股；点个股名称看日K（含题材梯队/涨停形态/涨停时间），点题材看题材梯队；加粗题材＝当日 ≥2 只赚钱效应股（两日换手＋缺口）。候选名单是盘后复盘结果，非次日上涨概率。</div>';
-  host.querySelectorAll('[data-ewrole]').forEach(b=>{ b.onclick=()=>{ ewRoleFilter=b.dataset.ewrole; ewRenderWhere(end); }; });
-  host.querySelectorAll('.ew-rowname').forEach(el=>{
-    el.onclick=ev=>{ ev.stopPropagation(); ewOpenK(el.dataset.c, el.dataset.n, ev, end, el.dataset.sh); };
+  /* v109：删除原「个股展示模式」（身份分类/证据分/三折叠候选股）。
+     改为整理展示当日涨停形态为「赚T」「赚钱」的个股，按题材分组（每题材一块底色）。 */
+  const zt=(R.dayZT||{})[end]||{};
+  const picks=[];
+  for(const code in zt){
+    const v=zt[code]; if(!v||v.length<5) continue;
+    const s=v[2]||''; if(s!=='赚T'&&s!=='赚钱') continue;
+    picks.push({code,name:v[0]||'',t:v[1]||'',shape:s,b:Number(v[3])||0,theme:tName(v[4]||'')||'未归类'});
+  }
+  picks.sort((x,y)=>(y.b||0)-(x.b||0)||String(x.t).localeCompare(String(y.t))||String(x.code).localeCompare(String(y.code)));
+  const groups=new Map();
+  picks.forEach(p=>{ if(!groups.has(p.theme)) groups.set(p.theme,[]); groups.get(p.theme).push(p); });
+  const themeKeys=[...groups.keys()].sort((a,b)=>{
+    if(a==='未归类') return 1; if(b==='未归类') return -1;
+    const le=((R.ladders||{})[end]||{})[a]||{}, lf=((R.ladders||{})[end]||{})[b]||{};
+    return (((lf.count||0)*100+(lf.maxB||0)*10)-((le.count||0)*100+(le.maxB||0)*10))||a.localeCompare(b,'zh-CN');
   });
-  host.querySelectorAll('.ew-rowth').forEach(el=>{
-    el.onclick=ev=>{ ev.stopPropagation(); openLadPop(el.dataset.th, end, ev); };
+  let grpHtml='';
+  if(picks.length){
+    grpHtml=themeKeys.map((th,idx)=>{
+      const list=groups.get(th);
+      const hue=(205+idx*137.508)%360;
+      const bg='hsl('+hue.toFixed(0)+',62%,55%,.10)', bd='hsl('+hue.toFixed(0)+',62%,62%,.36)', fg='hsl('+hue.toFixed(0)+',72%,74%)';
+      const isNone=(th==='未归类');
+      const le=((R.ladders||{})[end]||{})[th]||{};
+      const ztN=le.count||0;
+      const headTh=isNone
+        ? '<span class="thgrp-th" style="color:var(--dim)">未归类</span>'
+        : '<span class="thgrp-th" style="color:'+fg+'" data-th="'+escHtml(th)+'" data-d="'+end+'" title="点看「'+escHtml(th)+'」当日题材梯队">'+escHtml(th)+'</span>'+
+          (ztN?'<span class="thgrp-zt" title="该板块当日涨停家数">板块涨停 '+ztN+'</span>':'');
+      const chips=list.map(p=>{
+        const gap=gapTag(end,p.code);
+        return '<span class="ep-ch nx nx-sm" data-c="'+escHtml(p.code)+'" data-n="'+escHtml(p.name)+'" data-d="'+end+'" '+
+          'title="'+escHtml(p.name)+' · '+p.b+'板 · 形态 '+p.shape+(p.t?' · 首封 '+p.t:'')+' ｜点看日K">'+
+          '<b>'+escHtml(p.name)+'</b><em class="b">'+p.b+'板</em>'+shapeTag(end,p.code,p.shape)+
+          (p.t?'<i class="hi2">'+escHtml(p.t)+'</i>':'')+gap+'</span>';
+      }).join('');
+      return '<div class="thgrp" style="background:'+bg+';border-color:'+bd+'">'+
+        '<div class="thgrp-h">'+headTh+'<span class="thgrp-zt">'+list.length+' 只赚T/赚钱</span></div>'+
+        '<div class="thgrp-body">'+chips+'</div></div>';
+    }).join('');
+  }
+  host.innerHTML=ctx+(picks.length
+      ? grpHtml
+      : '<div class="ew-empty">该交易日无「赚T / 赚钱」形态的涨停个股。</div>')+
+    '<div class="ew-note">按题材展示当日涨停形态为 <b style="color:var(--gold)">赚T / 赚钱</b> 的个股（赚T＝涨停开盘振幅&lt;8%，赚钱＝高开涨停）；点个股看日K，点题材看当日梯队。</div>';
+  host.querySelectorAll('.ep-ch').forEach(el=>{
+    el.onclick=ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
+  });
+  host.querySelectorAll('.thgrp-th[data-th]').forEach(el=>{
+    el.onclick=ev=>{ ev.stopPropagation(); openLadPop(el.dataset.th, el.dataset.d, ev); };
   });
 }
 /* v104：点个股名称→日K弹窗（底部自动带题材梯队/涨停时间），标题补涨停形态徽标 */
@@ -5627,33 +5653,48 @@ function paintNextEarn(d){
      口径与题材炒作页题材选择完全同源；无题材/题材未入链的孤股不推荐。 */
   const rawArr = (N.byDate||{})[d] || [];
   const arr = rawArr.filter(e=>hasThemeEffect(d, e.code, e.theme));
-  /* v108：按「题材(题材强度→梯队完整度) → 高度(降序) → 涨停时间(早优先)」排列。
-     题材强度=板块涨停家数×100+最高板×10（复用 renderLadder 口径）；
-     梯队完整度=龙头(≥2板)+中位股+首板三者齐全（复用题材卡 full 口径）。无题材排最后。 */
   const R0 = window.REVIEW||{};
+  /* v109：按题材分组，每个题材一个底色模块；题材间仍按强度(涨停家数×100+最高板×10)→完整度 排序。
+     题材名后附「板块今日涨停数」(该题材当日真实涨停家数，取题材炒作 ladders.count)。 */
   const thMeta = th=>{
     const n=tName(th||''), L=R0.ladders||{}, le=L[d]?.[n]||{}, b=le.boards||[];
     const strength=(le.count||0)*100+(le.maxB||0)*10;
     const top=b.length?Math.max(...b):0;
     const full=(top>=2 && b.some(x=>x>=2&&x<top) && b.some(x=>x===1))?1:0;
-    return {strength,full,n};
+    return {strength,full,n,count:le.count||0};
+  };
+  const boardZt = th=>{
+    const m=thMeta(th); if(m.count) return m.count;
+    const zt=(R0.dayZT||{})[d]||{}; let n=0;
+    for(const c in zt){ if(tName((zt[c][4]||''))===m.n) n++; }
+    return n;
   };
   const earnCnt=v=>earnThemeCount(d, v);
-  arr.sort((x,y)=>{
-    const ta=tName(x.theme||''), tb=tName(y.theme||'');
-    if(!ta && tb) return 1;
-    if(ta && !tb) return -1;
-    if(ta && tb && ta!==tb){
-      const ma=thMeta(ta), mb=thMeta(tb);
-      if(mb.strength!==ma.strength) return mb.strength-ma.strength;   // 题材强度降序
-      if(mb.full!==ma.full) return mb.full-ma.full;                   // 梯队完整度：完整优先
-      return ta.localeCompare(tb,'zh-CN');
-    }
+  /* v109 组内排序：连板高度(降序) → 缺口(有缺口优先) → 涨停时间(早优先) → code 兜底 */
+  const cmpIn=(x,y)=>{
     if((y.b||0)!==(x.b||0)) return (y.b||0)-(x.b||0);
+    const gx=x.gap===1?1:0, gy=y.gap===1?1:0;
+    if(gx!==gy) return gy-gx;
     const sa=String(x.t||'99:99'), sb=String(y.t||'99:99');
     if(sa!==sb) return sa.localeCompare(sb);
     return String(x.code||'').localeCompare(String(y.code||''));
+  };
+  // 按题材建组（无题材归入「未归类」，排最后）
+  const groups=new Map();
+  arr.forEach(e=>{
+    const key=tName(e.theme||'')||'未归类';
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(e);
   });
+  const noTh=groups.get('未归类')||[]; if(noTh.length) noTh.sort(cmpIn);
+  const themeKeys=[...groups.keys()].filter(k=>k!=='未归类').sort((a,b)=>{
+    const ma=thMeta(a), mb=thMeta(b);
+    if(mb.strength!==ma.strength) return mb.strength-ma.strength;
+    if(mb.full!==ma.full) return mb.full-ma.full;
+    return a.localeCompare(b,'zh-CN');
+  });
+  if(noTh.length) themeKeys.push('未归类');
+  themeKeys.forEach(k=>groups.get(k).sort(cmpIn));
   const ds = epDays(), isToday = !d || d===ds[ds.length-1];
   if(sub) sub.textContent = isToday
     ? '今日换手涨停≥2板 且 有题材效应（题材入链题材炒作图） · 明日「换手涨停＋最低价＞今最高＋晋级≥3板」即成赚钱效应股'
@@ -5665,34 +5706,39 @@ function paintNextEarn(d){
   }
   const done = arr.filter(e=>e.ok!==null), hit = done.filter(e=>e.ok===1).length;
   const sum = isToday
-    ? '<div class="nx-sum">今日候选 <b>'+arr.length+'</b> 只 · 明日兑现待验证（点个股看日K、点题材看当日梯队）</div>'
+    ? '<div class="nx-sum">今日候选 <b>'+arr.length+'</b> 只（点个股看日K、点题材看当日梯队）</div>'
     : '<div class="nx-sum">候选 <b>'+arr.length+'</b> 只 · 明日兑现 <b>'+hit+'/'+done.length+'</b>'+
       (done.length? '（'+Math.round(hit/done.length*100)+'%）':'')+' · 灰显＝未兑现</div>';
-  const cards = arr.map(e=>{
-    const g = e.gap===1 ? '<i class="gap">缺口</i>' : '';
-    const mk = e.ok===1 ? '<i class="ok2">✓兑现'+(e.b1?' '+e.b1+'板':'')+'</i>'
-             : (e.ok===0 ? '<i class="no2">未兑现</i>' : '<i class="wt2">待验证</i>');
-    const tier = e.theme ? tierOf(d, e.theme) : '';
-    const cls = e.ok===1 ? ' nx-ok' : (e.ok===0 ? ' nx-no' : '');
-    return '<span class="ep-ch nx'+cls+'" data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+d+'" '+
-      'title="'+e.name+' 今日 '+e.b+'板'+(e.s? ' · 形态 '+e.s:'')+' · 明日最低需＞今高 '+(e.hi?e.hi.toFixed(2):'—')+
-      ' 元且换手涨停晋级≥3板 → 兑现赚钱效应 ｜点看日K">'+
-      '<b>'+e.name+'</b><em class="b">'+e.b+'板</em>'+shapeTag(d, e.code, e.s)+g+
-      (e.t?'<i class="hi2">'+e.t+'</i>':'')+mk+
-      '<span class="th'+(earnCnt(e.theme)>=2?' earnhot':'')+'" data-th="'+(e.theme||'')+'" data-d="'+d+'"'+
-      (e.theme? ' title="点看 '+fmtDate(d)+'「'+e.theme+'」当日梯队'+(earnCnt(e.theme)>=2?' · 当日 '+earnCnt(e.theme)+' 只赚钱效应股（两日换手+缺口）':'')+'"'
-              : ' title="当日无复盘题材归类"')+'>'+
-      (e.theme||'—')+(tier? '<em class="tier">'+tier+'</em>':'')+'</span></span>';
+  // 每个题材一块底色模块；题材名后跟板块今日涨停数
+  const grpHtml = themeKeys.map((th,idx)=>{
+    const list=groups.get(th);
+    const hue=(205+idx*137.508)%360;
+    const bg='hsl('+hue.toFixed(0)+',62%,55%,.10)', bd='hsl('+hue.toFixed(0)+',62%,62%,.36)', fg='hsl('+hue.toFixed(0)+',72%,74%)';
+    const isNone=(th==='未归类');
+    const ztBadge=isNone?'':('<span class="thgrp-zt" title="该板块今日涨停家数">板块涨停 '+boardZt(th)+'</span>');
+    const headTh=isNone
+      ? '<span class="thgrp-th" style="color:var(--dim)">未归类</span>'
+      : '<span class="thgrp-th" style="color:'+fg+'" data-th="'+escHtml(th)+'" data-d="'+d+'" title="点看「'+escHtml(th)+'」当日题材梯队">'+escHtml(th)+'</span>'+ztBadge;
+    const chips=list.map(e=>{
+      const g = e.gap===1 ? '<i class="gap">缺口</i>' : '';
+      const mk = e.ok===1 ? '<i class="ok2">✓兑现'+(e.b1?' '+e.b1+'板':'')+'</i>'
+               : (e.ok===0 ? '<i class="no2">未兑现</i>' : '');   // v109：删「待验证」
+      const cls = e.ok===1 ? ' nx-ok' : (e.ok===0 ? ' nx-no' : '');
+      return '<span class="ep-ch nx nx-sm'+cls+'" data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+d+'" '+
+        'title="'+e.name+' 今日 '+e.b+'板'+(e.s? ' · 形态 '+e.s:'')+' · 明日最低需＞今高 '+(e.hi?e.hi.toFixed(2):'—')+
+        ' 元且换手涨停晋级≥3板 → 兑现赚钱效应 ｜点看日K">'+
+        '<b>'+e.name+'</b><em class="b">'+e.b+'板</em>'+shapeTag(d, e.code, e.s)+g+
+        (e.t?'<i class="hi2">'+e.t+'</i>':'')+mk+'</span>';
+    }).join('');
+    return '<div class="thgrp" style="background:'+bg+';border-color:'+bd+'">'+
+      '<div class="thgrp-h">'+headTh+'</div><div class="thgrp-body">'+chips+'</div></div>';
   }).join('');
-  host.innerHTML = sum+'<div class="ep-rows">'+cards+'</div>';
+  host.innerHTML = sum+grpHtml;
   host.querySelectorAll('.ep-ch').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
-  host.querySelectorAll('.ep-ch .th').forEach(el=>{
-    el.onclick = ev=>{ ev.stopPropagation();
-      if(!el.dataset.th){ toast('该股当日无复盘题材归类'); return; }
-      openLadPop(el.dataset.th, el.dataset.d, ev);
-    };
+  host.querySelectorAll('.thgrp-th[data-th]').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation(); openLadPop(el.dataset.th, el.dataset.d, ev); };
   });
 }
 
