@@ -877,45 +877,6 @@
   .ep-h{font-size:12.5px;color:#ffd24a;margin:14px 0 6px;font-weight:800}
   .ep-h .sub{font-weight:400;color:var(--dim2);font-size:11px;margin-left:6px}
   .ep-chart{width:100%;min-height:60px}
-  /* v95：当日机会子模块（嵌入今日复盘，还原 v25 独立页样式） */
-  .ch-card{margin-top:14px}
-  .ch-sel{max-width:150px}
-  .ch-empty{padding:18px;color:var(--dim2);font-size:12px;text-align:center}
-  .ch-item{border:1px solid #7a5a12;background:linear-gradient(90deg,rgba(240,185,11,.09),rgba(240,185,11,.03));
-           border-radius:8px;padding:10px 12px;margin:10px 0}
-  .ch-item.no{border-color:#5a3a52;background:linear-gradient(90deg,rgba(224,64,151,.08),transparent)}
-  .ch-ih{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px}
-  .ch-tag{font-size:9.5px;padding:1px 6px;border-radius:3px;background:#8c5a12;color:#ffe8a8;font-weight:700}
-  .ch-tag.no{background:#6d1d4b;color:#ffb8dc}
-  .ch-nm{font-weight:800;color:#fff;cursor:pointer;text-decoration:underline dotted #5a6a86;text-underline-offset:3px}
-  .ch-nm:hover{color:#ffd24a}
-  .ch-bd{color:#ffb347;font-weight:700}
-  .ch-th{color:#9fe3e0}
-  .ch-buy{color:#ff9aa8}
-  .ch-res{font-size:10px;padding:1px 6px;border-radius:3px;background:rgba(46,189,133,.16);color:#8ce3bf}
-  .ch-res.no{background:rgba(245,69,92,.16);color:#ff9aa8}
-  .ch-why{font-size:11px;color:var(--dim);line-height:1.65;margin:7px 0 2px}
-  .ch-why b{color:#ffd24a}
-  .ch-tier{display:inline-block;font-size:10px;color:#c9a227;margin-left:6px}
-  .ch-note{display:flex;gap:6px;align-items:center;margin-top:7px;flex-wrap:wrap}
-  .ch-note select,.ch-note input{background:#152238;color:var(--text);border:1px solid #2b3a56;
-           border-radius:5px;font-size:11px;padding:3px 6px}
-  .ch-note input{flex:1;min-width:180px}
-  .ch-note button{background:#1b4a90;border:1px solid #78b0ff;color:#fff;border-radius:5px;
-           padding:3px 10px;font-size:11px;cursor:pointer}
-  .ch-note button:hover{filter:brightness(1.2)}
-  .ch-saved{font-size:10px;color:#8ce3bf;margin-left:4px}
-  .ch-rules{margin-top:14px;border:1px solid #2b3a56;border-radius:8px;background:var(--card2)}
-  .ch-rules summary{cursor:pointer;padding:9px 12px;font-size:12.5px;color:#ffd24a;font-weight:800}
-  .ch-rules .ch-rb{padding:4px 14px 12px}
-  .ch-rule{border-left:3px solid #ffd24a;padding:5px 0 5px 10px;margin:8px 0;font-size:11.5px;
-           color:var(--text);line-height:1.7}
-  .ch-rule b{color:#ffe08a}
-  .ch-rule .stat{color:#9fe8f2}
-  .ch-diary-panel:not(:empty){margin-top:12px;border:1px solid #2b3a56;border-radius:8px;
-           padding:10px 14px;background:var(--card2);font-size:11.5px;line-height:1.7}
-  .ch-diary-panel h4{color:#ffd24a;margin:2px 0 8px;font-size:12.5px}
-  .ch-dlg{color:#ffb8dc}
   .ep-dayh{font-size:11.5px;color:var(--dim2);margin:10px 0 4px}
   .ep-dayh b{color:var(--text)}
   .ep-rows{display:flex;flex-wrap:wrap;gap:6px}
@@ -1194,25 +1155,6 @@
     <h4 class="ep-h">多题材热力表 <span class="sub">仅统计窗口内出现 ≥3 次的题材（当日板块有连板且涨停 ≥3 家）· 格内＝当日涨停家数与梯队</span></h4>
     <div id="ep-heat" class="ep-chart"></div>
     <div id="ep-cross"></div>
-  </div>
-  <!-- v95：当日机会子模块（山顶洞人战法）· 从独立页签搬入今日复盘 -->
-  <div class="card ch-card" id="ch-card">
-    <h3>当日机会 <span class="sub">山顶洞人战法 · 当日符合买入条件的标的（含一字买不进）· 跟随上方回看截止日，也可独立选日 · 点个股看日K</span></h3>
-    <div class="ep-bar ch-bar">
-      <span class="ep-lb">机会日</span>
-      <button id="ch-prev" class="ep-go" title="上一个有机会的交易日">◀</button>
-      <select id="ch-sel" class="ep-sel ch-sel" title="选择机会日"></select>
-      <button id="ch-next" class="ep-go" title="下一个有机会的交易日">▶</button>
-      <button id="ch-latest" class="ep-go" title="回到最新机会日">最新</button>
-      <span class="sub" id="ch-summary" style="margin-left:8px"></span>
-      <button id="ch-diary-show" class="ep-go" style="margin-left:auto" title="汇总我填写的自省笔记">📖 显示自省</button>
-    </div>
-    <div id="ch-root"></div>
-    <details class="ch-rules" id="ch-rules-box">
-      <summary>📋 自省规律总结（由全部 222 条机会的买入依据归纳 · 点击展开） ▾</summary>
-      <div id="ch-rules"></div>
-    </details>
-    <div id="ch-diary-panel" class="ch-diary-panel"></div>
   </div>
 </section>
 
@@ -4743,160 +4685,6 @@ function themeOf(d, code){
   return null;
 }
 
-/* ================= v95：当日机会子模块（嵌入今日复盘） =================
-   数据：REVIEW.chances[date] = [{d,code,name,boards,theme,m,why,stage,burst,yizi,tradable,buy,result}]
-   —— v59 单一战法「山顶洞人」，222 条机会 / 196 个交易日，五要素门槛全命中。
-   自省：沿用历史 localStorage key `chance_diary`（结构 { "date|code|method": {reason,tag,ts} }），
-   这样用户以前在独立机会页填的自省，搬入今日复盘后仍会自动读出显示。 */
-let CH_DATE = null;                       // 当前机会日
-/* v95：标签集与历史独立机会页完全一致，保证老自省记录的 tag 能正确回填；
-   存储沿用历史 key `sd_diary`（结构 {tag,txt,name,d,m,ts}，key=date|code|method），
-   同时兼容早期 `chance_diary`，彻底保住用户以前手填的自省。 */
-const CH_TAG_OPTS = ['','恐高不敢买','没看到/没盯盘','犹豫错过买点','一字买不进','仓位已满','不看好题材','怕大盘/情绪转弱','纪律执行不到位','其他'];
-const CH_ADVICE = {
-  '恐高不敢买':'连板高度不是唯一风险，优先按战法条件与空间压制距离机械执行，可用小仓位分批建立纪律。',
-  '没看到/没盯盘':'把「当日机会」设为盘前/盘中固定检查项，重点看 09:35 前首封的早盘机会。',
-  '犹豫错过买点':'把买点固化为「符合条件即涨停价打板」，减少临场判断，用参与模拟复盘检验机械执行收益。',
-  '一字买不进':'一字本就不纳入统计，不必自责；改看同题材次高换手连板股（补涨）。',
-  '仓位已满':'用固定仓位比例 + 同日只取首笔的规则，避免满仓单票挤掉后续机会。',
-  '不看好题材':'用题材阶段与赚钱效应门槛作为客观依据，替代主观好恶。',
-  '怕大盘/情绪转弱':'市场阶段（节点/补涨/突破/主升）已给出，突破/主升才是主要出手窗口。',
-  '纪律执行不到位':'建议只看「参与模拟」同日首笔的结果，先复制规则再谈优化。',
-  '其他':'把每条理由归类到具体可执行规则，连续复盘 20 笔后再调整战法参数。'
-};
-function chDates(){ return Object.keys((window.REVIEW||{}).chances||{}).sort(); }
-function chDiaryDB(){
-  // 优先读历史定稿 sd_diary，回退早期 chance_diary，两者合并（sd 优先）
-  let a={}, b={};
-  try{ a=JSON.parse(localStorage.getItem('sd_diary')||'{}'); }catch(e){}
-  try{ b=JSON.parse(localStorage.getItem('chance_diary')||'{}'); }catch(e){}
-  const out = Object.assign({}, b, a);
-  // 归一化：早期 chance_diary 的 reason 字段映射到 txt
-  Object.values(out).forEach(v=>{ if(v && v.txt==null && v.reason!=null) v.txt=v.reason; });
-  return out;
-}
-function chDiaryKey(d, code, m){ return d+'|'+code+'|'+(m||'summit'); }
-function chSaveDiary(d, code, m, name){
-  const key = chDiaryKey(d,code,m);
-  const ta = document.getElementById('ch-note-'+code);
-  const sel = document.getElementById('ch-tag-'+code);
-  if(!ta) return;
-  const txt = (ta.value||'').trim(), tag = sel ? sel.value : '';
-  let db={}; try{ db=JSON.parse(localStorage.getItem('sd_diary')||'{}'); }catch(e){}
-  const tip = document.getElementById('ch-saved-'+code);
-  if(!txt && !tag){ delete db[key]; if(tip) tip.textContent=''; }
-  else { db[key] = {tag:tag||'其他', txt, name:name||'', d, m:m||'summit', ts:Date.now()}; if(tip) tip.textContent='✓ 已保存'; }
-  try{ localStorage.setItem('sd_diary', JSON.stringify(db)); }catch(e){ toast('保存失败：本地存储不可用'); }
-}
-function chClosestDate(end){
-  const ds = chDates();
-  if(!ds.length) return null;
-  if(!end) return ds[ds.length-1];
-  const le = ds.filter(x=>x<=end);
-  return le.length ? le[le.length-1] : ds[0];
-}
-function paintChances(end){
-  const root = document.getElementById('ch-root');
-  if(!root) return;
-  const ds = chDates();
-  const sel = document.getElementById('ch-sel');
-  if(!ds.length){ root.innerHTML='<div class="ch-empty">暂无当日机会数据</div>'; return; }
-  // 初始化/跟随截止日对齐：首次或日期不匹配到最近日
-  if(!CH_DATE || !ds.includes(CH_DATE)) CH_DATE = chClosestDate(end);
-  const cur = CH_DATE;
-  if(sel){
-    sel.innerHTML = ds.slice().reverse().map(x=>'<option value="'+x+'"'+(x===cur?' selected':'')+'>'+fmtDate(x)+'</option>').join('');
-    if(sel.onchange==null) sel.onchange = ()=>{ CH_DATE=sel.value; paintChances(); };
-  }
-  const arr = ((window.REVIEW||{}).chances||{})[cur] || [];
-  const db = chDiaryDB();
-  const did = arr.filter(x=>x.tradable).length, noBuy = arr.length-did;
-  const sum = document.getElementById('ch-summary');
-  if(sum) sum.textContent = fmtDate(cur)+' · '+arr.length+' 个标的 / '+did+' 可参与'+(noBuy?' · '+noBuy+' 一字买不进':'');
-  if(!arr.length){ root.innerHTML='<div class="ch-empty">当日无山顶洞人机会</div>'; return; }
-  let html = '';
-  arr.forEach(x=>{
-    const code = String(x.code), th = x.theme||'';
-    const tier = tierOf(cur, th);
-    const dkey = chDiaryKey(cur, code, x.m);
-    const rec = db[dkey] || {txt:'',tag:''};
-    const recTxt = rec.txt!=null ? rec.txt : (rec.reason||'');
-    const sp = shapeTag(cur, code, (x.yizi?'一字':''));
-    html += '<div class="ch-item'+(x.tradable?'':' no')+'">'
-      + '<div class="ch-ih">'
-      + '<span class="ch-tag'+(x.tradable?'':' no')+'">'+(RV_MSHORT[x.m]||'山顶洞人')+'</span>'
-      + '<span class="ch-nm" data-c="'+code+'" data-n="'+x.name+'" data-d="'+cur+'" title="点击查看日K">'+x.name+'</span>'
-      + '<span class="ch-bd">'+x.boards+'板</span>'
-      + sp
-      + (th?'<span class="ch-th">【'+th+'】</span>':'')
-      + (tier?'<span class="ch-tier">梯队 '+tier+'</span>':'')
-      + (x.buy!=null?'<span class="ch-buy">买入 '+x.buy+'</span>':'')
-      + '<span class="ch-res'+(x.tradable?'':' no')+'">'+(x.result||'')+'</span>'
-      + '</div>'
-      + '<div class="ch-why">'+(x.why||'')+'</div>'
-      + '<div class="ch-note">'
-      + '<select id="ch-tag-'+code+'" title="未参与原因">'
-      + CH_TAG_OPTS.map(t=>'<option value="'+t+'"'+(t===(rec.tag||'')?' selected':'')+'>'+(t||'未参与原因')+'</option>').join('')
-      + '</select>'
-      + '<input id="ch-note-'+code+'" placeholder="记录自己为何没参与 / 可补充细节" value="'+String(recTxt).replace(/"/g,'&quot;')+'">'
-      + '<button data-c="'+code+'" data-m="'+(x.m||'summit')+'" data-n="'+x.name+'">保存自省</button>'
-      + '<span class="ch-saved" id="ch-saved-'+code+'">'+(recTxt||rec.tag?'✓ 已记录':'')+'</span>'
-      + '</div></div>';
-  });
-  root.innerHTML = html;
-  // 事件：日K
-  root.querySelectorAll('.ch-nm').forEach(el=>{
-    el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
-  });
-  // 事件：保存自省
-  root.querySelectorAll('.ch-note button').forEach(b=>{
-    b.onclick = ()=>chSaveDiary(cur, b.dataset.c, b.dataset.m, b.dataset.n);
-  });
-  paintChanceRules();
-}
-/* 规则总结：基于全部机会的 why/字段归纳（静态数据，随数据刷新自动重算） */
-function paintChanceRules(){
-  const host = document.getElementById('ch-rules');
-  if(!host || host.dataset.done) return;
-  const all = [];
-  Object.values((window.REVIEW||{}).chances||{}).forEach(arr=>arr.forEach(x=>all.push(x)));
-  const N = all.length;
-  const stg = {}, bd = {low:0,mid:0,high:0}, vol={shrink:0,other:0};
-  all.forEach(x=>{
-    stg[x.stage]=(stg[x.stage]||0)+1;
-    const b=+x.boards||0; if(b<=4)bd.low++; else if(b<=6)bd.mid++; else bd.high++;
-    if(/缩小|缩量|缩/.test(x.why||''))vol.shrink++; else vol.other++;
-  });
-  const pct = n=>N?(n/N*100).toFixed(0)+'%':'0%';
-  const topStg = Object.entries(stg).sort((a,b)=>b[1]-a[1])[0];
-  host.innerHTML =
-    '<div class="ch-rb">'
-    + '<div class="ch-rule"><b>① 五要素缺一不买（入场硬门槛）</b>：全部 <span class="stat">'+N+' 条</span>机会 100% 同时满足——板块连板助攻 ≥2、龙头非一字（换手可买入）、市场情绪变好（全市场涨停家数＞前一日）、板块变强（涨停家数或最高板严格高于前一日）、题材连续 ≥2 日在赚钱效应榜。这是「山顶洞人」唯一的入场依据，少一条都不算机会。</div>'
-    + '<div class="ch-rule"><b>② 板位集中在 3–6 板（中位接力区）</b>：≤4 板 <span class="stat">'+bd.low+'</span> 条（'+pct(bd.low)+'）、5–6 板 <span class="stat">'+bd.mid+'</span> 条（'+pct(bd.mid)+'）、≥7 板 <span class="stat">'+bd.high+'</span> 条（'+pct(bd.high)+'）。空间高位（≥7板）占比小，追高风险陡增；主战场在有换手、能接力的中位。</div>'
-    + '<div class="ch-rule"><b>③ 情绪阶段以「补涨 / 主升」为主</b>：补涨 '+(stg['补涨']||0)+'（'+pct(stg['补涨']||0)+'）、主升 '+(stg['主升']||0)+'（'+pct(stg['主升']||0)+'）、突破 '+(stg['突破']||0)+'（'+pct(stg['突破']||0)+'）、节点 '+(stg['节点']||0)+'（'+pct(stg['节点']||0)+'）。最多的阶段是<b>'+(topStg?topStg[0]:'—')+'</b>——赚钱效应扩散期参与、退潮节点期防守，节奏跟着阶段走。</div>'
-    + '<div class="ch-rule"><b>④ 缩量是高频信号（'+vol.shrink+' 条 / '+pct(vol.shrink)+'）</b>：近半机会当日量能较前一日缩小——缩量涨停说明抛压小、锁筹好，但需配合「板块变强 + 情绪变好」才成立，单纯缩量不等于买点。</div>'
-    + '<div class="ch-rule"><b>⑤ 一字买不进是少数（'+all.filter(x=>x.yizi||!x.tradable).length+' 条 / '+pct(all.filter(x=>x.yizi||!x.tradable).length)+'）</b>：绝大多数机会龙头为换手板，可打板参与；一字板只进机会池、不参与模拟（买不进）。</div>'
-    + '<div class="ch-rule"><b>⑥ 自省落地建议</b>：每次没参与，按上方标签归类（恐高 / 犹豫 / 盯漏 / 买不进 / 纪律…）并写明原因；点「显示自省」可看高频问题 Top 与对应改进方向——把「事后后悔」变成「可统计、可纠正」的纪律。</div>'
-    + '</div>';
-  host.dataset.done='1';
-}
-/* 显示自省：沿用历史独立机会页的共性诊断（按 tag 聚类 + 高频原因 + 对应建议） */
-function showChDiary(){
-  const panel = document.getElementById('ch-diary-panel');
-  if(!panel) return;
-  const items = Object.values(chDiaryDB()).filter(v=>v && ((v.txt!=null&&v.txt!=='')||v.tag));
-  if(!items.length){ panel.innerHTML='<h4>自省日记 · 问题共性总结</h4><div class="ch-empty">还没有记录。在当日机会里为每笔没参与的个股选择原因并写下理由，再点这里总结共性问题。</div>'; return; }
-  const cnt={}; items.forEach(v=>{ const t=v.tag||'其他'; cnt[t]=(cnt[t]||0)+1; });
-  const tags=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
-  const top=tags[0], ratio=(cnt[top]/items.length*100).toFixed(0);
-  let html='<h4>自省日记 · 问题共性总结（共 '+items.length+' 条记录）</h4>';
-  html+='<div class="ch-rule"><b>原因分布</b>：'+tags.map(t=>'<span class="ch-dlg">'+t+' '+cnt[t]+'次</span>').join(' · ')+'</div>';
-  html+='<div class="ch-rule"><b>共性诊断</b>：最突出的问题是「<b>'+top+'</b>」，占 '+ratio+'%（'+cnt[top]+'/'+items.length+'）。'+(CH_ADVICE[top]||CH_ADVICE['其他'])+'</div>';
-  html+='<div class="ch-rule"><b>逐条明细</b>：<br>'+items.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,40).map(v=>
-    '· '+fmtDate(v.d||'')+' '+(v.name||'')+'（'+(RV_MSHORT[v.m]||'山顶洞人')+'）：【'+(v.tag||'其他')+'】'+(v.txt||'—')).join('<br>')+'</div>';
-  panel.innerHTML=html;
-}
-
 /* ① 赚钱效应名单：个股（板位/缺口/当日状态） + 题材（当日梯队） */
 function paintEarn(){
   const root = document.getElementById('es-root');
@@ -4959,7 +4747,6 @@ function paintEarn(){
   paintYesterdayRec(end);
   paintNewLad(end);
   paintHeat(end);
-  paintChances(end);   // v95：当日机会子模块跟随回看截止日
 }
 
 /* v86 昨日推荐股 → 今日表现：站在今日 d，取昨日 dp 的「明日赚钱效应候选」，
@@ -5321,21 +5108,6 @@ document.querySelectorAll('.ep-w').forEach(b=>{
   if(y) y.onchange = ()=>epFillDPick();
   if(m) m.onchange = ()=>epFillDPick();
   if(d) d.onchange = ()=>{ EP_END = sel(); paintEarn(); };
-})();
-
-/* v95：当日机会子模块导航（上一个/下一个/最新机会日 + 显示自省） */
-(function initChNav(){
-  const step = n=>{
-    const ds = chDates(); if(!ds.length) return;
-    let i = ds.indexOf(CH_DATE); if(i<0) i=ds.length-1;
-    CH_DATE = ds[Math.max(0,Math.min(ds.length-1,i+n))]; paintChances();
-  };
-  const p=document.getElementById('ch-prev'), nx=document.getElementById('ch-next'),
-        lt=document.getElementById('ch-latest'), sh=document.getElementById('ch-diary-show');
-  if(p) p.onclick=()=>step(-1);
-  if(nx) nx.onclick=()=>step(1);
-  if(lt) lt.onclick=()=>{ CH_DATE=chDates().slice(-1)[0]||null; paintChances(); };
-  if(sh) sh.onclick=()=>showChDiary();
 })();
 
 /* ================= v73 历史复盘 =================
