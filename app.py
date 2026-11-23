@@ -223,6 +223,8 @@ def api_status():
         "ver": meta.get("ver") or data_ver(),
         "latest": meta.get("latest") or "",
         "updated": meta.get("updated") or "",
+        "source": meta.get("source") or st.get("source") or "",
+        "phase": meta.get("phase") or st.get("phase") or "",
         "running": bool(running),
         "job": st,
         "sched": sched_status(),

@@ -26,6 +26,10 @@
             -webkit-background-clip:text;background-clip:text;color:transparent;
             filter:drop-shadow(0 0 8px rgba(240,185,11,.5))}
   header .upd{color:var(--dim);font-size:11px;margin-left:auto;white-space:nowrap}
+  /* v105 数据来源徽标：标注本页数据来自同花顺公开数据 / 湖南人题材复盘 */
+  header .dsrc{color:var(--dim2);font-size:10px;white-space:nowrap;
+               border:1px solid var(--line);border-radius:10px;padding:1px 7px;line-height:1.4}
+  header .dsrc b{color:#7fb0ff;font-weight:700}
   /* v82：个股搜索（v78~v80）已删除；保留通用查找按钮 #find-open */
   header .alert{background:#c62828;color:#fff;border-radius:10px;padding:1px 9px;
                 font-size:11px;white-space:nowrap;max-width:52vw;overflow:hidden;
@@ -1227,8 +1231,9 @@
       <button data-t="hist">历史复盘</button>
     </nav>
     <span class="upd" id="upd">--</span>
+    <span class="dsrc" id="dsrc" title="本页数据的数据来源"></span>
     <span class="alert" id="alert" title="点击查看详情"></span>
-    <button id="refresh-btn" title="回源检查最新数据并自动重载 + 拉取当天涨停池，同步题材炒作图 / 当日机会 / 空间情绪">⟳ 刷新</button>
+    <button id="refresh-btn" title="盘中刷新：抓取同花顺公开数据（实时涨停池）；盘后刷新：再以湖南人收盘复盘题材补充更新。每次更新后顶栏显示数据来源">⟳ 刷新</button>
     <button id="reset-zoom" title="恢复默认比例（一屏铺满）">复原比例</button>
     <button id="find-open" title="查找页面内容（Ctrl+F）">🔍 查找</button>
   </div>
@@ -1729,9 +1734,24 @@ function chgSpan(v){
   if(v==null) return '<span class="c-gold">?</span>';
   return '<span class="'+(v>0?'c-up':'c-down')+'">'+(v>0?'+':'')+v+'%</span>';
 }
+/* v105 数据来源：优先「本次点击刷新」记下的来源（sessionStorage），
+   否则按最新交易日题材来源推导；静态托管与单端口应用都能显示。 */
+function dataSourceText(){
+  const R = window.REVIEW || {};
+  try{ const s = sessionStorage.getItem('sd_dsrc'); if(s) return s; }catch(e){}
+  const ds = (R.dates||[]).slice().sort();
+  const last = ds[ds.length-1];
+  const code = (R.themeSource||{})[last] || '';
+  const SRC = {tgb:'湖南人复盘·淘股吧', weibo:'湖南人复盘·微博',
+               excel:'历史复盘长图'};
+  if(SRC[code]) return SRC[code]+' + 同花顺涨停池';
+  return '同花顺公开数据（涨停池）';
+}
 function renderHeader(){
   const R = window.REVIEW;
   document.getElementById('upd').textContent = '更新 '+(R.updated||'').slice(0,10);
+  const de = document.getElementById('dsrc');
+  if(de) de.innerHTML = '数据来源 <b>'+dataSourceText()+'</b>';
   // 顶栏固定：nav 吸附在 header 下方
   const hd = document.querySelector('header');
   document.documentElement.style.setProperty('--hdr', (hd? hd.offsetHeight : 29)+'px');
@@ -1907,6 +1927,7 @@ function renderMarket(){
     '<span class="lb">'+fmtDate(last.date)+' 空间龙头：</span>'+
     (sf.length? sf.map(s=>
       '<span class="schip"><b>'+s.name+'</b><em style="color:'+C.up+'">'+s.boards+'板</em>'+
+      shapeTag(last.date, s.code, s.s)+
       (s.theme? '<span class="th">'+s.theme+'</span>':'')+'</span>').join('')
      : '<span style="color:'+C.dim+'">无（当日无空间龙头）</span>');
 
@@ -1986,7 +2007,7 @@ function renderMarket(){
         'title="点击查看该股日K（箭头指当日）">'+
         '<b class="'+(hotDay?'lead-hot':'')+'" style="'+hotBg+'">'+s.name+'</b>'+
         '<em style="font-style:normal;color:'+C.up+';margin-left:3px">'+s.boards+'板</em>'+
-        (s.s? '<em class="sp '+shapeCls(s.s)+'" title="'+SP_TIP+'">'+s.s+'</em>':'')+'</td>'+
+        shapeTag(d.date, s.code, s.s)+'</td>'+
         '<td class="'+(s.theme?'th-cell':'')+'" data-th="'+(s.theme||'')+'" data-dt="'+d.date+'"'+
         (s.theme? ' title="点击 → 题材炒作页「'+s.theme+'」'+fmtDate(d.date)+'（闪动提示）"':'')+'>'+
         (s.theme? '<b style="color:'+tcol+'">'+s.theme+'</b> ':'<span style="color:'+C.dim2+'">—</span>')+
@@ -2422,7 +2443,8 @@ function renderTheme(){
         (leader? '<span class="r3"><span class="ld lad" data-lad="1" data-th="'+nm+'" data-d="'+d+'" '+
           'title="点击「'+leader.name+'」查看 '+fmtDate(d)+'「'+nm+'」当日板块梯队（含个股涨停形态）">'+
           leader.name+
-          (leader.boards>=2? '<em>'+leader.boards+'板</em>':'<em>首板</em>')+'</span></span>':'')+
+          (leader.boards>=2? '<em>'+leader.boards+'板</em>':'<em>首板</em>')+
+          shapeTag(d, leader.code, leader.s)+'</span></span>':'')+
         (lad? '<span class="r4"><span class="lad" data-lad="1" data-th="'+nm+'" data-d="'+d+'" '+
               'title="点击查看 '+fmtDate(d)+'「'+nm+'」当日板块梯队">'+
               (full?'★':'')+lad+'</span></span>':'')+
@@ -2537,7 +2559,7 @@ function openLadPop(nm, d, ev){
         return '<span class="s'+(bd===topB?' lead':'')+'" data-c="'+(s.code||'')+'" '+
         'data-n="'+s.name+'" data-d="'+d+'" title="'+s.name+' · '+(sp? sp+'板':'—')+
         ' · 涨停时间 '+(tm||'—')+' ｜ 点击查看日K（箭头指 '+fmtDate(d)+'）">'+
-        '<b>'+s.name+'</b>'+(sp? '<em class="sp '+shapeCls(sp)+'">'+sp+'</em>':'')+
+        '<b>'+s.name+'</b>'+shapeTag(d, (s.code||''), sp)+
         (tm? '<em class="st'+(lateSeal(tm)?' late':'')+'">'+tm+'</em>':'')+
         '</span>';
       }).join('')+'</span></div>';
@@ -2882,7 +2904,7 @@ async function renderHandover(){
     hd.title='点看 '+o.x.name+' 完整日K';
     hd.innerHTML='<i class="sw" style="width:9px;height:9px;border-radius:2px;display:inline-block;background:'+col+'"></i>'+
       (o.grp==='new'?'🆕':'🔻')+'<b style="color:'+col+'">'+o.x.name+'</b>'+
-      '<span class="bd">'+o.x.boards+'板</span>'+
+      '<span class="bd">'+o.x.boards+'板</span>'+shapeTag(o.x.date||e.date, o.x.code)+
       (o.grp==='old'&&o.x.lastDate? '<span class="brk">'+fmtDate(o.x.lastDate)+'断板</span>':'')+
       '<span class="brk">'+(o.x.date?' '+fmtDate(o.x.date):'')+'</span>';
     hd.onclick=()=>showK(o.x.code,o.x.name,null,o.grp==='old'?(o.x.lastDate||e.date):e.date);
@@ -2916,10 +2938,10 @@ async function renderHandover(){
   document.getElementById('hdpop-lg').innerHTML=
     '<span class="hd-grp"><b>🆕 新龙头(上位)：</b>'+
     (news.length?news.map((x,gi)=>'<a data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+e.date+
-      '" style="color:'+(HD_COLORS_NEW[gi%HD_COLORS_NEW.length])+'">'+x.name+' '+x.boards+'板</a>').join('、'):'—')+
+      '" style="color:'+(HD_COLORS_NEW[gi%HD_COLORS_NEW.length])+'">'+x.name+' '+x.boards+'板'+shapeTag(x.date||e.date, x.code)+'</a>').join('、'):'—')+
     '　｜　<b>🔻 旧龙头(断板)：</b>'+
     (olds.length?olds.map((x,gi)=>'<a data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+(x.lastDate||e.date)+
-      '" style="color:'+(HD_COLORS_OLD[gi%HD_COLORS_OLD.length])+'">'+x.name+' '+x.boards+'板</a>').join('、'):'—')+
+      '" style="color:'+(HD_COLORS_OLD[gi%HD_COLORS_OLD.length])+'">'+x.name+' '+x.boards+'板'+shapeTag(x.date||e.date, x.code)+'</a>').join('、'):'—')+
     '</span>';
   document.querySelectorAll('#hdpop-lg a[data-c]').forEach(a=>{
     a.onclick=()=>showK(a.dataset.c,a.dataset.n,null,a.dataset.d);
@@ -2985,7 +3007,7 @@ function renderLadder(date){
         return '<span class="lbstk'+(th?'':' noth')+'" data-c="'+code+'" data-n="'+nm+
           '" data-d="'+date+'" title="'+nm+' · 涨停时间 '+(tm||'—')+
           ' ｜ 点击看日K（箭头指 '+fmtDate(date)+'）">'+
-          '<span class="nm">'+nm+'</span>'+
+          '<span class="nm">'+nm+'</span>'+shapeTag(date, code)+
           handoverTag(date, code)+
           (tm? '<span class="stime'+(tm>='14:00'?' late':'')+'" title="首次封板 '+tm+'">'+tm+'</span>':'')+
           '<span class="th" data-th="'+th+'" data-d="'+date+'" title="'+
@@ -3258,6 +3280,7 @@ function renderReview(){
       '<td class="l rv-fz rv-fz2"><span class="rv-stk" data-i="'+i+
         '" title="点击查看日K及模拟买卖点（B 买 / S 卖）'+
         (t.why? '&#10;买入理由：'+t.why : '')+'" style="cursor:pointer;color:'+C.blue+'">'+t.name+'</span>'+
+        shapeTag(t.d, t.code)+
         (String(t.why||'').includes('近100日最大量') ?
           '<span class="rv-vmax" title="买入当日成交量为近 100 个交易日最大量（放量最佳形态）">量</span>' : '')+
         (burst ? '<span class="rv-burst" title="买入当日炸板，仍按涨停价模拟买入">炸</span>' : '')+'</td>'+
@@ -3469,7 +3492,7 @@ function renderNextRecsBt(){
     html+='<tr><td class="l wn-date">'+fmtDate(x.d)+'</td>'+
       '<td class="l wn-stk"><b data-c="'+x.code+'" data-n="'+x.name+'" data-d="'+x.B+'" '+
       'data-tr="'+encodeURIComponent(JSON.stringify(trade))+'" '+
-      'style="cursor:pointer;color:'+C.blue+'" title="点看日K（标注模拟 B/S）">'+x.name+'</b></td>'+
+      'style="cursor:pointer;color:'+C.blue+'" title="点看日K（标注模拟 B/S）">'+x.name+'</b>'+shapeTag(x.B, x.code)+'</td>'+
       '<td class="l">'+(x.theme||'—')+'</td>'+
       '<td>'+x.boards+'板</td>'+
       '<td class="l" style="font-size:10.5px">'+(x.level||'—')+'</td>'+
@@ -3725,7 +3748,7 @@ function renderKLad(code, date, themeHint, trade){
   // 该笔为盘中冲击/炸板、不在收盘涨停梯队里：把该股作为「冲击板位」补在梯队条最前
   const selfChip = (trade && !(res.arr||[]).some(s=>s.code===code))
     ? '<span class="kl-s" data-c="'+trade.code+'" data-n="'+trade.name+'" data-d="'+date+'" '+
-      'title="本笔模拟买入（盘中冲击板位）">'+trade.name+' <b>'+(trade.boards||1)+'板</b>'+
+      'title="本笔模拟买入（盘中冲击板位）">'+trade.name+' <b>'+(trade.boards||1)+'板</b>'+shapeTag(date, trade.code)+
       (trade.burst?'<span style="color:#ffd23f;font-weight:800;margin-left:3px">炸</span>':'')+'</span>'
     : '';
   if(!res.arr.length){
@@ -3741,7 +3764,7 @@ function renderKLad(code, date, themeHint, trade){
   host.innerHTML='<span class="kl-h">'+rvDateStr(date)+' 「'+res.nm+'」'+maxB+'板梯队 · '+
     sorted.length+' 只（点击切换日K）</span>'+selfChip+
     sorted.map(s=>'<span class="kl-s" data-c="'+s.code+'" data-n="'+s.name+'" data-d="'+date+'" '+
-      'title="'+((s.t||s.time)||'')+' 封板">'+s.name+' <b>'+(s.boards||1)+'板</b>'+
+      'title="'+((s.t||s.time)||'')+' 封板">'+s.name+' <b>'+(s.boards||1)+'板</b>'+shapeTag(date, s.code, s.s)+
       ((s.t||s.time)?'<span class="kl-t"> '+(s.t||s.time)+'</span>':'')+'</span>').join('');
   bind();
 }
@@ -4258,7 +4281,7 @@ async function showK(code, name, e, atDate, trade){
   const prev = prevLeaderOf(code, atDate);
   const ovBtn = document.getElementById('kov-btn');
   document.getElementById('kpop-t').innerHTML =
-    '<b>'+name+'</b> <small>日K（不复权）· 共'+K.length+'根</small>'+
+    '<b>'+name+'</b>'+shapeTag(atDate||'', code)+' <small>日K（不复权）· 共'+K.length+'根</small>'+
     (K_OVERLAY && K_OVERLAY.owner===code ?
       '<span class="ovnote">叠加：'+K_OVERLAY.name+'（紫色 · 右轴）</span>' : '');
   if(prev){
@@ -5410,7 +5433,8 @@ async function ewOpenK(code, name, ev, end, shape){
   await showK(code, name, ev, end);
   const pop = document.getElementById('kpop');
   const t = document.getElementById('kpop-t');
-  if(pop && pop.style.display==='block' && t && !t.querySelector('.ew-ksp')){
+  // v105：showK 标题已统一补形态徽标（.sp），此处仅在标题仍无形态徽标时兜底补充
+  if(pop && pop.style.display==='block' && t && !t.querySelector('.sp')){
     const sh = shapeOf(end, code, shape);
     if(sh) t.insertAdjacentHTML('beforeend', ' <em class="sp ew-ksp '+shapeCls(sh.s)+'" style="margin-left:6px" title="涨停形态">形态 '+escHtml(sh.s)+'</em>');
   }
@@ -5505,6 +5529,10 @@ function paintYesterdayRec(d){
   const fnum = v => (v==null? '—' : (v>0?'+':'')+v.toFixed(2)+'%');
   const col = v => (v==null? 'var(--dim2)' : (v>=0? C.up : C.down));
   let ztN=0, zbN=0, hitN=0, done=0, chgSum=0, chgN=0;
+  /* v105：「昨日梯队今日反馈」是「题材级」信息（同一题材的昨日梯队→今日表现），
+     原逻辑按个股逐只生成，同题材有多只推荐股（如 11-18 的 4 只国产算力）就会
+     重复渲染 4 个完全相同的反馈块。按题材去重：同一题材只在其第一只个股后展示一次。 */
+  const seenFold = new Set();
   const cards = arr.map(e=>{
     const nx = e.nx;
     if(nx){
@@ -5523,8 +5551,9 @@ function paintYesterdayRec(d){
              ' / 收盘 '+fnum(nx.chg)+(nx.zt?' 收涨停':(nx.sh?' 盘中触及涨停后炸板未封':'')))
           : '今日无行情数据')+
       (e.ok===1?' · 兑现赚钱效应股':(e.ok===0?' · 未兑现':''))+' ｜点看日K';
-    /* v102：个股名后 → ①「昨日梯队今日反馈」折叠 → ② 题材梯队情况（今日最新梯队为准） */
-    const fold = relayFoldHtml(d, e.theme);
+    /* v102：个股名后 → ①「昨日梯队今日反馈」折叠（v105 题材级去重，同题材只显示一次）→ ② 题材梯队情况（今日最新梯队为准） */
+    const fKey = e.theme ? tName(e.theme) : '';
+    const fold = (fKey && !seenFold.has(fKey)) ? (seenFold.add(fKey), relayFoldHtml(d, e.theme)) : '';
     const tierToday = e.theme ? tierOf(d, e.theme) : '';
     const themeLine = e.theme
       ? '<div class="yr-thline"><span class="yr-c" data-th="'+e.theme+'" data-d="'+d+'" style="color:#dcbafb" '+
@@ -6332,7 +6361,9 @@ window.checkNewData = checkNewData;      // 暴露给自动化回归 / 控制台
               setTimeout(()=>{btn.textContent='⟳ 刷新';}, 2600);
               return;
             }
-            toast('数据已更新（截至 '+fmtDate(st.latest)+'），正在载入…');
+            // v105：把本次更新的数据来源写入 sessionStorage，重载后顶栏徽标显示
+            try{ sessionStorage.setItem('sd_dsrc', st.source || (st.job&&st.job.source) || dataSourceText()); }catch(e){}
+            toast('数据已更新（截至 '+fmtDate(st.latest)+'）'+(st.source?' · 来源 '+st.source:'')+'，正在载入…');
             setTimeout(()=>reloadWithVersion(st.ver), 400);
             return;
           }
@@ -6454,6 +6485,7 @@ window.checkNewData = checkNewData;      // 暴露给自动化回归 / 控制台
         // 实时接口不可用：内嵌的「当日收盘涨停池」与页面上的梯队/题材/空间
         // 完全同源（后端一次算好），不做二次重算，避免刷新造成家数漂移或口径错配
         R.updated = '刷新 '+now.toTimeString().slice(0,5)+' · 收盘数据';
+        try{ sessionStorage.setItem('sd_dsrc', '同花顺公开数据（收盘涨停池）'); }catch(e){}
         renderHeader();
         btn.disabled = false;
         btn.textContent = '⟳ 已是最新';
@@ -6492,6 +6524,8 @@ window.checkNewData = checkNewData;      // 暴露给自动化回归 / 控制台
       else if(ds > last.date) R.stages.push(day);
       R.today = ds;
       R.updated = '刷新 '+now.toTimeString().slice(0,5) + (ds!==today ? '·'+fmtDate(ds) : '');
+      // v105：静态托管点击刷新全程用同花顺公开数据（盘中实时）；题材沿用当日派生的复盘归类
+      try{ sessionStorage.setItem('sd_dsrc', '同花顺公开数据（实时涨停池）'); }catch(e){}
       // 全局重算派生数据：当日题材梯队 / 连板梯队 / 题材块，并重绘全部页面
       applyDayPool(ds, stocks);
       R.recentPools = R.recentPools || {};
