@@ -974,6 +974,22 @@
   .yr-card i.hit{color:#0c1a12;background:#2ebd85}
   .yr-card i.miss{color:var(--dim2);border:1px solid #2b3a56}
   .yr-card i.na{color:var(--dim2);border:1px dashed #3a4a63}
+  /* v102 昨日推荐股卡片：名称行 + 折叠的昨日梯队今日反馈 + 今日梯队情况 */
+  .yr-list{display:flex;flex-wrap:wrap;gap:8px}
+  .yr-item{display:inline-flex;flex-direction:column;align-items:stretch;gap:0;
+           max-width:100%;vertical-align:top}
+  .yr-item .yr-card{margin:0 0 4px 0}
+  .yr-thline{margin:2px 0 0 2px}
+  .yrfb{margin:0 0 4px 0}
+  .yrfb>summary{cursor:pointer;font-size:10px;color:#b98bf5;list-style:none;
+                padding:2px 4px;border:1px dashed #5a4380;border-radius:5px;background:rgba(165,94,234,.06);
+                display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%}
+  .yrfb>summary::-webkit-details-marker{display:none}
+  .yrfb>summary:before{content:'▸ 昨日梯队今日反馈';font-weight:700}
+  .yrfb[open]>summary:before{content:'▾ 昨日梯队今日反馈'}
+  .yrfb>summary .sub{color:#9d86c4;font-size:9.5px}
+  .yrfb[open]>summary{border-color:#b98bf5;background:rgba(165,94,234,.12)}
+  .yrfb .fbcard{margin:5px 0 3px 0;font-size:10px}
   /* v70 个股当日状态：涨停（首封时间）/ 炸板（含首封时间） */
   .stk-zt{font-style:normal;font-size:9px;color:#ffd24a;background:rgba(240,185,11,.14);
           border:1px solid rgba(240,185,11,.42);border-radius:3px;padding:0 3px;font-weight:700;
@@ -1151,6 +1167,45 @@
   .smod-7 .ep-cross-wrap{background:transparent}
   .smod-8{background:rgba(61,139,255,.05);border-color:rgba(61,139,255,.24)}
   .smod-8 .ep-h{color:#9dc6ff}
+  /* v102 smod-where 赚钱效应在哪（深色版，移植自上传复盘页） */
+  .smod-where{background:rgba(240,185,11,.04);border-color:rgba(240,185,11,.22)}
+  .smod-where .ep-h{color:#ffd24a}
+  .ew-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}
+  .ew-kpi{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.02)}
+  .ew-kpi small{display:block;color:var(--dim2);font-size:10px}
+  .ew-kpi strong{display:block;font-size:20px;line-height:1.2;margin-top:2px;color:var(--gold)}
+  .ew-kpi span{display:block;color:var(--dim2);font-size:9.5px;margin-top:1px}
+  .ew-ctx{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .ew-ctx span{padding:3px 7px;background:#152238;border-radius:5px;font-size:10px;color:var(--dim)}
+  .ew-ctx b{color:var(--text)}
+  .ew-filters{display:flex;gap:6px;overflow:auto;padding:3px 0 9px}
+  .ew-filters button{white-space:nowrap;background:#1c2740;border:1px solid #2b3a56;color:var(--dim);
+    border-radius:6px;padding:4px 10px;font-size:10.5px;cursor:pointer}
+  .ew-filters button:hover{border-color:#3d8bff}
+  .ew-filters button.active{background:#1b4a90;border-color:#78b0ff;color:#fff;font-weight:700}
+  .ew-cands{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:9px}
+  .ew-cand{border:1px solid #2b3a56;border-radius:9px;padding:10px 11px;background:#141d2f}
+  .ew-cand-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .ew-cand-name{font-size:14px;color:var(--text);font-weight:700}
+  .ew-cand-name small{color:var(--dim2);font-size:10px;font-weight:400;margin-left:3px}
+  .ew-score{min-width:58px;text-align:center;border-radius:8px;padding:3px 7px;
+    background:rgba(61,139,255,.12);color:#7fb0ff;border:1px solid rgba(61,139,255,.3)}
+  .ew-score small{display:block;font-size:9px;color:var(--dim2)}
+  .ew-score strong{display:block;font-size:19px;line-height:1.1}
+  .ew-roles,.ew-ev,.ew-risk,.ew-confirm{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .ew-role{display:inline-flex;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700}
+  .ew-role.space{background:rgba(240,185,11,.16);color:#ffd24a;border:1px solid rgba(240,185,11,.35)}
+  .ew-role.theme{background:rgba(165,94,234,.16);color:#cf9df5;border:1px solid rgba(165,94,234,.35)}
+  .ew-role.rebound{background:rgba(46,189,133,.16);color:#7fe0b8;border:1px solid rgba(46,189,133,.35)}
+  .ew-ev span{background:rgba(61,139,255,.1);color:#9dc6ff;border-radius:4px;padding:1px 5px;font-size:10px}
+  .ew-risk span{background:rgba(240,185,11,.1);color:#ffd98a;border-radius:4px;padding:1px 5px;font-size:10px}
+  .ew-confirm span{border:1px dashed #3a4a63;color:var(--dim);border-radius:4px;padding:1px 5px;font-size:10px}
+  .ew-cand-meta{color:var(--dim2);font-size:10px;margin-top:5px}
+  .ew-cand-meta b{color:var(--up)}
+  .ew-reason{margin-top:6px}
+  .ew-reason>small{color:var(--dim2);font-size:9.5px;font-weight:700}
+  .ew-note{margin-top:7px;color:var(--dim2);font-size:9.5px;line-height:1.6}
+  .ew-empty{padding:10px 2px;color:var(--dim2);font-size:11px}
 </style>
 </head>
 <body>
@@ -1254,6 +1309,11 @@
       </div>
     </div>
     <div class="smod smod-1" id="smod-earn"><div id="es-root"></div></div>
+    <!-- v102 赚钱效应在哪：从上传复盘页移植（身份分类/证据分/入选依据/风险提示/次日确认），深色样式 -->
+    <div class="smod smod-where" id="smod-where">
+      <h4 class="ep-h">赚钱效应在哪 <span class="sub">识别空间龙头 / 题材龙头 / 补涨核心 · 证据分反映入选依据完整度，用于盘后排序，不代表次日上涨概率</span></h4>
+      <div id="ew-root"></div>
+    </div>
     <div class="smod smod-2" id="smod-nx">
       <h4 class="ep-h" id="ep-nx-h">明日赚钱效应候选 <span class="sub" id="ep-nx-sub"></span></h4>
       <div id="ep-nx"></div>
@@ -1261,14 +1321,6 @@
     <div class="smod smod-3" id="smod-yrec">
       <h4 class="ep-h" id="ep-yrec-h">昨日推荐股 → 今日表现 <span class="sub" id="ep-yrec-sub"></span></h4>
       <div id="ep-yrec"></div>
-    </div>
-    <div class="smod smod-4" id="smod-fb">
-      <h4 class="ep-h" id="ep-fb-h">昨日梯队 → 今日反馈</h4>
-      <div id="ep-fb"></div>
-    </div>
-    <div class="smod smod-5" id="smod-new">
-      <h4 class="ep-h">今日新增梯队 <span class="sub">昨日无梯队、今日新形成题材梯队的板块（与题材炒作入链题材同源）</span></h4>
-      <div id="ep-new"></div>
     </div>
     <div class="smod smod-6" id="smod-heat">
       <h4 class="ep-h">多题材热力表 <span class="sub">仅统计窗口内出现 ≥3 次的题材（当日板块有连板且涨停 ≥3 家）· 格内＝当日涨停家数与梯队</span></h4>
@@ -2935,9 +2987,9 @@ function renderLadder(date){
           (th||'—')+'</span></span>';
       }).join('')+'</div></div>';
   });
-  // 当日题材分布（含首板，点标签 → 题材炒作页闪动定位）
+  // 当日题材分布（v102：只有首板的题材不显示，仅保留当日有连板 maxB≥2 的题材；点标签 → 题材炒作页闪动定位）
   const lad = (R.ladders||{})[date] || {};
-  const tnames = Object.keys(lad).filter(nm=>lad[nm].count>=2 || lad[nm].maxB>=2)
+  const tnames = Object.keys(lad).filter(nm=>(lad[nm].maxB||0)>=2)
     .sort((a,b)=>
     (lad[b].count-lad[a].count) || (lad[b].maxB-lad[a].maxB));
   if(tnames.length){
@@ -5145,6 +5197,199 @@ function initElrn(){
   renderElrnTags([]); renderElrnWeek();
 }
 
+/* ================= v102 赚钱效应在哪（移植自上传复盘页，深色样式） =================
+   数据口径与上传页 earn.html 完全一致：makeSnapshot 消费 REVIEW → 逐日快照；
+   classifyCandidates 按空间龙头/题材龙头/补涨核心三类身份识别 + 证据分；
+   只移植「赚钱效应在哪」单模块，其余（题材与个股/盈亏传导/断板跟踪）不移植。 */
+const ewNormTheme = n => ({'短剧传媒':'短剧','机器人+物理AI':'机器人','"华"字辈':'华字辈','“华”字辈':'华字辈'})[n] || n || '';
+const ewMean = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
+const ewIsNum = x => typeof x === 'number' && Number.isFinite(x);
+const ewNumOrNull = x => ewIsNum(x) ? x : null;
+const ewGain = (a,b) => ewIsNum(a) && a>0 && ewIsNum(b) && b>0 ? (b/a-1)*100 : null;
+let EW_SNAP = null, ewRoleFilter = '全部';
+function ewMakeSnapshot(r){
+  if(!Array.isArray(r.dates) || !Array.isArray(r.stages) || !Array.isArray(r.earnStreak?.eventsAll) || !r.themeDetail || !r.ladderFull || !r.brkTrack?.days) return null;
+  const dates=[...new Set(r.dates.filter(d=>typeof d==='string' && /^\d{8}$/.test(d)))].sort();
+  if(dates.length<3) return null;
+  const byDate = a => a.reduce((map,x)=>{ (map[x.date || x.d] ||= []).push(x); return map; },Object.create(null));
+  const stages=byDate(r.stages), earns=byDate(r.earnStreak.eventsAll), cycles=byDate(r.cycle?.days || []);
+  const bmap=new Map(), ladders={}, rawThemes={};
+  function bar(c,d){ if(!bmap.has(c)) bmap.set(c,new Map((r.klines?.[c] || []).map(k=>[k[0],k]))); return bmap.get(c).get(d); }
+  const mark = k => !k || !k.slice(1,5).every(x=>ewIsNum(x)&&x>0) ? '缺行情' : k[3]===k[4] ? '一字' : ewIsNum(k[5]) && k[5]<=0 ? '缺成交' : '有价格区间';
+  for(const d of dates){
+    const rows=r.themeDetail[d] || [], present=new Map();
+    for(const t of rows){ const n=ewNormTheme(t.name); if(!present.has(n) || present.get(n).count<t.count) present.set(n,t); }
+    rawThemes[d]=present;
+    const full=r.ladderFull[d] || {}, normalized=new Map();
+    for(const [n,stocks] of Object.entries(full)) normalized.set(ewNormTheme(n),stocks);
+    for(const [n,t] of present) if(!normalized.has(n)) normalized.set(n,t.stocks || []);
+    ladders[d]=Object.fromEntries([...normalized].map(([n,stocks])=>[n,[...new Map(stocks.map(s=>[s.code,{code:s.code,name:s.name,b:ewNumOrNull(s.boards) || 1,t:s.t || s.time || '',shape:s.s || ''}])).values()]]));
+  }
+  const breaks=r.brkTrack.days;
+  const history=dates.map((d,i)=>{
+    const prev=dates[i-1], prev2=dates[i-2], m=stages[d]?.[0] || {}, cy=cycles[d]?.[0];
+    const todayZt=new Map((r.lb?.[d] || []).map(s=>[s[3],s[1]]));
+    for(const s of Object.values(ladders[d]).flat()) todayZt.set(s.code,Math.max(s.b,todayZt.get(s.code)||0));
+    const lookup=new Map((cy?.det?.d2 || []).filter(s=>ewIsNum(s.chg)).map(s=>[s.c,s.chg]));
+    const themes=[...rawThemes[d]].map(([n,t])=>{
+      const last=dates.slice(Math.max(0,i-4),i).findLast(x=>rawThemes[x].has(n));
+      const before=rawThemes[prev]?.get(n);
+      const step=before ? (t.count>before.count?'加强':t.count<before.count?'转弱':'反复') : last?'反复':i>=4?'启动':'待判';
+      return {n,count:ewNumOrNull(t.count),max:ewNumOrNull(t.maxB),step,prev:ewNumOrNull(before?.count)};
+    }).sort((a,b)=>b.count-a.count);
+    const evs=(earns[d] || []).map(e=>{
+      const k0=bar(e.code,prev2||e.d0), k1=bar(e.code,prev||e.d1), k2=bar(e.code,d);
+      const observed=[k0,k1,k2].map(mark);
+      const p1=ewGain(k0?.[2],k1?.[2]), p2=ewGain(k1?.[2],k2?.[2]);
+      const pass=observed.every(x=>x==='有价格区间') && p1>0 && p2>0;
+      const theme=ewNormTheme(e.theme);
+      return {code:e.code,name:e.name,b:ewNumOrNull(e.b),theme,gap:!!e.gapT,gap1:!!e.gap1,p1,p2,observed,pass,shape:e.s || ''};
+    }).sort((a,b)=>Number(b.pass)-Number(a.pass)||b.b-a.b||Number(b.gap)-Number(a.gap));
+    const boardMoney=(r.money?.[d] || []).map(x=>({n:ewNormTheme(x.theme),count:ewNumOrNull(x.count),max:ewNumOrNull(x.maxB),lead:x.lead,leadCode:x.leadCode}));
+    const listed=r.lb?.[d] || [];
+    const showStock=(x,n)=>({...x,chg:ewGain(bar(x.code,prev)?.[2],bar(x.code,d)?.[2]),gap:evs.some(e=>e.code===x.code&&e.gap),earn:evs.some(e=>e.code===x.code),continuation:n?ladders[prev]?.[n]?.some(y=>y.code===x.code&&y.b<x.b):undefined});
+    const themeLadders=Object.fromEntries(Object.entries(ladders[d]).map(([n,ss])=>[n,ss.map(x=>showStock(x,n)).sort((a,b)=>b.b-a.b||a.t.localeCompare(b.t))]));
+    const marketLadder=listed.map(([name,b,theme,code,t])=>showStock({code,name,b:ewNumOrNull(b),theme:ewNormTheme(theme),t})).sort((a,b)=>b.b-a.b);
+    const transmissions=Object.create(null);
+    for(const [n,stocks] of Object.entries(ladders[prev] || {})){
+      const raw=r.transmit?.[d]?.[n] || Object.entries(r.transmit?.[d] || {}).find(([x])=>ewNormTheme(x)===n)?.[1];
+      const byCode=new Map(stocks.map(s=>[s.code,s]));
+      const value=s=>lookup.get(s.code) ?? ewGain(bar(s.code,prev)?.[2],bar(s.code,d)?.[2]);
+      const layers=[s=>s.b>=3,s=>s.b===2,s=>s.b===1].map((test,j)=>{
+        const s=[...byCode.values()].filter(test);
+        const rows=s.map(x=>({...x,p:value(x),up:(todayZt.get(x.code)||0)>x.b}));
+        const v=rows.filter(x=>ewIsNum(x.p));
+        const q=raw?.L?.[j];
+        return q ? {n:q.n,cn:q.cn,avg:q.avg,win:q.win,pr:q.pr,rows,raw:true}
+          : {n:s.length,cn:v.length,avg:ewMean(v.map(x=>x.p)),win:v.length?100*v.filter(x=>x.p>0).length/v.length:null,pr:rows.filter(x=>x.up).length,rows};
+      });
+      const next=ladders[d][n];
+      transmissions[n]={layers,new1:raw?.n1 ?? (next ? next.filter(x=>x.b===1).length : null),count:rawThemes[prev].get(n)?.count,listed:!!next};
+    }
+    const rotations=[];
+    for(const [from, ss] of Object.entries(ladders[prev] || {})){
+      const codes=new Set(ss.map(s=>s.code));
+      for(const [to, nn] of Object.entries(ladders[d])){
+        if(from===to) continue;
+        const common=nn.filter(s=>codes.has(s.code) && !ladders[d][from]?.some(x=>x.code===s.code) && !ladders[prev]?.[to]?.some(x=>x.code===s.code));
+        if(common.length) rotations.push({from,to,common});
+      }
+    }
+    const instances=(breaks[d] || []).filter(x=>x.n>=0&&x.n<=2 && dates[i-x.n]===x.bd).map(x=>{
+      const ix=i-x.n, pre=dates[ix-1];
+      const then=Object.entries(ladders[pre] || {}).filter(([,s])=>s.some(a=>a.code===x.code)).map(([n])=>n);
+      const today=(breaks[d] || []).find(y=>y.code===x.code && y.bd===x.bd);
+      const path=[0,1,2].map(j=>{ if(ix+j>i) return null; const row=(breaks[dates[ix+j]] || []).find(y=>y.code===x.code && y.bd===x.bd); return row ? {d:dates[ix+j],chg:row.chg,cum:row.cum} : null; });
+      const k=bar(x.code,d), p=bar(x.code,prev);
+      return {...x,b:ewNumOrNull(x.b),theme:then.join(' / '),path,rebound:x.n>0 && !!p && !!k && k[2]>p[4],cum:today?.cum};
+    }).sort((a,b)=>a.n-b.n || (a.cum??Infinity)-(b.cum??Infinity));
+    return {d,stage:m.stage||'未知',height:m.spaceTop??null,zt:m.ztCount??null,ceiling:m.suppress??null,leader:m.spaceFull||[],feedback:cy?.neg??null,negNames:cy?.negNames||[],themes,themeLadders,marketLadder,boardMoney,evs,breaks:instances,transmissions,rotations,sentiment:{r1:cy?.r1??null,r2a:cy?.r2a??null,r2b:cy?.r2b??null,cnt12:cy?.cnt12??null,score:cy?.score??null},negBreaks:instances.filter(x=>ewIsNum(x.cum)&&x.cum<0).length};
+  });
+  return {schema:1,updated:String(r.updated||''),days:history};
+}
+function ewThemeRows(d){
+  const names=[...new Set([...d.themes.map(t=>t.n),...Object.keys(d.themeLadders),...d.boardMoney.map(t=>t.n),...d.evs.map(e=>e.theme)].filter(Boolean))];
+  return names.map(n=>{
+    const theme=d.themes.find(x=>x.n===n), board=d.boardMoney.find(x=>x.n===n), earns=d.evs.filter(x=>x.theme===n);
+    const ladder=d.themeLadders[n]||[];
+    return {n,theme,board,earns,ladder,count:theme?.count??board?.count??null,max:theme?.max??board?.max??(ladder.length?Math.max(...ladder.map(s=>s.b)):null)};
+  }).sort((a,b)=>b.earns.length-a.earns.length||Number(!!b.board)-Number(!!a.board)||(b.count??-1)-(a.count??-1));
+}
+function ewMergeCand(map, stock, theme=''){
+  if(!stock?.code)return;
+  const cur=map.get(stock.code)||{code:stock.code,name:stock.name,b:stock.b||0,t:stock.t||'',shape:stock.shape||'',chg:stock.chg,themes:new Set(),roles:new Set(),evidence:[],risks:[]};
+  cur.name=cur.name||stock.name; cur.b=Math.max(cur.b||0,stock.b||0); cur.t=cur.t||stock.t||''; cur.shape=cur.shape||stock.shape||'';
+  if(!ewIsNum(cur.chg)&&ewIsNum(stock.chg))cur.chg=stock.chg;
+  if(theme)cur.themes.add(theme);
+  map.set(stock.code,cur);
+}
+function ewClassify(d,rows){
+  const map=new Map();
+  d.marketLadder.forEach(s=>ewMergeCand(map,s,s.theme));
+  for(const row of rows)row.ladder.forEach(s=>ewMergeCand(map,s,row.n));
+  d.evs.forEach(s=>ewMergeCand(map,s,s.theme));
+  const spaceTop=Math.max(0,...d.marketLadder.map(s=>s.b||0));
+  const spaceCodes=new Set(d.marketLadder.filter(s=>spaceTop>=2&&s.b===spaceTop).map(s=>s.code));
+  const earnByCode=new Map(d.evs.map(e=>[e.code,e]));
+  for(const c of map.values()){
+    const earn=earnByCode.get(c.code);
+    if(spaceCodes.has(c.code))c.roles.add('空间龙头');
+    for(const theme of c.themes){
+      const row=rows.find(x=>x.n===theme); if(!row)continue;
+      const highest=Math.max(0,...row.ladder.map(s=>s.b||0));
+      const isLeader=c.b===highest&&highest>=2, boardConfirmed=!!row.board, broadEnough=(row.count||0)>=4;
+      if(isLeader&&(boardConfirmed||broadEnough||earn))c.roles.add('题材龙头');
+      const newTheme=['启动','加强'].includes(row.theme?.step), belowSpace=spaceTop===0||c.b<spaceTop;
+      if(isLeader&&c.b>=2&&belowSpace&&newTheme&&['节点','补涨'].includes(d.stage))c.roles.add('补涨核心');
+    }
+    if(earn&&!c.roles.size)c.roles.add('题材龙头');
+    if(!c.roles.size)continue;
+    let score=28;
+    if(c.roles.has('空间龙头')){score+=18;c.evidence.push('全市场最高可参与板位');}
+    if(c.roles.has('题材龙头')){score+=15;c.evidence.push('题材内最高连板');}
+    if(c.roles.has('补涨核心')){score+=12;c.evidence.push('节点/补涨阶段的新题材承接');}
+    if(earn){score+=22;c.evidence.push('连续两日换手涨停');}
+    if(earn?.gap){score+=4;c.evidence.push('当日向上跳空');}
+    const themed=[...c.themes].map(n=>rows.find(x=>x.n===n)).filter(Boolean);
+    if(themed.some(x=>x.board)){score+=10;c.evidence.push('进入题材赚钱效应榜');}
+    if(themed.some(x=>['启动','加强'].includes(x.theme?.step))){score+=5;c.evidence.push('题材处于启动/加强');}
+    const helpers=themed.reduce((best,x)=>Math.max(best,x.ladder.filter(s=>s.code!==c.code&&s.b>=2).length),0);
+    if(helpers){score+=Math.min(8,helpers*4);c.evidence.push('连板助攻 '+helpers+' 只');}
+    if(c.shape==='一字'){score-=15;c.risks.push('一字板，可参与性不足');}
+    if(!helpers&&c.roles.has('题材龙头'))c.risks.push('缺少连板助攻');
+    if(themed.some(x=>x.theme?.step==='转弱'))c.risks.push('题材涨停家数转弱');
+    if(d.feedback)c.risks.push('市场出现高位集中负反馈');
+    if(d.negBreaks>=2)c.risks.push('高位断板亏损正在扩散');
+    c.score=Math.max(0,Math.min(99,score)); c.earn=earn; c.helpers=helpers;
+  }
+  return [...map.values()].filter(x=>x.roles.size).sort((a,b)=>b.score-a.score||b.b-a.b||a.code.localeCompare(b.code));
+}
+function ewRenderWhere(end){
+  const host=document.getElementById('ew-root'); if(!host) return;
+  const R=window.REVIEW||{};
+  if(!EW_SNAP) EW_SNAP=ewMakeSnapshot(R);
+  const d = EW_SNAP ? EW_SNAP.days.find(x=>x.d===end) : null;
+  if(!d){ host.innerHTML='<div class="ew-empty">该交易日暂无赚钱效应复盘快照。</div>'; return; }
+  const rows=ewThemeRows(d), cands=ewClassify(d,rows);
+  const types=['全部','空间龙头','题材龙头','补涨核心'];
+  if(!types.includes(ewRoleFilter))ewRoleFilter='全部';
+  const shown=ewRoleFilter==='全部'?cands:cands.filter(x=>x.roles.has(ewRoleFilter));
+  const avg=(d.sentiment.r1!=null&&d.sentiment.r2b!=null)?Math.round((d.sentiment.r1*100+d.sentiment.r2b*100)/2):null;
+  const status=d.feedback||d.negBreaks>=2?'风险扩散':avg!=null&&avg>=60?'赚钱扩散':'局部赚钱';
+  const statColor=status==='风险扩散'?'var(--down)':status==='赚钱扩散'?'var(--up)':'var(--gold)';
+  const kpis='<div class="ew-kpis">'+
+    '<div class="ew-kpi"><small>候选股</small><strong>'+cands.length+'</strong><span>按三类身份去重</span></div>'+
+    '<div class="ew-kpi"><small>两日换手确认</small><strong>'+d.evs.length+'</strong><span>排除一字，≥3板</span></div>'+
+    '<div class="ew-kpi"><small>昨≥2板今日不亏</small><strong>'+(d.sentiment.r1==null?'—':Math.round(d.sentiment.r1*100)+'%')+'</strong><span>接力反馈</span></div>'+
+    '<div class="ew-kpi"><small>断板累计为负</small><strong>'+d.negBreaks+'</strong><span>正在跟踪 '+d.breaks.length+' 只</span></div></div>';
+  const ctx='<div class="ew-ctx"><span>赚钱效应状态 <b style="color:'+statColor+'">'+status+'</b></span>'+
+    '<span>市场阶段 <b>'+escHtml(d.stage)+'</b></span><span>空间高度 <b>'+count2(d.height)+' 板</b></span>'+
+    '<span>涨停 <b>'+count2(d.zt)+'</b> 只</span><span>昨涨停今红盘 <b>'+(d.sentiment.r2b==null?'—':Math.round(d.sentiment.r2b*100)+'%')+'</b></span></div>';
+  const filters='<div class="ew-filters">'+types.map(t=>'<button data-ewrole="'+t+'" class="'+(ewRoleFilter===t?'active':'')+'">'+t+' '+(t==='全部'?cands.length:cands.filter(x=>x.roles.has(t)).length)+'</button>').join('')+'</div>';
+  const roleClass=r=>r==='空间龙头'?'space':r==='题材龙头'?'theme':'rebound';
+  const cards=shown.map(c=>{
+    const roles=[...c.roles].map(r=>'<span class="ew-role '+roleClass(r)+'">'+r+'</span>').join('');
+    const ev=c.evidence.map(x=>'<span>'+escHtml(x)+'</span>').join('');
+    const risks=(c.risks.length?c.risks:['暂无结构性风险标签']).map(x=>'<span>'+escHtml(x)+'</span>').join('');
+    const conf=['竞价不弱','所属题材有助攻','高位亏钱效应缓和'].map(x=>'<span>'+x+'</span>').join('');
+    const themes=[...c.themes].filter(Boolean).join(' / ')||'未归类';
+    return '<article class="ew-cand"><div class="ew-cand-head"><div>'+
+      '<div class="ew-cand-name"><strong>'+escHtml(c.name)+'</strong><small>'+escHtml(c.code)+'</small></div>'+
+      '<div class="ew-roles">'+roles+'</div></div>'+
+      '<div class="ew-score"><small>证据分</small><strong>'+c.score+'</strong></div></div>'+
+      '<div class="ew-cand-meta">'+escHtml(themes)+' · '+count2(c.b)+'板 · 首封 '+escHtml(c.t||'—')+' · 当日 '+ewPct(c.chg,2)+(c.shape?' · '+escHtml(c.shape):'')+'</div>'+
+      '<div class="ew-reason"><small>入选依据</small><div class="ew-ev">'+ev+'</div></div>'+
+      '<div class="ew-reason"><small>风险提示</small><div class="ew-risk">'+risks+'</div></div>'+
+      '<div class="ew-reason"><small>次日确认</small><div class="ew-confirm">'+conf+'</div></div></article>';
+  }).join('');
+  host.innerHTML=kpis+ctx+filters+(cards?'<div class="ew-cands">'+cards+'</div>':'<div class="ew-empty">这一类型在所选交易日没有满足条件的候选股。</div>')+
+    '<div class="ew-note">空间龙头按全市场最高连板识别；题材龙头要求题材最高连板并有热度、赚钱榜或两日换手证据；补涨核心要求节点/补涨阶段的新题材承接。候选名单是盘后复盘结果。</div>';
+  host.querySelectorAll('[data-ewrole]').forEach(b=>{ b.onclick=()=>{ ewRoleFilter=b.dataset.ewrole; ewRenderWhere(end); }; });
+}
+const escHtml=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const count2=x=>ewIsNum(x)?x:'—';
+const ewPct=(x,d=1)=>ewIsNum(x)?(x>0?'+':'')+x.toFixed(d)+'%':'—';
+
 /* ① 赚钱效应名单：个股（板位/缺口/当日状态） + 题材（当日梯队） */
 function paintEarn(){
   const root = document.getElementById('es-root');
@@ -5202,11 +5447,10 @@ function paintEarn(){
       openLadPop(el.dataset.th, el.dataset.d, ev);
     };
   });
-  paintRelay(end);
   paintNextEarn(end);
-  paintYesterdayRec(end);
-  paintNewLad(end);
+  paintYesterdayRec(end);   // v102：内含「昨日梯队今日反馈」折叠 + 今日最新梯队
   paintHeat(end);
+  ewRenderWhere(end);       // v102：赚钱效应在哪（移植自上传复盘页）
   elrnRenderWeekBody();   // v97 周总结随填报刷新（子模块只读 localStorage，不依赖回看日）
   try{ initInfoFolds(); }catch(e){}   // v99：补回被重绘覆盖的子模块介绍 i 按钮
 }
@@ -5250,30 +5494,39 @@ function paintYesterdayRec(d){
              ' / 收盘 '+fnum(nx.chg)+(nx.zt?' 收涨停':(nx.sh?' 盘中触及涨停后炸板未封':'')))
           : '今日无行情数据')+
       (e.ok===1?' · 兑现赚钱效应股':(e.ok===0?' · 未兑现':''))+' ｜点看日K';
-    const tier = e.theme ? tierOf(dp, e.theme) : '';
-    return '<span class="yr-card'+cls+'" data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+d+'" title="'+tip+'">'+
-      '<b>'+e.name+'</b><span class="yr-c">'+bTag+'</span>'+shapeTag(dp, e.code, e.s)+
-      '<span class="yr-chg" style="color:'+col(nx&&nx.chg)+'">'+fnum(nx&&nx.chg)+'</span>'+
-      ztTag+mk+
-      (e.theme? '<span class="yr-c" data-th="'+e.theme+'" data-dp="'+dp+'" style="color:#dcbafb">'+
-        e.theme+(tier?' '+tier:'')+'</span>' : '')+
-      '</span>';
+    /* v102：个股名后 → ①「昨日梯队今日反馈」折叠 → ② 题材梯队情况（今日最新梯队为准） */
+    const fold = relayFoldHtml(d, e.theme);
+    const tierToday = e.theme ? tierOf(d, e.theme) : '';
+    const themeLine = e.theme
+      ? '<div class="yr-thline"><span class="yr-c" data-th="'+e.theme+'" data-d="'+d+'" style="color:#dcbafb" '+
+        'title="点看 '+fmtDate(d)+'「'+e.theme+'」当日梯队">'+e.theme+(tierToday?' · 梯队 '+tierToday:'')+'</span></div>'
+      : '';
+    return '<div class="yr-item">'+
+      '<span class="yr-card'+cls+'" data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+d+'" title="'+tip+'">'+
+        '<b>'+e.name+'</b><span class="yr-c">'+bTag+'</span>'+shapeTag(dp, e.code, e.s)+
+        '<span class="yr-chg" style="color:'+col(nx&&nx.chg)+'">'+fnum(nx&&nx.chg)+'</span>'+
+        ztTag+mk+
+      '</span>'+ fold + themeLine +
+      '</div>';
   }).join('');
   const avg = chgN? (chgSum/chgN) : null;
   const sum = '<div class="yr-sum">昨日推荐 <b>'+arr.length+'</b> 只 → 今日：'+
     '平均涨幅 <b style="color:'+col(avg)+'">'+fnum(avg)+'</b>'+
     ' · 涨停 <b>'+ztN+'</b> · 盘中炸板 <b>'+zbN+'</b>'+
     ' · 兑现赚钱效应 <b>'+hitN+'/'+done+'</b>'+(done?'（'+Math.round(hitN/done*100)+'%）':'')+
-    ' <span style="color:var(--dim2)">｜点个股看日K、点题材看昨日梯队</span></div>';
-  host.innerHTML = sum + '<div>'+cards+'</div>';
+    ' <span style="color:var(--dim2)">｜点个股看日K、展开看昨日梯队今日反馈、点题材看今日梯队</span></div>';
+  host.innerHTML = sum + '<div class="yr-list">'+cards+'</div>';
   host.querySelectorAll('.yr-card').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
-  host.querySelectorAll('.yr-card [data-th]').forEach(el=>{
+  host.querySelectorAll('.yr-thline [data-th]').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation();
       if(!el.dataset.th) return;
-      openLadPop(el.dataset.th, el.dataset.dp||el.dataset.d, ev);
+      openLadPop(el.dataset.th, el.dataset.d, ev);
     };
+  });
+  host.querySelectorAll('.yrfb .fbst').forEach(el=>{
+    el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
 }
 
@@ -5328,69 +5581,55 @@ function paintNextEarn(d){
   });
 }
 
-/* ② 昨日梯队 → 今日反馈：龙头（最高板）/ 助攻（次级连板）/ 跟风（首板）逐股涨幅 + 晋级 + 当日状态 */
-function paintRelay(d){
-  const host = document.getElementById('ep-fb');
-  if(!host) return;
+/* v102 昨日梯队今日反馈（折叠块）：给定今日 d 与题材，返回该题材「昨日梯队 → 今日反馈」的 details HTML。
+   供「昨日推荐股 → 今日表现」个股名称后折叠显示；无对应反馈返回空串。
+   内容＝左栏昨日梯队三色反馈（龙头/助攻/跟风逐股涨幅+晋级）+ 右栏题材今日梯队。 */
+function relayFoldHtml(d, theme){
+  if(!theme) return '';
   const F = (window.REVIEW||{}).relayFb || {};
   const rows = (F.days||{})[d] || [];
-  const ds = epDays(), i = ds.indexOf(d), dp = i>0 ? ds[i-1] : '';
-  const hd = document.getElementById('ep-fb-h');
-  if(hd) hd.innerHTML = '昨日梯队 → 今日反馈 <span class="sub">'+
-    (dp? fmtDate(dp)+' 梯队 → '+fmtDate(d)+' 表现' : '')+
-    ' · 龙头＝最高板 / 助攻＝低于龙头的连板 / 跟风＝首板</span>';
-  if(!rows.length){
-    host.innerHTML = '<div class="sub" style="padding:8px 2px">'+
-      (dp? '无昨日梯队数据' : '无上一交易日')+'</div>';
-    return;
-  }
-  /* v71：角色三色——龙头金 / 助攻紫 / 跟风蓝；左栏昨日涨停反馈、右栏题材今日梯队 */
+  let r = rows.find(x=> tName(x.th)===tName(theme));
+  if(!r) r = rows.find(x=> (x.th||'').indexOf(tName(theme))>=0 || tName(theme).indexOf(x.th||'')>=0);
+  if(!r) return '';
   const ROLE_COL = {'龙头':'#f0b90b', '助攻':'#a55eea', '跟风':'#3d8bff'};
   const roleTxt = c=> c==='龙头' ? '#0b1220' : '#fff';
   const LF = ((window.REVIEW||{}).ladderFull||{})[d] || {};
   const todayLad = th=> LF[th] || LF[tName(th)] || [];
-  host.innerHTML = rows.map(r=>{
-    const L = r.L.map(l=>{
-      const rc = ROLE_COL[l.role] || '#7f8ea6';
-      const chips = (l.st||[]).map(x=>{
-        const mark = x[4]===1 ? '<i class="ok">晋级</i>' : (x[4]===0 ? '<i class="no">未晋级</i>' : '<i class="na">—</i>');
-        const col = x[3]==null ? C.dim2 : (x[3]>=0 ? C.up : C.down);
-        return '<span class="fbst" data-c="'+x[1]+'" data-n="'+x[0]+'" data-d="'+d+'" '+
-          'title="'+x[0]+'：昨日 '+x[2]+' 板 → 今日 '+EP_NUM(x[3])+'（'+(x[4]===1?'晋级':(x[4]===0?'未晋级':'无数据'))+'）｜点看日K">'+
-          x[0]+'<em class="y">'+x[2]+'板</em>'+shapeTag(d, x[1])+
-          '<em class="c" style="color:'+col+'">'+EP_NUM(x[3])+'</em>'+mark+stateTag(d, x[1])+'</span>';
-      }).join('');
-      return '<div class="fbl"><span class="fbrole" style="background:'+rc+';color:'+roleTxt(l.role)+'">'+l.role+'</span>'+
-        '<span class="fbb">'+l.b+'板</span>'+
-        '<span class="fbstat">均 '+EP_NUM(l.avg)+' · 赚 '+(l.win==null?'—':l.win+'%')+
-        ' · 晋级 '+l.pr+'/'+(l.st||[]).length+'</span>'+
-        '<div class="fbsts">'+chips+'</div></div>';
+  const L = r.L.map(l=>{
+    const rc = ROLE_COL[l.role] || '#7f8ea6';
+    const chips = (l.st||[]).map(x=>{
+      const mark = x[4]===1 ? '<i class="ok">晋级</i>' : (x[4]===0 ? '<i class="no">未晋级</i>' : '<i class="na">—</i>');
+      const col = x[3]==null ? C.dim2 : (x[3]>=0 ? C.up : C.down);
+      return '<span class="fbst" data-c="'+x[1]+'" data-n="'+x[0]+'" data-d="'+d+'" '+
+        'title="'+x[0]+'：昨日 '+x[2]+' 板 → 今日 '+EP_NUM(x[3])+'（'+(x[4]===1?'晋级':(x[4]===0?'未晋级':'无数据'))+'）｜点看日K">'+
+        x[0]+'<em class="y">'+x[2]+'板</em>'+shapeTag(d, x[1])+
+        '<em class="c" style="color:'+col+'">'+EP_NUM(x[3])+'</em>'+mark+stateTag(d, x[1])+'</span>';
     }).join('');
-    /* 右栏：题材今日梯队（按板位分行；最高板＝龙头、次级连板＝助攻、首板＝跟风）
-       v71：优先用后端 tl（昨日成员今日仍涨停 + 当日映射同题材新增），
-       兜底用 ladderFull 当日该题材完整梯队 */
-    const arr = (r.tl && r.tl.length) ? r.tl : todayLad(r.th);
-    const byB = {};
-    arr.forEach(s=>{ const bd=(s&&s.boards)||1; (byB[bd] || (byB[bd]=[])).push(s); });
-    const boards = Object.keys(byB).map(Number).sort((a,b)=>b-a);
-    const lad = boards.length ? boards.map(bd=>{
-      const role = bd===boards[0] ? '龙头' : (bd>=2 ? '助攻' : '跟风');
-      const rc = ROLE_COL[role] || '#7f8ea6';
-      return '<div class="ladrow"><span class="ladb" style="color:'+rc+'">'+role+' '+bd+'板</span><span class="ladst">'+
-        byB[bd].map(s=>'<span class="fbst" data-c="'+(s.code||'')+'" data-n="'+(s.name||'')+'" data-d="'+d+'" '+
-          'title="'+(s.name||'')+'：今日 '+bd+'板（'+role+'）'+(s.t? ' · 首封 '+s.t:'')+
-          (s.s? ' · '+s.s:'')+' ｜点看日K">'+(s.name||'')+
-          '<em class="y">'+bd+'板</em>'+shapeTag(d, s.code, s.s)+gapTag(d, s.code)+stateTag(d, s.code)+'</span>').join('')+
-        '</span></div>';
-    }).join('') : '<span class="sub" style="padding:4px 0">今日该题材无梯队</span>';
-    return '<div class="fbcard"><div class="fbhd"><b>'+r.th+'</b>'+
-      '<span class="sub">昨日最高 '+r.top+' 板 · 梯队 '+r.cnt+' 只</span></div>'+
-      '<div class="fbcols"><div class="fbL">'+L+'</div>'+
-      '<div class="fbR"><div class="fbR-hd">题材今日梯队 · '+fmtDate(d)+'</div>'+lad+'</div></div></div>';
+    return '<div class="fbl"><span class="fbrole" style="background:'+rc+';color:'+roleTxt(l.role)+'">'+l.role+'</span>'+
+      '<span class="fbb">'+l.b+'板</span>'+
+      '<span class="fbstat">均 '+EP_NUM(l.avg)+' · 赚 '+(l.win==null?'—':l.win+'%')+
+      ' · 晋级 '+l.pr+'/'+(l.st||[]).length+'</span>'+
+      '<div class="fbsts">'+chips+'</div></div>';
   }).join('');
-  host.querySelectorAll('.fbst').forEach(el=>{
-    el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
-  });
+  const arr = (r.tl && r.tl.length) ? r.tl : todayLad(r.th);
+  const byB = {};
+  arr.forEach(s=>{ const bd=(s&&s.boards)||1; (byB[bd] || (byB[bd]=[])).push(s); });
+  const boards = Object.keys(byB).map(Number).sort((a,b)=>b-a);
+  const lad = boards.length ? boards.map(bd=>{
+    const role = bd===boards[0] ? '龙头' : (bd>=2 ? '助攻' : '跟风');
+    const rc = ROLE_COL[role] || '#7f8ea6';
+    return '<div class="ladrow"><span class="ladb" style="color:'+rc+'">'+role+' '+bd+'板</span><span class="ladst">'+
+      byB[bd].map(s=>'<span class="fbst" data-c="'+(s.code||'')+'" data-n="'+(s.name||'')+'" data-d="'+d+'" '+
+        'title="'+(s.name||'')+'：今日 '+bd+'板（'+role+'）'+(s.t? ' · 首封 '+s.t:'')+
+        (s.s? ' · '+s.s:'')+' ｜点看日K">'+(s.name||'')+
+        '<em class="y">'+bd+'板</em>'+shapeTag(d, s.code, s.s)+gapTag(d, s.code)+stateTag(d, s.code)+'</span>').join('')+
+      '</span></div>';
+  }).join('') : '<span class="sub" style="padding:4px 0">今日该题材无梯队</span>';
+  const body = '<div class="fbcard"><div class="fbhd"><b>'+r.th+'</b>'+
+    '<span class="sub">昨日最高 '+r.top+' 板 · 梯队 '+r.cnt+' 只</span></div>'+
+    '<div class="fbcols"><div class="fbL">'+L+'</div>'+
+    '<div class="fbR"><div class="fbR-hd">题材今日梯队 · '+fmtDate(d)+'</div>'+lad+'</div></div></div>';
+  return '<details class="yrfb"><summary>昨日梯队今日反馈 <span class="sub">'+r.th+' · 昨日最高 '+r.top+'板 ▾</span></summary>'+body+'</details>';
 }
 
 /* ②b 今日新增梯队（v75）：昨日无题材梯队、今日新形成梯队的板块。
