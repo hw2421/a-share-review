@@ -877,6 +877,43 @@
   .ep-h{font-size:12.5px;color:#ffd24a;margin:14px 0 6px;font-weight:800}
   .ep-h .sub{font-weight:400;color:var(--dim2);font-size:11px;margin-left:6px}
   .ep-chart{width:100%;min-height:60px}
+  /* v97 赚钱效应学习子模块 */
+  .elrn{margin-top:16px;border-top:1px dashed var(--line);padding-top:4px}
+  .elrn-entry{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+  .elrn-q,.elrn-d{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 8px;font-size:12px}
+  .elrn-q{width:290px}
+  .elrn-sugg{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+  .elrn-sugg button{background:var(--card2);border:1px solid #7a5a12;color:#ffe8a8;border-radius:4px;padding:3px 8px;font-size:11.5px;cursor:pointer}
+  .elrn-sugg button:hover{background:#8c5a12;color:#fff}
+  .elrn-detail{border:1px solid var(--line);border-radius:8px;background:var(--card2);padding:10px 12px;margin:8px 0;display:none}
+  .elrn-detail.on{display:block}
+  .elrn-dh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;margin-bottom:8px}
+  .elrn-dh b{font-size:15px;color:#fff}
+  .elrn-kchart{width:100%;height:120px;display:block;margin:6px 0;border-radius:5px;background:var(--bg)}
+  .elrn-lad{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+  .elrn-lt{border:1px solid #7a5a12;background:rgba(240,185,11,.07);border-radius:6px;padding:6px 9px;font-size:11.5px}
+  .elrn-lt b{color:#ffd24a}
+  .elrn-lt .ls{color:var(--dim);font-size:10.5px}
+  .elrn-form{margin:10px 0;display:none}
+  .elrn-form.on{display:block}
+  .elrn-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+  .elrn-tags button{background:var(--card2);border:1px solid var(--line);color:var(--dim);border-radius:12px;padding:3px 10px;font-size:11px;cursor:pointer}
+  .elrn-tags button.on{background:#8c5a12;border-color:#ffd24a;color:#fff}
+  .elrn-note{width:100%;min-height:62px;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px 10px;font-size:12px;resize:vertical}
+  .elrn-acts{display:flex;gap:10px;align-items:center;margin-top:6px}
+  .elrn-saved{color:#5fd39a;font-size:11.5px}
+  .elrn-week-hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+  .elrn-week-nav{display:flex;gap:5px}
+  .elrn-wk{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:6px}
+  .elrn-wkh,.elrn-wkr{display:grid;grid-template-columns:88px 1fr 190px 1.6fr;gap:0;font-size:11.5px}
+  .elrn-wkh{background:#8c5a12;color:#fff;font-weight:700}
+  .elrn-wkh span,.elrn-wkr span{padding:6px 8px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);line-height:1.5}
+  .elrn-wkr:nth-child(even){background:rgba(255,255,255,.02)}
+  .elrn-wkr span:last-child,.elrn-wkh span:last-child{border-right:0}
+  .elrn-wsum{background:var(--card2);border:1px solid #7a5a12;border-radius:7px;padding:10px 12px;margin-top:8px;font-size:12px;line-height:1.8}
+  .elrn-wsum b{color:#ffd24a}
+  .elrn-empty{padding:18px;color:var(--dim2);font-size:12px;text-align:center}
+  .elrn-del{color:#ff6b81;cursor:pointer;font-size:10.5px;margin-left:6px}
   .ep-dayh{font-size:11.5px;color:var(--dim2);margin:10px 0 4px}
   .ep-dayh b{color:var(--text)}
   .ep-rows{display:flex;flex-wrap:wrap;gap:6px}
@@ -1155,6 +1192,39 @@
     <h4 class="ep-h">多题材热力表 <span class="sub">仅统计窗口内出现 ≥3 次的题材（当日板块有连板且涨停 ≥3 家）· 格内＝当日涨停家数与梯队</span></h4>
     <div id="ep-heat" class="ep-chart"></div>
     <div id="ep-cross"></div>
+
+    <!-- v97 赚钱效应学习子模块：录入赚钱个股→带出日K与题材梯队→每日填报→周总结表 -->
+    <div class="elrn" id="elrn-box">
+      <h4 class="ep-h">赚钱效应学习 <span class="sub">录入当日赚钱个股 → 自动带出该股日K与当日题材梯队 → 填写你学到的特征 → 按周汇总规律（填报仅存本机浏览器）</span></h4>
+      <div class="elrn-entry">
+        <input id="elrn-q" class="elrn-q" placeholder="输入个股名称 / 代码（如：盛剑科技 / 603324）" autocomplete="off">
+        <input id="elrn-date" class="elrn-d" type="date" title="这笔学习归属日期（用于周汇总）">
+        <button id="elrn-search" class="ep-go">检索并导入</button>
+        <span class="sub" id="elrn-hint" style="margin-left:8px"></span>
+      </div>
+      <div class="elrn-sugg" id="elrn-sugg"></div>
+      <div class="elrn-detail" id="elrn-detail"></div>
+      <div class="elrn-form" id="elrn-form">
+        <div class="elrn-tags" id="elrn-tags"></div>
+        <textarea id="elrn-note" class="elrn-note" placeholder="今天从这只股学到了什么？（如：板块有2只以上助攻、龙头非一字、缩量回封可参与……）"></textarea>
+        <div class="elrn-acts">
+          <button id="elrn-save" class="ep-go">保存今日学习</button>
+          <span class="elrn-saved" id="elrn-saved"></span>
+        </div>
+      </div>
+      <div class="elrn-week">
+        <div class="elrn-week-hd">
+          <h4 class="ep-h" style="margin:14px 0 6px">周总结表 <span class="sub" id="elrn-week-sub"></span></h4>
+          <span class="elrn-week-nav">
+            <button id="elrn-wprev" class="ep-go" title="上一周">◀</button>
+            <button id="elrn-wnext" class="ep-go" title="下一周">▶</button>
+            <button id="elrn-wlatest" class="ep-go" title="本周">本周</button>
+            <button id="elrn-export" class="ep-go" title="导出全部填报记录">导出CSV</button>
+          </span>
+        </div>
+        <div id="elrn-week-body"></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -4685,6 +4755,203 @@ function themeOf(d, code){
   return null;
 }
 
+/* ================= v97 赚钱效应学习子模块 ================= */
+const ELRN_KEY = 'earn_learn_diary';   // 填报仅存本机浏览器 localStorage
+const ELRN_TAGS = ['板块助攻≥2','龙头非一字','缩量回封','换手板','一字板','情绪冰点','主升期','补涨','题材入链','缺口高开','地天板','炸板反包','低位首板','高位加速','过分歧','其他'];
+let ELRN_SEL = null;      // 当前导入的个股 {code,name,d}
+let ELRN_WEEK = null;     // 当前周（周一日期 YYYY-MM-DD）
+function elrnEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function elrnD8(s){ return String(s||'').replace(/-/g,''); }
+function elrnDstr(d8){ d8=String(d8||''); return d8.length===8 ? d8.slice(0,4)+'-'+d8.slice(4,6)+'-'+d8.slice(6,8) : d8; }
+function elrnDB(){ try{ return JSON.parse(localStorage.getItem(ELRN_KEY)||'{}'); }catch(e){ return {}; } }
+function elrnToday(){ return elrnDstr((window.REVIEW||{}).today||''); }
+function elrnSearch(q){
+  q=(q||'').trim(); if(!q) return [];
+  const nm=(window.REVIEW||{}).nameMap||{}, out=[];
+  for(const code in nm){
+    const name=nm[code];
+    if(code.indexOf(q)===0 || name.indexOf(q)>=0){
+      out.push({code, name});
+      if(out.length>=12) break;
+    }
+  }
+  return out;
+}
+function elrnDrawK(cv, bars, d8){
+  const ctx=cv.getContext('2d');
+  const W=cv.width=Math.max(300, cv.clientWidth||600), H=cv.height=120;
+  ctx.clearRect(0,0,W,H);
+  if(!bars || bars.length<2){ ctx.fillStyle='#556072'; ctx.font='12px sans-serif'; ctx.fillText('暂无日K数据（新股/退市/数据源缺失）',12,64); return; }
+  // 截止所选日
+  let arr=bars.filter(b=>b && b[0] && (!d8 || b[0]<=d8)).slice(-60);
+  if(arr.length<2) arr=bars.slice(-60);
+  const hi=Math.max(...arr.map(b=>b[4])), lo=Math.min(...arr.map(b=>b[3]));
+  const pad=8, rg=(hi-lo)||1, top=pad, bot=H-pad;
+  const y=v=> bot-((v-lo)/rg)*(bot-top);
+  const step=(W-2*pad)/arr.length, bw=Math.max(1.5, Math.min(6, step*0.62));
+  ctx.strokeStyle='#1f2937'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad,y(hi)); ctx.lineTo(W-pad,y(hi)); ctx.moveTo(pad,y(lo)); ctx.lineTo(W-pad,y(lo)); ctx.stroke();
+  arr.forEach((b,i)=>{
+    const x=pad+i*step+step/2, up=b[2]>=b[1], col=up?'#ff4d4f':'#22c55e';
+    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,y(b[4])); ctx.lineTo(x,y(b[3])); ctx.stroke();
+    const y1=y(Math.max(b[1],b[2])), y2=y(Math.min(b[1],b[2]));
+    ctx.fillRect(x-bw/2, y1, bw, Math.max(1,y2-y1));
+    if(b[0]===d8){ ctx.strokeStyle='#ffd24a'; ctx.lineWidth=1; ctx.strokeRect(x-bw/2-1,y1-1,bw+2,Math.max(1,y2-y1)+2); }
+  });
+  ctx.fillStyle='#78849a'; ctx.font='10px sans-serif';
+  ctx.fillText('截止 '+(d8?elrnDstr(d8):'最新')+' · 共'+arr.length+'根 · 红涨绿跌',10,12);
+}
+async function elrnImport(code, name, dstr){
+  const d8=elrnD8(dstr||document.getElementById('elrn-date').value||elrnToday());
+  const host=document.getElementById('elrn-detail');
+  const R=window.REVIEW||{};
+  const to=themeOf(d8, code), th=to&&to.th;
+  const ho=handoverOf(d8, code), sh=shapeOf(d8, code);
+  const tier=tierOf(d8, th);
+  const LF=((R.ladderFull||{})[d8]||{})[th||'']||[];
+  // 题材梯队同行个股
+  const mates=LF.map(s=>'<span class="elrn-lt"><b>'+elrnEsc(s.name||s.code)+'</b> '+elrnEsc(s.boards||1)+'板 '+shapeTag(d8,s.code,s.s)+(String(s.code)===String(code)?' <i style="color:#ffd24a">←当前</i>':'')+'</span>').join('');
+  // 当日涨停池信息
+  const zt=ztOf(d8, code);
+  const openTag='<span class="ep-ch" style="pointer-events:none">'+elrnEsc(name)+shapeTag(d8,code,sh&&sh.s)+' '+(ho?(ho.k==='yz'?'一字':'换手'):'—')+'</span>';
+  host.innerHTML =
+    '<div class="elrn-dh">'+openTag+
+      '<span class="sub">'+elrnDstr(d8)+' · 代码 '+code+'</span>'+
+      '<span class="sub">题材：<b style="color:#ffd24a">'+(th?elrnEsc(th):'无题材归类')+'</b>'+(tier?' · 梯队 '+elrnEsc(tier):'')+'</span>'+
+      (zt?'<span class="sub">涨停 '+(zt.t||'')+' · 封板形态 '+(sh?elrnEsc(sh.s):'—')+'</span>':'<span class="sub">当日非涨停股（可学习其赚钱效应来源）</span>')+
+    '</div>'+
+    '<canvas class="elrn-kchart" id="elrn-kc"></canvas>'+
+    '<div class="elrn-lad">'+(mates||'<span class="sub">'+(th?'该题材当日无梯队明细':'当日无入链题材梯队')+'</span>')+'</div>'+
+    '<div class="sub" style="font-size:10.5px;margin-top:4px">客观特征已自动带出：题材、梯队、涨停形态、换手/一字、日K；下方填写你主观总结的特征与心得。</div>';
+  host.classList.add('on');
+  document.getElementById('elrn-form').classList.add('on');
+  document.getElementById('elrn-saved').textContent='';
+  // 日K：优先现有缓存，必要时拉分片
+  let bars=(R.klines||{})[code]||[];
+  if(typeof stockKBars==='function'){
+    try{ const kb=await stockKBars(code, d8); if(kb&&kb.length) bars=kb; }catch(e){}
+  }
+  elrnDrawK(document.getElementById('elrn-kc'), bars, d8);
+  // 回填已有填报
+  const rec=(elrnDB()[dstr+'|'+code+'|'+(ELRN_SEL&&ELRN_SEL.m||'learn')]||{});
+  document.getElementById('elrn-note').value=rec.note||'';
+  ELRN_SEL={code, name, d:dstr, th, tier, sh:sh&&sh.s, ho:ho&&ho.k, zt:!!zt};
+  renderElrnTags(rec.tags||[]);
+}
+function renderElrnTags(sel){
+  sel=sel||[];
+  document.getElementById('elrn-tags').innerHTML=ELRN_TAGS.map(t=>'<button class="'+(sel.indexOf(t)>=0?'on':'')+'" data-t="'+t+'">'+t+'</button>').join('');
+  document.querySelectorAll('#elrn-tags button').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+}
+function elrnSave(){
+  if(!ELRN_SEL){ toast('请先检索并导入一只个股'); return; }
+  const dstr=document.getElementById('elrn-date').value||elrnToday();
+  const tags=[...document.querySelectorAll('#elrn-tags button.on')].map(b=>b.dataset.t);
+  const note=(document.getElementById('elrn-note').value||'').trim();
+  if(!tags.length && !note){ toast('请至少选一个特征标签或写一句心得'); return; }
+  const db=elrnDB(), key=dstr+'|'+ELRN_SEL.code+'|learn';
+  db[key]={
+    d:dstr, code:ELRN_SEL.code, name:ELRN_SEL.name, th:ELRN_SEL.th||'', tier:ELRN_SEL.tier||'',
+    sh:ELRN_SEL.sh||'', ho:ELRN_SEL.ho||'', zt:ELRN_SEL.zt?1:0, tags, note, ts:Date.now()
+  };
+  try{ localStorage.setItem(ELRN_KEY, JSON.stringify(db)); document.getElementById('elrn-saved').textContent='✓ 已保存（'+fmtDate(elrnD8(dstr))+'）'; renderElrnWeek(); }
+  catch(e){ toast('保存失败：本地存储不可用'); }
+}
+function elrnWeekKey(dstr){
+  const dt=new Date(dstr+'T00:00:00Z'), day=dt.getUTCDay()||7;
+  dt.setUTCDate(dt.getUTCDate()-day+1);
+  return dt.toISOString().slice(0,10);
+}
+function elrnRenderWeekBody(){
+  const host=document.getElementById('elrn-week-body'); if(!host) return;
+  const db=elrnDB(), recs=Object.values(db).filter(r=>r&&r.d).sort((a,b)=>a.d.localeCompare(b.d)||((a.ts||0)-(b.ts||0)));
+  if(!recs.length){ host.innerHTML='<div class="elrn-empty">暂无填报记录。上方导入赚钱个股并填写学习心得后，这里会按周汇总。</div>'; return; }
+  const weeks=[...new Set(recs.map(r=>elrnWeekKey(r.d)))].sort();
+  if(!ELRN_WEEK||weeks.indexOf(ELRN_WEEK)<0) ELRN_WEEK=weeks[weeks.length-1];
+  const wk=ELRN_WEEK, end=new Date(wk+'T00:00:00Z'); end.setUTCDate(end.getUTCDate()+6);
+  const cur=recs.filter(r=>elrnWeekKey(r.d)===wk);
+  const sub=document.getElementById('elrn-week-sub');
+  if(sub) sub.textContent=wk+' ~ '+end.toISOString().slice(0,10)+' · 本周 '+cur.length+' 笔';
+  const tagCnt={}, thCnt={}, codes=new Set();
+  cur.forEach(r=>{
+    codes.add(r.code);
+    (r.tags||[]).forEach(t=>tagCnt[t]=(tagCnt[t]||0)+1);
+    if(r.th) thCnt[r.th]=(thCnt[r.th]||0)+1;
+  });
+  const rank=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]);
+  const rows=cur.map(r=>'<div class="elrn-wkr">'+
+    '<span>'+elrnDstr(r.d).slice(5)+'<i class="elrn-del" data-k="'+elrnDstr(r.d)+'|'+r.code+'|learn" title="删除这条">✕</i></span>'+
+    '<span><b style="color:#fff">'+elrnEsc(r.name)+'</b> <span class="sub">'+r.code+'</span>'+
+      '<span class="sub" style="display:block">题材 '+elrnEsc(r.th||'—')+(r.tier?' 梯队'+elrnEsc(r.tier):'')+
+      (r.sh?' · '+elrnEsc(r.sh):'')+(r.ho?' · '+(r.ho==='yz'?'一字':'换手'):'')+'</span></span>'+
+    '<span>'+(r.tags||[]).map(t=>'<span class="ch-tag" style="margin:1px 2px;display:inline-block">'+elrnEsc(t)+'</span>').join('')+'</span>'+
+    '<span>'+elrnEsc(r.note||'—')+'</span></div>').join('');
+  const topTags=rank(tagCnt).slice(0,5), topTh=rank(thCnt).slice(0,4);
+  let summary='<div class="elrn-wsum"><b>本周规律小结：</b>填报 <b>'+cur.length+'</b> 笔 · 涉及 <b>'+codes.size+'</b> 只个股';
+  if(topTags.length) summary+=' · 高频特征 '+topTags.map(([t,n])=>'<b>'+elrnEsc(t)+'</b> '+n+'次').join('、');
+  if(topTh.length) summary+=' · 集中题材 '+topTh.map(([t,n])=>elrnEsc(t)+' '+n).join('、');
+  if(topTags.length){
+    const top=topTags[0][0];
+    const advice={
+      '板块助攻≥2':'优先选板块内有≥2只助攻的题材龙，独苗股持续性差。',
+      '龙头非一字':'一字板买不进，把注意力放在非一字换手龙上。',
+      '缩量回封':'缩量回封说明抛压小，但需配合板块变强才成立。',
+      '换手板':'换手板可参与，一字板只进观察池。',
+      '情绪冰点':'情绪冰点是布局点，高潮期兑现，退潮期空仓。',
+      '题材入链':'以题材炒作入链题材为准，非入链不参与。',
+      '高位加速':'高位缩量加速是兑现信号，不是买点。'
+    };
+    summary+='<br><b>可纠正的一点：</b>'+(advice[top]||'围绕高频特征复盘：它是否真的带来溢价？下次只在该特征明确时出手。');
+  }
+  summary+='</div>';
+  host.innerHTML='<div class="elrn-wk"><div class="elrn-wkh"><span>日期</span><span>个股 / 客观特征</span><span>我总结的特征</span><span>学到的内容</span></div>'+rows+'</div>'+summary;
+  host.querySelectorAll('.elrn-del').forEach(x=>x.onclick=()=>{
+    const db=elrnDB(); if(confirm('删除这条学习记录？')){ delete db[x.dataset.k]; localStorage.setItem(ELRN_KEY,JSON.stringify(db)); renderElrnWeek(); }
+  });
+}
+function elrnShiftWeek(n){
+  if(!ELRN_WEEK) return;
+  const dt=new Date(ELRN_WEEK+'T00:00:00Z'); dt.setUTCDate(dt.getUTCDate()+n*7);
+  ELRN_WEEK=dt.toISOString().slice(0,10); elrnRenderWeekBody();
+}
+function elrnExport(){
+  const recs=Object.values(elrnDB()).filter(r=>r&&r.d).sort((a,b)=>a.d.localeCompare(b.d));
+  if(!recs.length){ toast('暂无填报记录可导出'); return; }
+  const esc=s=>'"'+String(s==null?'':s).replace(/"/g,'""')+'"';
+  const head=['日期','代码','名称','题材','梯队','形态','换手','涨停','特征标签','学习笔记'];
+  const rows=recs.map(r=>[r.d,r.code,r.name,r.th,r.tier,r.sh,r.ho==='yz'?'一字':(r.ho==='hs'?'换手':''),r.zt?'是':'',(r.tags||[]).join('/'),r.note].map(esc).join(','));
+  const blob=new Blob(['\ufeff'+head.map(esc).join(',')+'\n'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='赚钱效应学习_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('已导出 '+recs.length+' 条记录');
+}
+function renderElrnWeek(){ elrnRenderWeekBody(); }
+function initElrn(){
+  const q=document.getElementById('elrn-q'); if(!q) return;
+  const di=document.getElementById('elrn-date'); if(di) di.value=elrnToday();
+  const doSearch=()=>{
+    const list=elrnSearch(q.value), box=document.getElementById('elrn-sugg');
+    if(!list.length){ box.innerHTML='<span class="sub">未找到匹配个股（可试试代码或名称关键字）</span>'; return; }
+    box.innerHTML=list.map(x=>'<button data-c="'+x.code+'" data-n="'+elrnEsc(x.name)+'">'+elrnEsc(x.name)+' <span class="sub">'+x.code+'</span></button>').join('');
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      elrnImport(b.dataset.c, b.dataset.n, di.value);
+      document.getElementById('elrn-hint').textContent='已导入 '+b.dataset.n+'，请填写下方特征';
+    });
+  };
+  document.getElementById('elrn-search').onclick=doSearch;
+  q.onkeydown=e=>{ if(e.key==='Enter') doSearch(); };
+  if(di) di.onchange=()=>{ if(ELRN_SEL) elrnImport(ELRN_SEL.code, ELRN_SEL.name, di.value); };
+  document.getElementById('elrn-save').onclick=elrnSave;
+  document.getElementById('elrn-export').onclick=elrnExport;
+  document.getElementById('elrn-wprev').onclick=()=>elrnShiftWeek(-1);
+  document.getElementById('elrn-wnext').onclick=()=>elrnShiftWeek(1);
+  document.getElementById('elrn-wlatest').onclick=()=>{ const db=elrnDB(), ws=Object.values(db).filter(r=>r&&r.d).map(r=>elrnWeekKey(r.d)); ELRN_WEEK=ws.length?ws.sort().pop():elrnWeekKey(elrnToday()); elrnRenderWeekBody(); };
+  renderElrnTags([]); renderElrnWeek();
+}
+
 /* ① 赚钱效应名单：个股（板位/缺口/当日状态） + 题材（当日梯队） */
 function paintEarn(){
   const root = document.getElementById('es-root');
@@ -4747,6 +5014,7 @@ function paintEarn(){
   paintYesterdayRec(end);
   paintNewLad(end);
   paintHeat(end);
+  elrnRenderWeekBody();   // v97 周总结随填报刷新（子模块只读 localStorage，不依赖回看日）
 }
 
 /* v86 昨日推荐股 → 今日表现：站在今日 d，取昨日 dp 的「明日赚钱效应候选」，
@@ -5109,6 +5377,7 @@ document.querySelectorAll('.ep-w').forEach(b=>{
   if(m) m.onchange = ()=>epFillDPick();
   if(d) d.onchange = ()=>{ EP_END = sel(); paintEarn(); };
 })();
+initElrn();   // v97 赚钱效应学习子模块（事件绑定 + 周总结初始化）
 
 /* ================= v73 历史复盘 =================
    历史全部赚钱效应股（earnStreak 全量池＝连续两天可换手买入且涨停的 3 板或以上）
