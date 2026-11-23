@@ -1192,13 +1192,15 @@
   .ew-filters button.active{background:#1b4a90;border-color:#78b0ff;color:#fff;font-weight:700}
   .ew-list{display:flex;flex-direction:column;gap:6px;margin-top:2px}
   .ew-row{border:1px solid #2b3a56;border-radius:8px;padding:6px 9px;background:#141d2f}
-  /* v104：主信息单行（名称+高度+形态+题材），整体缩小字体 */
-  .ew-rowmain{display:flex;flex-wrap:nowrap;align-items:center;gap:4px 7px;font-size:10px;color:var(--dim);
-    white-space:nowrap;overflow-x:auto;scrollbar-width:thin}
+  /* v107：主信息（名称+身份+高度+形态+题材）一行放不下自动换第二行，不再左右拖动 */
+  .ew-rowmain{display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px;font-size:10px;color:var(--dim);
+    white-space:normal;overflow:visible}
   .ew-rowname{font-size:11px;color:var(--text);font-weight:700;cursor:pointer;white-space:nowrap}
   .ew-rowname:hover{color:#9dc6ff;text-decoration:underline}
   .ew-rowname small{color:var(--dim2);font-size:9px;font-weight:400;margin-left:2px}
   .ew-rowf{white-space:nowrap}
+  /* v107：题材项允许内部换行（题材多时第二行显示，不横向拖动） */
+  .ew-rowf-th{white-space:normal;min-width:0;word-break:break-all}
   .ew-rowf b{color:var(--gold)}
   .ew-rowf .sp{margin-left:1px;font-size:9px}
   .ew-rowsep{color:#3a4a63}
@@ -5422,7 +5424,7 @@ function ewRenderWhere(end){
       '<span class="ew-roles">'+roles+'</span>'+
       '<span class="ew-rowsep">·</span><span class="ew-rowf">高度 <b>'+count2(c.b)+'板</b></span>'+
       '<span class="ew-rowsep">·</span><span class="ew-rowf">形态 '+shapeTag(end,c.code,c.shape)+'</span>'+
-      '<span class="ew-rowsep">·</span><span class="ew-rowf">题材 '+themes+'</span>'+
+      '<span class="ew-rowsep">·</span><span class="ew-rowf ew-rowf-th">题材 '+themes+'</span>'+
       '</div><div class="ew-rowfolds">'+
       '<details class="ew-det"><summary>入选依据</summary><div class="ew-ev">'+ev+'</div></details>'+
       '<details class="ew-det"><summary>风险提示</summary><div class="ew-risk">'+risks+'</div></details>'+
@@ -5609,6 +5611,17 @@ function paintNextEarn(d){
      口径与题材炒作页题材选择完全同源；无题材/题材未入链的孤股不推荐。 */
   const rawArr = (N.byDate||{})[d] || [];
   const arr = rawArr.filter(e=>hasThemeEffect(d, e.code, e.theme));
+  /* v107：按「题材 → 高度(降序) → 涨停时间(早优先)」排列；同题材聚在一起，无题材排最后 */
+  arr.sort((a,b)=>{
+    const ta=tName(a.theme||''), tb=tName(b.theme||'');
+    if(!ta && tb) return 1;
+    if(ta && !tb) return -1;
+    if(ta && tb && ta!==tb) return ta.localeCompare(tb,'zh-CN');
+    if((b.b||0)!==(a.b||0)) return (b.b||0)-(a.b||0);
+    const sa=String(a.t||'99:99'), sb=String(b.t||'99:99');
+    if(sa!==sb) return sa.localeCompare(sb);
+    return String(a.code||'').localeCompare(String(b.code||''));
+  });
   const ds = epDays(), isToday = !d || d===ds[ds.length-1];
   if(sub) sub.textContent = isToday
     ? '今日换手涨停≥2板 且 有题材效应（题材入链题材炒作图） · 明日「换手涨停＋最低价＞今最高＋晋级≥3板」即成赚钱效应股'

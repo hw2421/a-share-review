@@ -3116,3 +3116,17 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
 - ③④：补数据后今日主列表达标 1 只（中京电子），赚钱效应在哪 3 只候选（中京电子赚T/PCB 3-1、
   真视通普通/国产算力、盛剑科技长腿/半导体）形态全正常无问号，PCB 正确入选。
 - 实测(Chromium)：5 页签正常、0 JS 错误；截图 v106_ladder.png / v106_where.png。
+
+
+### 110. v107 赚钱效应在哪题材换行 + 明日候选三键排序
+- 用户两点：①赚钱效应在哪的赚钱个股「标记题材」一行展示不完就两行、不要左右拖动；
+  ②明日赚钱效应候选按「题材→高度→涨停时间早」排列。
+- ①题材换行：.ew-rowmain 从 flex-wrap:nowrap / white-space:nowrap / overflow-x:auto 改为
+  flex-wrap:wrap / white-space:normal / overflow:visible（去掉横向滚动条）；题材 span 加 .ew-rowf-th
+  （white-space:normal;min-width:0;word-break:break-all），各单元作 flex item 自然换行，题材多时内部再折行。
+  实测：正常宽度无横向滚动(scrollW==clientW)；注入 7 个题材窄屏下行高 20→38px 自动两行、hscroll=False、
+  题材全显示无截断；三折叠保持同行。
+- ②明日候选排序：paintNextEarn 的 arr 加 sort——题材(tName 归一化、无题材排最后)升序 →
+  高度 b 降序 → 涨停时间 t 升序 → code 兜底；实测 11 只按短剧/光刻机/国产算力(真视通5板→荣联2板)/
+  机器人(长华09:49→凡拓11:03)/消费(东方海洋09:31→…→大东方14:37)/PCB(中京电子)聚合排列，正确。
+- 实测：5 页签正常、0 JS 错误，截图 v107_where.png / v107_multith.png / v107_next.png。纯前端零数据改动。
