@@ -213,7 +213,7 @@
   #thpop .thstk:hover{border-color:#78b0ff;background:#24365c}
   #thpop .thstk em{font-style:normal;font-size:8.5px;color:#ffd24a;margin-left:2px}
   #thpop .thstk .tt{font-size:8.5px;color:#8b9bb5;margin-left:3px}
-  /* v88：线路图个股涨停形态徽标（复用 .sp 七色，覆盖上面通用 em 的金色） */
+  /* v110：线路图个股涨停形态徽标（复用 .sp 六色，覆盖上面通用 em 的金色） */
   #thpop .thstk em.sp{font-style:normal;font-size:8.5px;margin-left:3px;border-radius:2px;
         padding:0 3px;font-weight:700;white-space:nowrap}
   #thpop .seal-note{color:var(--dim2);font-size:10px;line-height:1.7;margin-top:7px;
@@ -252,14 +252,20 @@
   #ladpop .s:hover{border-color:var(--blue);color:#fff}
   #ladpop .s b{color:var(--text);font-weight:600}
   #ladpop .s.lead{border-color:var(--up);background:rgba(245,69,92,.14)}
-  /* v43 涨停形态标签：一字 / 赚T / 地天 / 普通 / 长腿 / 赚钱 / 低开 */
+  /* v110 涨停形态标签（六类）：★一字 / 地天 / 赚钱 / 普通 / 长腿 / 低开（赚T已并入赚钱） */
   #ladpop .s em.sp{font-style:normal;font-size:9px;margin-left:3px;border-radius:2px;
         padding:0 3px;font-weight:700;white-space:nowrap}
   /* v89：通用涨停形态徽标（各模块涨停股链接统一展示形态，不限 ladpop/thpop） */
   em.sp{font-style:normal;font-size:9px;margin-left:3px;border-radius:2px;
         padding:0 3px;font-weight:700;white-space:nowrap;display:inline-block}
   .sp.sp-yz{background:rgba(245,69,92,.24);color:#ff9aa8}
+  /* v110：一字涨停特别标记——金色描边+加粗，醒目提示全天封死买不进 */
+  .sp.sp-yz-star{background:rgba(245,69,92,.34);color:#ffc2cc;border:1px solid var(--gold);font-weight:800}
   .sp.sp-zt{background:rgba(240,185,11,.22);color:#f6db86}
+  /* v110：今日复盘缺口标统一黄底黑字（含长腿灰底），跨模块自包含 */
+  i.gap-yb{font-style:normal;font-size:8.5px;color:#15121c;background:var(--gold);
+           border-radius:3px;padding:0 3px;font-weight:800}
+  i.gap-yb.ng{color:#cfd9ea;background:rgba(120,132,154,.25);font-weight:600}
   .sp.sp-dt{background:rgba(165,94,234,.24);color:#d9b8ff}
   .sp.sp-pt{background:rgba(61,139,255,.2);color:#9fc6ff}
   .sp.sp-lt{background:rgba(46,189,133,.22);color:#8ce3bf}
@@ -812,7 +818,7 @@
   .lblevel .lv small{display:block;color:var(--dim2);font-size:8px;font-weight:400}
   .lblevel .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
                   gap:0;background:var(--card);flex:1 1 auto;min-width:0}
-  /* v106：两行布局——第一行「名称(可两行)+七类形态徽标」，第二行「首封时间+题材」 */
+  /* v110：两行布局——第一行「名称(可两行)+六类形态徽标」，第二行「首封时间+题材」 */
   .lbstk{display:flex;flex-wrap:wrap;align-items:center;align-content:center;
          gap:1px 4px;min-width:0;
          background:var(--card);border-right:1px solid #2c3a54;
@@ -1079,7 +1085,7 @@
                border:1px solid #2b5548;border-radius:3px;padding:0 3px}
   .hr-stk i.thsrc{font-style:normal;font-size:8px;color:#9fb0cc;border:1px dashed #3a4a63;
                   border-radius:3px;padding:0 3px} /* v91：题材来自全局归类兜底 */
-  /* v74：缺口 / 长腿形态小标（缺口＝当日最低价＞昨日最高价） */
+  /* v74：缺口 / 长腿形态小标（缺口＝当日最低价＞昨日涨停价（=昨收，涨停板昨高=昨收=昨涨停价）） */
   .hr-stk i.gp,.hr-ld i.gp,.hr-pb i.gp{font-style:normal;font-size:8.5px;color:#fff;background:#c2492f;border-radius:3px;padding:0 3px;font-weight:700}
   .hr-stk i.gp.ng,.hr-ld i.gp.ng,.hr-pb i.gp.ng{color:#cfd9ea;background:rgba(120,132,154,.25);font-weight:600}
   /* v76：断板链已终止（断板 3 日未再涨停）的赚钱效应股在窗口内最后展示日置灰，第 4 日起移除 */
@@ -1299,7 +1305,7 @@
 <!-- ============ 连板梯队（当日连板个股 + 题材穿透） ============ -->
 <section class="page" id="page-ladder">
   <div class="card">
-    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 每只标 <b>七类涨停形态</b>（一字/地天/赚T/赚钱/普通/长腿/低开，颜色见下方图例）· 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
+    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 每只标 <b>六类涨停形态</b>（★一字/地天/赚钱/普通/长腿/低开，赚T已并入赚钱；颜色见下方图例）· 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
     <div class="dbar">
       <div class="dbar-r">
         <span class="ep-lb">跳转日期</span>
@@ -1317,7 +1323,7 @@
     </div>
     <div class="lb-legend" style="display:flex;flex-wrap:wrap;align-items:center;gap:3px 7px;font-size:9.5px;color:var(--dim2);padding:2px 4px 5px;border-bottom:1px solid #2c3a54">
       <span>涨停形态：</span>
-      <span><em class="sp sp-yz">一字</em></span><span><em class="sp sp-dt">地天</em></span><span><em class="sp sp-zt">赚T</em></span><span><em class="sp sp-zq">赚钱</em></span><span><em class="sp sp-pt">普通</em></span><span><em class="sp sp-lt">长腿</em></span><span><em class="sp sp-dk">低开</em></span>
+      <span><em class="sp sp-yz sp-yz-star">★一字</em></span><span><em class="sp sp-dt">地天</em></span><span><em class="sp sp-zq">赚钱</em></span><span><em class="sp sp-pt">普通</em></span><span><em class="sp sp-lt">长腿</em></span><span><em class="sp sp-dk">低开</em></span>
     </div>
     <div class="scroll" id="ladder-list"></div>
   </div>
@@ -1325,7 +1331,7 @@
 
 <section class="page" id="page-decision">
   <div class="card">
-    <h3>赚钱效应 <span id="dp-stg-decision"></span><span class="sub" id="ep-hd">近 1 个交易日 · 赚钱效应股：3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日最高价（昨日买入者全部获利）</span></h3>
+    <h3>赚钱效应 <span id="dp-stg-decision"></span><span class="sub" id="ep-hd">近 1 个交易日 · 赚钱效应股：3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日涨停价（昨日买入者全部获利）</span></h3>
     <div class="ep-bar dbar">
       <div class="dbar-r">
         <span class="ep-lb">回看截止日</span>
@@ -1351,7 +1357,7 @@
     <div class="smod smod-1" id="smod-earn"><div id="es-root"></div></div>
     <!-- v102 赚钱效应在哪：从上传复盘页移植（身份分类/证据分/入选依据/风险提示/次日确认），深色样式 -->
     <div class="smod smod-where" id="smod-where">
-      <h4 class="ep-h">赚钱效应在哪 <span class="sub">按题材整理当日涨停形态为「赚T / 赚钱」的个股 · 点个股看日K，点题材看当日梯队</span></h4>
+      <h4 class="ep-h">赚钱效应在哪 <span class="sub">按题材整理当日「有缺口的连板股」（≥2板、今低＞昨涨停价）· 点个股看日K，点题材看当日梯队</span></h4>
       <div id="ew-root"></div>
     </div>
     <div class="smod smod-2" id="smod-nx">
@@ -1419,7 +1425,7 @@
       <div class="sysb">
         <div class="sys-lead">
           <b>核心思想：</b>交易获利＝找到<b style="color:#ffe29a">带领市场/题材拉升的龙头</b>并参与。赚钱效应的本质是
-          <b>昨日买入者全部获利</b>（今日最低价＞昨日最高价），龙头通过示范效应带动跟风盘赚钱。
+          <b>昨日买入者全部获利</b>（今日最低价＞昨日涨停价），龙头通过示范效应带动跟风盘赚钱。
           本系统把这套底层逻辑拆成「择时→选股→买入→卖出」四步，每一步都有全历史 3436 笔赚钱效应股的回测支撑。
         </div>
         <div class="sys-grid">
@@ -1431,7 +1437,7 @@
           </div>
           <div class="sys-sec">
             <h5><span class="sn">2</span>选股 · 三层共振</h5>
-            <p><b>个股层</b>：连续两日换手涨停（买得进）、3板以上、当日最低＞昨高（<span class="sys-k">缺口标</span>优选）；看形态（赚钱/长腿/赚T）。</p>
+            <p><b>个股层</b>：连续两日换手涨停（买得进）、3板以上、当日最低＞昨涨停价（<span class="sys-k">缺口标</span>优选）；看形态（赚钱/长腿/一字等六类）。</p>
             <p><b>题材层</b>：优先<span class="sys-k">题材龙头</span>（梯队最高板）与助攻多的题材，示范效应才带得动跟风盘。</p>
             <p><b>空间层</b>：叠加当日空间龙头（最高板）。三层共振为最优买点。</p>
           </div>
@@ -1459,7 +1465,7 @@
           </tbody>
         </table>
         <div class="sys-note">
-          底层逻辑（v77）：3板以上 + 连续两日换手涨停（非一字）+ <b>当日最低价＞昨日最高价</b>＝昨日任意价位买入者今日全部获利。
+          底层逻辑（v77）：3板以上 + 连续两日换手涨停（非一字）+ <b>当日最低价＞昨日涨停价</b>＝昨日任意价位买入者今日全部获利。
           收益分布：≤-7% 占19%、-7~0% 占23%、0~10% 占35%、10~30% 占15%、&gt;30% 占8%——约五成胜率、靠右尾连板盈利，
           须严格执行断板纪律。数据为历史统计（未计手续费/冲击成本），不构成投资建议。回测明细见 output/earn_hold_*.json，口径记录见 README §85。
         </div>
@@ -1478,10 +1484,10 @@
         <div class="fx-sub">一、底层定义：什么是赚钱效应股（以及为什么这样定义）</div>
         <div class="sys-sec">
           <p><b>因果逻辑：</b>涨停只是"果"，<span class="sys-k">接力资金的真实盈亏才是"因"</span>。一只股之所以能连续拉升，是因为前一天买它的人赚到了钱、愿意继续买或推荐，形成正反馈。所以我们不追"涨停"这个表象，而紧盯"买入者是否获利"这个本质。</p>
-          <div class="fx-formula">赚钱效应股 ＝ 3板以上 ∩ 连续两日「换手」涨停 ∩ <b>当日最低价 ＞ 昨日最高价</b>（真跳空缺口）</div>
+          <div class="fx-formula">赚钱效应股 ＝ 3板以上 ∩ 连续两日「换手」涨停 ∩ <b>当日最低价 ＞ 昨日涨停价</b>（真跳空缺口）</div>
           <p><b>逐条逻辑：</b></p>
           <p>① <span class="sys-k">连续两日换手涨停（非一字）</span>——"买得进"才有意义。一字板买不到，是纸面机会；换手板说明有真实换手、资金能参与。</p>
-          <p>② <span class="sys-k">当日最低 ＞ 昨日最高（缺口）</span>——这是判定"昨日买入者全部获利"的硬标准：昨日无论谁在什么价位买（最高不超过昨高），今日最低价都比它高，<b>昨日买入者无一亏损</b>，示范效应最强。缺口越大，获利越厚、越安全。</p>
+          <p>② <span class="sys-k">当日最低 ＞ 昨日涨停价（缺口）</span>——这是判定"昨日买入者全部获利"的硬标准：昨日无论谁在什么价位买（最高不超过昨涨停价），今日最低价都比它高，<b>昨日买入者无一亏损</b>，示范效应最强。缺口越大，获利越厚、越安全。</p>
           <p>③ <span class="sys-k">3板以上</span>——走出辨识度，才能吸引市场注意、汇聚接力资金；低板位缺乏号召力。</p>
           <p>④ 两日都必须换手——排除"昨日一字、今日一字"的锁死状态，保证"昨日买入者"是真实可成交的群体。</p>
         </div>
@@ -1490,8 +1496,8 @@
         <div class="sys-grid">
           <div class="sys-sec">
             <h5><span class="sn">A</span>个股层特征</h5>
-            <p>· <b>形态</b>：赚钱板为主，兼有长腿（下影长、承接强）、赚T（缺口后日内换手），形态见明细表标记。</p>
-            <p>· <b>缺口</b>：缺口标（当日最低＞昨高）是核心，缺口越厚越优。</p>
+            <p>· <b>形态</b>：以赚钱板为主（今日最低价＞昨涨停价，含原「赚T」），兼有长腿（下影长、承接强），形态见明细表标记。</p>
+            <p>· <b>缺口</b>：缺口标（当日最低＞昨涨停价）是核心，缺口越厚越优。</p>
             <p>· <b>板位</b>：板位越高、溢价越高——3板均 +4.28% → 7板 +11.36% → 12板 +20.52%（右尾效应）。</p>
             <p>· <b>首封时间</b>：早盘快速封板（首封时间早）通常强于尾盘勉强封板。</p>
           </div>
@@ -2531,12 +2537,16 @@ function renderTheme(){
 /* ---- 题材卡点「梯队」→ 浮层显示当日板块梯队（各板数 + 完整涨停个股） ---- */
 /* 涨停时间：梯队完整清单用 t 字段、题材块个股用 time 字段（数据层同源为 HH:MM） */
 function sealOf(s){ return (s && (s.t || s.time)) || ''; }
-/* v43 涨停形态配色：一字 / 赚T / 地天 / 普通 / 长腿 / 赚钱 / 低开 */
-const SP_CLS = {'一字':'sp-yz','赚T':'sp-zt','地天':'sp-dt','普通':'sp-pt',
+/* v110 涨停形态配色（六类）：一字 / 地天 / 赚钱 / 普通 / 长腿 / 低开
+   ——「赚T」并入「赚钱」：赚钱＝有缺口（今日最低价＞昨日涨停价）的换手涨停。 */
+const SP_CLS = {'一字':'sp-yz','赚T':'sp-zq','地天':'sp-dt','普通':'sp-pt',
                 '长腿':'sp-lt','赚钱':'sp-zq','低开':'sp-dk'};
 function shapeCls(s){ return SP_CLS[s] || 'sp-pt'; }
-const SP_TIP = '形态：一字＝涨停开盘全天未开板 · 赚钱＝高开涨停 · 赚T＝涨停开盘振幅<8% · '+
-  '普通＝振幅8%~12% · 长腿＝振幅>12% · 地天＝跌停开盘涨停收盘';
+/* v110 形态显示名：历史缓存里的「赚T」一律显示为「赚钱」 */
+function shapeName(s){ return s==='赚T' ? '赚钱' : (s||''); }
+const SP_TIP = '形态（六类）：一字＝涨停开盘全天未开板（特别标记·买不进） · '+
+  '赚钱＝有缺口（今日最低价＞昨日涨停价）的换手涨停，含原「赚T」 · '+
+  '普通＝无缺口振幅8%~12% · 长腿＝无缺口振幅>12% · 地天＝跌停开盘涨停收盘 · 低开＝低开涨停';
 function lateSeal(t){ return !!(t && t >= '14:00'); }
 /* ---- v68：高位断板跟踪索引（昨日 ≥3 板 → 统计日断板，自断板日起跟踪 3 日）
    数据 brkTrack.days[展示日] = [{code,name,b,bd,n,chg,cum,th}]，按题材归组；
@@ -2702,7 +2712,7 @@ function openThPop(nm, ev, fromD){
   const LF = (R.ladderFull||{});
   const colsArr = chain.slice().reverse();
   // v88：数据源改用 ladderFull 完整涨停清单（100% 命中线路图题材，含形态 s/首封 t），
-  // 并把每只涨停个股的涨停形态按七色徽标标记；早年日K缺失算不出形态的显示「?」占位。
+  // 并把每只涨停个股的涨停形态按六色徽标标记；早年日K缺失算不出形态的显示「?」占位。
   let missShape = 0, fullStk = 0, slimStk = 0;
   const cols = colsArr.map((c, ci)=>{
     const b = c.b;
@@ -2736,8 +2746,8 @@ function openThPop(nm, ev, fromD){
   const HO=(window.REVIEW.handover||{}).theme||{};
   const hoBtn = HO[nm] && HO[nm].length
     ? '<button class="hd-open" data-kind="theme" data-th="'+nm+'" title="新旧龙头交接：最近断板龙头 vs 最新龙头 K线叠加">🔀 新旧交接</button>' : '';
-  const legend = ['一字','地天','赚T','赚钱','普通','长腿','低开'].map(s=>
-    '<span class="sp-legend"><em class="sp '+shapeCls(s)+'">'+s+'</em></span>').join('');
+  const legend = ['一字','地天','赚钱','普通','长腿','低开'].map(s=>
+    '<span class="sp-legend"><em class="sp '+shapeCls(s)+(s==='一字'?' sp-yz-star':'')+'">'+shapeName(s)+'</em></span>').join('');
   const covNote = missShape
     ? ' · <span style="color:#ffb38a">'+missShape+' 只早年日K缺失标「?」</span>' : '';
   pop.innerHTML = '<span class="popx">✕</span><h4>'+nm+' · 连续炒作线路图'+hoBtn+'</h4>'+
@@ -4918,15 +4928,16 @@ function stateTag(d, code){
     (b.t? ' · 首封 '+b.t : '')+'">炸板'+(b.t? ' '+b.t : '')+'</i>';
   return '';
 }
-/* v76 个股涨停形式：gapMap[d][code] = 1 缺口 / 0 长腿（缺口＝当日最低价＞昨日最高价，
+/* v76 个股涨停形式：gapMap[d][code] = 1 缺口 / 0 长腿（缺口＝当日最低价＞昨日涨停价（=昨收，涨停板昨高=昨收=昨涨停价），
    与历史复盘 gap_of 同口径）；梯队个股据此显示涨停形式小标 */
 function gapOf(d, code){
   const v = ((((window.REVIEW||{}).gapMap||{})[d]) || {})[String(code)];
   return v == null ? null : v;
 }
+/* v110：今日复盘缺口标统一黄底黑字（gap-yb），长腿灰底，跨模块一致 */
 function gapTag(d, code){
   const g = gapOf(d, code);
-  return g == null ? '' : (g ? '<i class="gp">缺口</i>' : '<i class="gp ng">长腿</i>');
+  return g == null ? '' : (g ? '<i class="gap-yb">缺口</i>' : '<i class="gap-yb ng">长腿</i>');
 }
 /* 题材当日梯队字符串：优先 ladders.ladder，缺失用 ladderFull 板位集合现算 */
 function tierOf(d, nm){
@@ -4953,7 +4964,7 @@ function hasThemeEffect(d, code, theme){
   return false;
 }
 /* v89 涨停形态反查：优先事件自带 s；否则 dayZT（近25日全带形态）→ ladderFull（72%覆盖）。
-   返回 {s, src} 或 null。各模块涨停股链接统一用它标注七色形态徽标。 */
+   返回 {s, src} 或 null。各模块涨停股链接统一用它标注六色形态徽标。 */
 function shapeOf(d, code, s0){
   if(s0) return {s:s0, src:'self'};
   const R = window.REVIEW || {};
@@ -4966,12 +4977,14 @@ function shapeOf(d, code, s0){
   }
   return null;
 }
-/* v89 形态徽标 HTML：有形态→七色徽标；无形态→「?」灰虚线占位。 */
+/* v89 形态徽标 HTML：有形态→六色徽标；无形态→「?」灰虚线占位。 */
 function shapeTag(d, code, s0){
   const o = shapeOf(d, code, s0);
-  return o
-    ? '<em class="sp '+shapeCls(o.s)+'" title="涨停形态：'+o.s+'">'+o.s+'</em>'
-    : '<em class="sp sp-na" title="早年日K缺失，无法判定涨停形态">?</em>';
+  if(!o) return '<em class="sp sp-na" title="早年日K缺失，无法判定涨停形态">?</em>';
+  /* v110：一字涨停「特别标记」——加金色描边+★，醒目提示全天封死买不进 */
+  if(o.s==='一字') return '<em class="sp sp-yz sp-yz-star" title="一字涨停：全天封死未换手，买不进（特别标记）">★一字</em>';
+  const nm = shapeName(o.s);
+  return '<em class="sp '+shapeCls(o.s)+'" title="涨停形态：'+nm+'">'+nm+'</em>';
 }
 /* v93 换手/一字判定（连板梯队）：当日最高价≠最低价＝有换手的涨停板；最高＝最低＝一字板。
    ① 优先前端 klines 当日 bar（结构[日期,开,收,低,高,量]，bar[3]=低 bar[4]=高）直接比价，最贴合口径；
@@ -5430,14 +5443,19 @@ function ewRenderWhere(end){
   const ctx='<div class="ew-ctx"><span>赚钱效应状态 <b style="color:'+statColor+'">'+status+'</b></span>'+
     '<span>市场阶段 <b>'+escHtml(d.stage)+'</b></span><span>空间高度 <b>'+count2(d.height)+' 板</b></span>'+
     '<span>涨停 <b>'+count2(d.zt)+'</b> 只</span><span>昨涨停今红盘 <b>'+(d.sentiment.r2b==null?'—':Math.round(d.sentiment.r2b*100)+'%')+'</b></span></div>';
-  /* v109：删除原「个股展示模式」（身份分类/证据分/三折叠候选股）。
-     改为整理展示当日涨停形态为「赚T」「赚钱」的个股，按题材分组（每题材一块底色）。 */
+  /* v110：整理展示当日「有缺口的连板股」——赚钱效应股（缺口＝今日最低价＞昨日涨停价，硬条件）。
+     筛选：①连板股 b≥2；②当日有缺口 gapMap[end][code]===1；③非一字（一字买不进，另行特别标记）。
+     形态「赚T」「赚钱」已合并为「赚钱」；按题材分组（每题材一块底色）。 */
   const zt=(R.dayZT||{})[end]||{};
+  const gm=((R.gapMap||{})[end])||{};
   const picks=[];
   for(const code in zt){
     const v=zt[code]; if(!v||v.length<5) continue;
-    const s=v[2]||''; if(s!=='赚T'&&s!=='赚钱') continue;
-    picks.push({code,name:v[0]||'',t:v[1]||'',shape:s,b:Number(v[3])||0,theme:tName(v[4]||'')||'未归类'});
+    const b=Number(v[3])||0;
+    if(b<2) continue;                                   // v110：至少连板股
+    if(gm[code]!==1) continue;                          // v110：必须有缺口（今低>昨涨停价）
+    const s=v[2]||''; if(s==='一字') continue;           // 一字买不进，不在赚钱效应名单
+    picks.push({code,name:v[0]||'',t:v[1]||'',shape:s,b:b,theme:tName(v[4]||'')||'未归类'});
   }
   picks.sort((x,y)=>(y.b||0)-(x.b||0)||String(x.t).localeCompare(String(y.t))||String(x.code).localeCompare(String(y.code)));
   const groups=new Map();
@@ -5461,21 +5479,22 @@ function ewRenderWhere(end){
         : '<span class="thgrp-th" style="color:'+fg+'" data-th="'+escHtml(th)+'" data-d="'+end+'" title="点看「'+escHtml(th)+'」当日题材梯队">'+escHtml(th)+'</span>'+
           (ztN?'<span class="thgrp-zt" title="该板块当日涨停家数">板块涨停 '+ztN+'</span>':'');
       const chips=list.map(p=>{
-        const gap=gapTag(end,p.code);
+        const gap='<i class="gap-yb">缺口</i>';
         return '<span class="ep-ch nx nx-sm" data-c="'+escHtml(p.code)+'" data-n="'+escHtml(p.name)+'" data-d="'+end+'" '+
-          'title="'+escHtml(p.name)+' · '+p.b+'板 · 形态 '+p.shape+(p.t?' · 首封 '+p.t:'')+' ｜点看日K">'+
+          'title="'+escHtml(p.name)+' · '+p.b+'板 · 形态 '+shapeName(p.shape)+(p.t?' · 首封 '+p.t:'')+' · 有缺口（今低&gt;昨涨停价）｜点看日K">'+
           '<b>'+escHtml(p.name)+'</b><em class="b">'+p.b+'板</em>'+shapeTag(end,p.code,p.shape)+
           (p.t?'<i class="hi2">'+escHtml(p.t)+'</i>':'')+gap+'</span>';
       }).join('');
       return '<div class="thgrp" style="background:'+bg+';border-color:'+bd+'">'+
-        '<div class="thgrp-h">'+headTh+'<span class="thgrp-zt">'+list.length+' 只赚T/赚钱</span></div>'+
+        '<div class="thgrp-h">'+headTh+'<span class="thgrp-zt">'+list.length+' 只有缺口的连板股</span></div>'+
         '<div class="thgrp-body">'+chips+'</div></div>';
     }).join('');
   }
   host.innerHTML=ctx+(picks.length
       ? grpHtml
-      : '<div class="ew-empty">该交易日无「赚T / 赚钱」形态的涨停个股。</div>')+
-    '<div class="ew-note">按题材展示当日涨停形态为 <b style="color:var(--gold)">赚T / 赚钱</b> 的个股（赚T＝涨停开盘振幅&lt;8%，赚钱＝高开涨停）；点个股看日K，点题材看当日梯队。</div>';
+      : '<div class="ew-empty">该交易日无「有缺口的连板股」（≥2板 且 今日最低价＞昨日涨停价）。</div>')+
+    '<div class="ew-note">按题材展示当日<b style="color:var(--gold)">有缺口的连板股</b>（≥2板、今日最低价＞昨日涨停价＝昨日买入者全部获利，形态合并为「赚钱」）；'+
+    '一字涨停全天封死买不进，另行 ★ 特别标记、不在本名单。点个股看日K，点题材看当日梯队。</div>';
   host.querySelectorAll('.ep-ch').forEach(el=>{
     el.onclick=ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
@@ -5491,7 +5510,7 @@ async function ewOpenK(code, name, ev, end, shape){
   // v105：showK 标题已统一补形态徽标（.sp），此处仅在标题仍无形态徽标时兜底补充
   if(pop && pop.style.display==='block' && t && !t.querySelector('.sp')){
     const sh = shapeOf(end, code, shape);
-    if(sh) t.insertAdjacentHTML('beforeend', ' <em class="sp ew-ksp '+shapeCls(sh.s)+'" style="margin-left:6px" title="涨停形态">形态 '+escHtml(sh.s)+'</em>');
+    if(sh) t.insertAdjacentHTML('beforeend', ' <em class="sp ew-ksp '+shapeCls(sh.s)+'" style="margin-left:6px" title="涨停形态">形态 '+shapeName(sh.s)+'</em>');
   }
 }
 const escHtml=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
@@ -5511,7 +5530,7 @@ function paintEarn(){
   epFillDPick();
   document.querySelectorAll('.ep-w').forEach(b=>b.classList.toggle('on', +b.dataset.w===EP_W));
   const hd = document.getElementById('ep-hd'), rg = document.getElementById('ep-range');
-  if(hd) hd.textContent = '近 '+EP_W+' 个交易日 · 赚钱效应股：3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日最高价（昨日买入者全部获利）'+
+  if(hd) hd.textContent = '近 '+EP_W+' 个交易日 · 赚钱效应股：3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日涨停价（昨日买入者全部获利）'+
     (end && end!==last ? ' · 回看 '+fmtDate(end) : '');
   if(rg) rg.textContent = fmtDate(start)+' ~ '+fmtDate(end)+(end!==last ? '（历史回看）' : '');
   /* v74：今日复盘显示市场阶段（点击跳空间情绪明细表） */
@@ -5537,7 +5556,7 @@ function paintEarn(){
           const g = e.gapT ? '<i class="gap">缺口</i>' : (e.gap1 ? '<i class="gapi">前日缺口</i>' : '');
           const tier = e.theme ? tierOf(e.d, e.theme) : '';
           return '<span class="ep-ch" data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+e.d+'" '+
-            'title="'+e.name+' '+e.b+'板'+(e.s? ' · 形态 '+e.s:'')+' · 点看日K（箭头指 '+fmtDate(e.d)+'）">'+
+            'title="'+e.name+' '+e.b+'板'+(e.s? ' · 形态 '+shapeName(e.s):'')+' · 点看日K（箭头指 '+fmtDate(e.d)+'）">'+
             '<b>'+e.name+'</b><em class="b">'+e.b+'板</em>'+shapeTag(e.d, e.code, e.s)+g+stateTag(e.d, e.code)+
             '<span class="th" data-th="'+(e.theme||'')+'" data-d="'+e.d+'"'+
             (e.theme? ' title="点看 '+fmtDate(e.d)+'「'+e.theme+'」当日梯队"':' title="当日无复盘题材归类"')+'>'+
@@ -5725,7 +5744,7 @@ function paintNextEarn(d){
                : (e.ok===0 ? '<i class="no2">未兑现</i>' : '');   // v109：删「待验证」
       const cls = e.ok===1 ? ' nx-ok' : (e.ok===0 ? ' nx-no' : '');
       return '<span class="ep-ch nx nx-sm'+cls+'" data-c="'+e.code+'" data-n="'+e.name+'" data-d="'+d+'" '+
-        'title="'+e.name+' 今日 '+e.b+'板'+(e.s? ' · 形态 '+e.s:'')+' · 明日最低需＞今高 '+(e.hi?e.hi.toFixed(2):'—')+
+        'title="'+e.name+' 今日 '+e.b+'板'+(e.s? ' · 形态 '+shapeName(e.s):'')+' · 明日最低需＞今涨停价 '+(e.hi?e.hi.toFixed(2):'—')+
         ' 元且换手涨停晋级≥3板 → 兑现赚钱效应 ｜点看日K">'+
         '<b>'+e.name+'</b><em class="b">'+e.b+'板</em>'+shapeTag(d, e.code, e.s)+g+
         (e.t?'<i class="hi2">'+e.t+'</i>':'')+mk+'</span>';
@@ -5995,7 +6014,7 @@ function renderHist(){
       '（当日题材卡→当日梯队→全局题材归类，三级回退）反查后重新分组，与该页题材/梯队完全对齐；'+
       '只展示题材已入链题材炒作图的赚钱效应股（无题材/未入链不显示）· 个股一律正常显示（不再灰显）· '+
       '仅展示当日涨停达标的赚钱效应股，<b>不再展示断板后的跟踪情况</b>（断板第N天、断板空间龙头均已移除）· '+
-      '每只个股标注涨停形态（七色徽标：一字/地天/赚T/赚钱/普通/长腿/低开）+ 缺口/长腿标；叠加当日空间龙头辅助判断。',
+      '每只个股标注涨停形态（六色徽标：★一字/地天/赚钱/普通/长腿/低开，赚T已并入赚钱）+ 缺口/长腿标；叠加当日空间龙头辅助判断。',
       '模块介绍');
     intro.dataset.done = '1';
   }

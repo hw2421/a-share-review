@@ -69,7 +69,8 @@ def compute(dates, pools, yz, KBARS, theme_at, NAME=None, ALL_N=140):
         return None
 
     def shape(code, d, name):
-        """涨停形态六分类（与 build_merged._up_shape 完全同口径）。"""
+        """涨停形态六分类（v110 与 build_merged._up_shape 完全同口径）。
+           v110：赚T并入赚钱；赚钱＝有缺口（今低>昨涨停价=昨收）的换手涨停。"""
         b = dbar(code, d)
         pb = prev_bar(code, d)
         if not b or not pb:
@@ -82,17 +83,18 @@ def compute(dates, pools, yz, KBARS, theme_at, NAME=None, ALL_N=140):
         if b[2] < up - .011:
             return ""
         amp = (b[4] - b[3]) / pv * 100
+        has_gap = b[3] > pv - .004            # v110 缺口：今低 > 昨涨停价(=昨收)
         if b[1] <= dn + .011:
             return "地天"
         if b[3] >= up - .004:
             return "一字"
-        if b[1] >= up - .011:
-            return "赚T" if amp < 8 else ("普通" if amp <= 12 else "长腿")
+        if has_gap:                           # v110 有缺口的换手涨停 → 赚钱（含原赚T/原赚钱/好当家类）
+            return "赚钱"
         if amp > 12:
             return "长腿"
         if amp >= 8:
             return "普通"
-        return "赚钱" if b[1] > pv else "低开"
+        return "低开"
 
     pmap = {d: {s["code"]: s for s in pools[d]} for d in dates}
     n = len(dates)
