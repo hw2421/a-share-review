@@ -1110,7 +1110,9 @@
   .ep-few{opacity:.42}
   @media(max-width:860px){.ep-2{grid-template-columns:1fr}}
   /* ===== v99 统一日期两行条 / 介绍 i 折叠 / 今日复盘子模块配色 ===== */
-  .dbar{display:flex;flex-direction:column;gap:5px;margin:6px 0;align-items:stretch}
+  /* v101：题材页固定视口高度 flex 布局会把 .dbar 当普通子项压缩（实测 53px 内容被压到 22px，
+     第二行「上一/今日/下一交易日」被裁切看不到）；flex:0 0 auto 固定不收缩，保证两行日期完整显示 */
+  .dbar{display:flex;flex-direction:column;gap:5px;margin:6px 0;align-items:stretch;flex:0 0 auto}
   .dbar-r{width:100%}
   .dbar-r{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;min-height:24px}
   .dbar-r .ep-lb,.dbar-r .dp-lb{color:var(--dim2);font-size:11px;flex:none}
@@ -1213,7 +1215,8 @@
         <select id="ld-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
         <select id="ld-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
         <select id="ld-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
-        <button id="ld-go" class="ch-go" title="跳转到所选交易日">确定</button>
+        <!-- v101：确定按钮统一为 ep-go 样式，与其他模块保持一致（原 ch-go 无生效样式=浏览器默认灰按钮） -->
+        <button id="ld-go" class="ep-go" title="跳转到所选交易日">确定</button>
       </div>
       <div class="dbar-r dbar-r2">
         <button id="ld-prev" class="dbtn">◀ 上一个交易日</button>
@@ -1235,7 +1238,10 @@
         <select id="ep-m" class="ep-sel" title="月"></select><span class="ep-lb">月</span>
         <select id="ep-d" class="ep-sel" title="日"></select><span class="ep-lb">日</span>
         <button id="ep-go" class="ep-go" title="跳转到所选截止日">确定</button>
-        <span class="ep-lb" style="margin-left:10px">统计窗口</span>
+      </div>
+      <!-- v101：第一行过长——统计窗口相关拆到独立第二行 -->
+      <div class="dbar-r dbar-r-stat">
+        <span class="ep-lb">统计窗口</span>
         <button class="ep-w on" data-w="1">近 1 日</button>
         <button class="ep-w" data-w="3">近 3 日</button>
         <button class="ep-w" data-w="5">近 5 日</button>
