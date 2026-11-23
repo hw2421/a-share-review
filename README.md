@@ -2970,3 +2970,23 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
   （ep-cross-sub 由 JS 更新「近N日 M只个股被≥2题材炒过」），点击展开/收起，▸/▾ 指示。实测默认 open=false、点击展开。
 - 实测（Chromium）：四项全部通过、0 JS 报错；截图 v98_客观标签与周总结.png / v98_周总结归类.png。
   纯前端迭代，数据零改动（后台日常刷新未提交）。
+
+### 102. v99 日期选项两行 + 模块介绍 i 折叠 + 今日复盘子模块底色字体区分
+- 用户三项要求：① 每个模块日期选项分两行——第一行年月日选择+确定键，第二行「上一个交易日-今日-下一个交易日」；
+  ② 每个模块介绍内容隐藏，用 i 图标折叠，点击展开/隐藏介绍；③ 今日复盘不同子模块用不同底色 + 不同颜色字体区分。
+- ① 日期两行（统一 .dbar 容器 = flex-direction:column）：dpick（空间情绪/题材炒作，buildDPick 生成）与
+  静态日期条（连板梯队 ld-*/今日复盘 ep-*/历史复盘 hist-*）全部改成第一行 .dbar-r（年月日+确定，今日复盘把
+  统计窗口也并到第一行）+ 第二行 .dbar-r2（◀上一个交易日 / 今日 / 下一个交易日▶，dbtn 样式，今日高亮蓝）。
+  dpick 新增 .dp-prev/.dp-today/.dp-next 按钮，step(n) 基于 MOD_DATE 与 dates 数组定位切换 + focusModule；
+  其余模块沿用原 ldStep/epStepDate/histJump 绑定（id 全程不变）。实测 5 模块均 2 行、dp-market 日期切换 11-23→11-20→11-23 正常。
+- ② 介绍 i 折叠（initInfoFolds，稳健幂等）：给 5 个页签 h3 + 今日复盘 h4.ep-h（含 .sub 直接子元素）加
+  has-intro class、插入 <button class=info-i>i</button>，CSS .has-intro>.sub{display:none}、.open 时显示；
+  class 加在标题元素上（innerHTML 被 ep-yrec-h/ep-fb-h 重绘覆盖也不会丢），i 按钮作子元素，paintEarn 末尾
+  与初始化各调一次 initInfoFolds 补回被覆盖的按钮，open 状态保留。实测题材页介绍默认 none→点击 inline，
+  今日复盘 7 个 h4 全部有 i 按钮（补回机制生效）。
+- ③ 子模块配色：今日复盘 8 个子模块各包一层 .smod.smod-N，底色 + 边框 + 标题字体色各异——
+  smod-1 赚钱效应名单金 / smod-2 明日候选青 / smod-3 昨日推荐橙 / smod-4 昨日梯队反馈蓝紫 /
+  smod-5 今日新增梯队绿 / smod-6 多题材热力表粉 / smod-7 跨题材归类紫 / smod-8 赚钱效应学习蓝。
+  颜色靠 .smod-N .ep-h 选择器，h4 重绘 class 仍在色不丢；跨题材 summary 单独上色。
+- 实测（Chromium）：三项全部通过、0 JS 报错；5 页签切换无回归；截图 v99_今日复盘配色.png / v99_子模块配色细节.png。
+  纯前端迭代，数据零改动（后台 .site_meta.json/data.json 刷新未提交）。

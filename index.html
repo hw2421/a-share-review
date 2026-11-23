@@ -1245,24 +1245,36 @@
         <button id="ep-next" class="dbtn" title="往后一个交易日">下一个交易日 ▶</button>
       </div>
     </div>
-    <div id="es-root"></div>
-    <h4 class="ep-h" id="ep-nx-h">明日赚钱效应候选 <span class="sub" id="ep-nx-sub"></span></h4>
-    <div id="ep-nx"></div>
-    <h4 class="ep-h" id="ep-yrec-h">昨日推荐股 → 今日表现 <span class="sub" id="ep-yrec-sub"></span></h4>
-    <div id="ep-yrec"></div>
-    <h4 class="ep-h" id="ep-fb-h">昨日梯队 → 今日反馈</h4>
-    <div id="ep-fb"></div>
-    <h4 class="ep-h">今日新增梯队 <span class="sub">昨日无梯队、今日新形成题材梯队的板块（与题材炒作入链题材同源）</span></h4>
-    <div id="ep-new"></div>
-    <h4 class="ep-h">多题材热力表 <span class="sub">仅统计窗口内出现 ≥3 次的题材（当日板块有连板且涨停 ≥3 家）· 格内＝当日涨停家数与梯队</span></h4>
-    <div id="ep-heat" class="ep-chart"></div>
-    <details class="ep-cross-wrap" id="ep-cross-wrap">
-      <summary class="ep-cross-sum">跨题材归类 <span class="sub" id="ep-cross-sub">（点击展开：窗口内被 ≥2 个题材炒过的个股）</span></summary>
-      <div id="ep-cross"></div>
-    </details>
+    <div class="smod smod-1" id="smod-earn"><div id="es-root"></div></div>
+    <div class="smod smod-2" id="smod-nx">
+      <h4 class="ep-h" id="ep-nx-h">明日赚钱效应候选 <span class="sub" id="ep-nx-sub"></span></h4>
+      <div id="ep-nx"></div>
+    </div>
+    <div class="smod smod-3" id="smod-yrec">
+      <h4 class="ep-h" id="ep-yrec-h">昨日推荐股 → 今日表现 <span class="sub" id="ep-yrec-sub"></span></h4>
+      <div id="ep-yrec"></div>
+    </div>
+    <div class="smod smod-4" id="smod-fb">
+      <h4 class="ep-h" id="ep-fb-h">昨日梯队 → 今日反馈</h4>
+      <div id="ep-fb"></div>
+    </div>
+    <div class="smod smod-5" id="smod-new">
+      <h4 class="ep-h">今日新增梯队 <span class="sub">昨日无梯队、今日新形成题材梯队的板块（与题材炒作入链题材同源）</span></h4>
+      <div id="ep-new"></div>
+    </div>
+    <div class="smod smod-6" id="smod-heat">
+      <h4 class="ep-h">多题材热力表 <span class="sub">仅统计窗口内出现 ≥3 次的题材（当日板块有连板且涨停 ≥3 家）· 格内＝当日涨停家数与梯队</span></h4>
+      <div id="ep-heat" class="ep-chart"></div>
+    </div>
+    <div class="smod smod-7" id="smod-cross">
+      <details class="ep-cross-wrap" id="ep-cross-wrap">
+        <summary class="ep-cross-sum">跨题材归类 <span class="sub" id="ep-cross-sub">（点击展开：窗口内被 ≥2 个题材炒过的个股）</span></summary>
+        <div id="ep-cross"></div>
+      </details>
+    </div>
 
     <!-- v97 赚钱效应学习子模块：录入赚钱个股→带出日K与题材梯队→每日填报→周总结表 -->
-    <div class="elrn" id="elrn-box">
+    <div class="elrn smod smod-8" id="elrn-box">
       <h4 class="ep-h">赚钱效应学习 <span class="sub">录入当日赚钱个股 → 自动带出该股日K与当日题材梯队 → 填写你学到的特征 → 按周汇总规律（填报仅存本机浏览器）</span></h4>
       <div class="elrn-entry">
         <input id="elrn-q" class="elrn-q" placeholder="输入个股名称 / 代码（如：盛剑科技 / 603324）" autocomplete="off">
@@ -5188,6 +5200,7 @@ function paintEarn(){
   paintNewLad(end);
   paintHeat(end);
   elrnRenderWeekBody();   // v97 周总结随填报刷新（子模块只读 localStorage，不依赖回看日）
+  try{ initInfoFolds(); }catch(e){}   // v99：补回被重绘覆盖的子模块介绍 i 按钮
 }
 
 /* v86 昨日推荐股 → 今日表现：站在今日 d，取昨日 dp 的「明日赚钱效应候选」，
@@ -5859,6 +5872,7 @@ if(!window.REVIEW){
   try{ renderLadder(); }catch(e){ document.title='LADERR:'+e.message; }
   try{ initModuleDates(); }catch(e){ document.title='DPERR:'+e.message; }   // v71：各模块独立日期控件
   try{ renderHist(); }catch(e){ document.title='HISTERR:'+e.message; }      // v73：历史复盘
+  try{ initInfoFolds(); }catch(e){ document.title='FOLDERR:'+e.message; }   // v99：模块介绍 i 折叠
   const spHd=document.getElementById('sp-handover');
   if(spHd) spHd.onclick=e=>openHandover('space','全市场',e);
   try{ nrInit(); }catch(e){ document.title='NRERR:'+e.message; }
