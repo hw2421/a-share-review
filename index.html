@@ -816,6 +816,11 @@
              border:1px solid rgba(120,140,170,.35);color:var(--dim)}
   .lbstk .th:hover{color:#fff}
   .lbstk.noth .th{opacity:.4}
+  /* v93 换手/一字标：最高价≠最低价=换手(绿)，最高=最低=一字(红警示/买不进) */
+  .lbstk .ho{flex:0 0 auto;font-size:8.5px;font-style:normal;border-radius:3px;padding:0 3px;line-height:1.35}
+  .lbstk .ho.hs{color:#8ce3bf;background:rgba(46,189,133,.14);border:1px solid rgba(46,189,133,.4)}
+  .lbstk .ho.yz{color:#ff9aa8;background:rgba(245,69,92,.14);border:1px solid rgba(245,69,92,.42)}
+  .lbstk .ho.na{color:#7f8b9c;background:#26303f;border:1px dashed #3a4a63}
   .lblevel.lbdist{margin-top:5px}
   .lblevel.lbdist .lv{font-size:9.5px;color:var(--dim);line-height:1.4}
   @media(max-width:760px){
@@ -1106,7 +1111,7 @@
 <!-- ============ 连板梯队（当日连板个股 + 题材穿透） ============ -->
 <section class="page" id="page-ladder">
   <div class="card">
-    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
+    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 每只标 <b style="color:#8ce3bf">换手</b>（当日最高价≠最低价，可参与）/ <b style="color:#ff9aa8">一字</b>（最高＝最低，全天封死买不进）· 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
     <div class="ch-bar">
       <button id="ld-prev" class="ch-go">◀ 上一交易日</button>
       <select id="ld-y" class="ep-sel" title="年"></select><span class="ep-lb">年</span>
@@ -2760,6 +2765,7 @@ function renderLadder(date){
           '" data-d="'+date+'" title="'+nm+' · 涨停时间 '+(tm||'—')+
           ' ｜ 点击看日K（箭头指 '+fmtDate(date)+'）">'+
           '<span class="nm">'+nm+'</span>'+
+          handoverTag(date, code)+
           (tm? '<span class="stime'+(tm>='14:00'?' late':'')+'" title="首次封板 '+tm+'">'+tm+'</span>':'')+
           '<span class="th" data-th="'+th+'" data-d="'+date+'" title="'+
           (th? '点击 → 题材炒作页「'+th+'」'+fmtDate(date)+'（闪动提示）' : '当日无题材归属')+
@@ -4638,6 +4644,28 @@ function shapeTag(d, code, s0){
   return o
     ? '<em class="sp '+shapeCls(o.s)+'" title="涨停形态：'+o.s+'">'+o.s+'</em>'
     : '<em class="sp sp-na" title="早年日K缺失，无法判定涨停形态">?</em>';
+}
+/* v93 换手/一字判定（连板梯队）：当日最高价≠最低价＝有换手的涨停板；最高＝最低＝一字板。
+   ① 优先前端 klines 当日 bar（结构[日期,开,收,低,高,量]，bar[3]=低 bar[4]=高）直接比价，最贴合口径；
+   ② 无当日 bar 时用形态 s 兜底（「一字」=无换手，其余=换手）；③ 都无返回 null。
+   返回 {k:'hs'|'yz', src} 或 null。 */
+function handoverOf(d, code, s0){
+  const R = window.REVIEW || {};
+  const rec = (R.klines||{})[code] || [];
+  const bar = rec.find ? rec.find(b=>b && b[0]===d) : null;
+  if(bar && bar.length>=5 && bar[3]!=null && bar[4]!=null){
+    return Math.abs(bar[4]-bar[3]) < 0.001 ? {k:'yz', src:'OHLC'} : {k:'hs', src:'OHLC'};
+  }
+  const o = shapeOf(d, code, s0);
+  if(o) return {k:(o.s==='一字'?'yz':'hs'), src:o.src};
+  return null;
+}
+function handoverTag(d, code, s0){
+  const o = handoverOf(d, code, s0);
+  if(!o) return '<i class="ho na" title="当日日K未生成，暂无法判定换手/一字（收盘后补齐）">—</i>';
+  return o.k==='yz'
+    ? '<i class="ho yz" title="一字板：当日最高价＝最低价（全天封死未换手，通常买不进）">一字</i>'
+    : '<i class="ho hs" title="换手板：当日最高价≠最低价（盘中有换手，可参与）">换手</i>';
 }
 /* v91 题材炒作口径的个股当日题材反查：以题材炒作数据为准，三级回退。
    ① themeDetail[d].stocks 当日题材卡内个股（slim 版，最权威）→
