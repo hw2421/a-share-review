@@ -35,7 +35,7 @@
   #refresh-btn:hover,#reset-zoom:hover{border-color:var(--blue)}
   #refresh-btn:disabled{opacity:.5;cursor:wait}
   /* 历史定位：年 / 月 / 日 下拉 + 今日按钮（标题栏第二行，固定不占页面宽度） */
-  .hsel{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+  .hsel{display:flex;gap:5px;align-items:center;flex-wrap:nowrap}
   .hsel .lb{color:var(--dim);font-size:11px;white-space:nowrap}
   .hsel select{background:var(--card2);border:1px solid var(--line);color:var(--text);
                border-radius:7px;padding:1px 5px;font-size:11px;outline:none;cursor:pointer}
@@ -355,7 +355,7 @@
         border:1px solid rgba(255,210,63,.55);border-radius:3px;padding:0 3px;
         background:rgba(255,210,63,.10)}
   /* ---------- 题材炒作图（每日行内紧凑卡片，一屏尽量看完） ---------- */
-  .trange{display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap;align-items:center}
+  .trange{display:flex;gap:6px;margin-bottom:5px;flex-wrap:nowrap;align-items:center;white-space:nowrap;overflow-x:auto}
   .trange button{background:var(--card2);border:1px solid var(--line);color:var(--dim);
                  border-radius:11px;padding:1px 10px;font-size:11.5px;cursor:pointer}
   .trange button.on{border-color:var(--blue);color:var(--text);background:#1c2740}
@@ -425,7 +425,7 @@
   .scroll::-webkit-scrollbar{width:6px}
   .scroll::-webkit-scrollbar-thumb{background:#26314a;border-radius:3px}
   /* ---------- 交易复盘（战法回测） ---------- */
-  .rv-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+  .rv-bar{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;margin-bottom:8px;white-space:nowrap;overflow-x:auto}
   .rv-bar label{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--dim2)}
   .rv-bar select,.rv-bar input{background:var(--card2);border:1px solid var(--line);
        color:var(--text);border-radius:5px;padding:3px 6px;font-size:11.5px;color-scheme:dark}
@@ -674,7 +674,7 @@
   .rv-real th{color:var(--dim2)}
   .rv-real td.l,.rv-real th.l{text-align:left}
   /* 当日机会模块（v30：只保留 标的股 / 战法 / 题材梯队） */
-  .ch-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+  .ch-bar{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;margin-bottom:8px;white-space:nowrap;overflow-x:auto}
   .ch-bar button{background:var(--card2);border:1px solid var(--line);color:var(--text);
         border-radius:5px;padding:3px 9px;font-size:11px;cursor:pointer}
   .ch-bar button.ch-go{background:#8c1f61;border-color:#ff9ed7;color:#fff}
@@ -850,7 +850,7 @@
   }
 
   /* ---------- v64 赚钱效应复盘 ---------- */
-  .ep-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+  .ep-bar{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-top:6px;white-space:nowrap;overflow-x:auto}
   .ep-lb{color:var(--dim2);font-size:11px}
   .ep-w{background:#152238;color:#9fb0cc;border:1px solid #2b3a56;border-radius:6px;
         padding:3px 10px;font-size:12px;cursor:pointer}
@@ -863,8 +863,8 @@
   .ep-sel{background:#152238;color:var(--text);border:1px solid #2b3a56;border-radius:6px;
           padding:2px 4px;font-size:11px;max-width:120px}
   /* v71：各模块独立日期选择（年/月/日 + 确定），还原 v70 前的历史回看 */
-  .dpick{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:6px;
-         font-size:11px;color:var(--dim2)}
+  .dpick{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;margin-bottom:6px;
+         font-size:11px;color:var(--dim2);white-space:nowrap;overflow-x:auto}
   .dpick .dp-lb{white-space:nowrap;color:var(--dim)}
   .dpick select{background:var(--card2);border:1px solid var(--line);color:var(--text);
         border-radius:5px;padding:2px 4px;font-size:11px}
@@ -877,6 +877,15 @@
   .ep-h{font-size:12.5px;color:#ffd24a;margin:14px 0 6px;font-weight:800}
   .ep-h .sub{font-weight:400;color:var(--dim2);font-size:11px;margin-left:6px}
   .ep-chart{width:100%;min-height:60px}
+  /* v98 跨题材归类折叠 */
+  .ep-cross-wrap{margin-top:10px;border:1px solid var(--line);border-radius:8px;background:var(--card2)}
+  .ep-cross-sum{cursor:pointer;padding:6px 10px;font-size:12px;color:#ffd24a;font-weight:700;list-style:none;user-select:none}
+  .ep-cross-sum::-webkit-details-marker{display:none}
+  .ep-cross-sum:before{content:'▸ ';color:#ffd24a}
+  .ep-cross-wrap[open] .ep-cross-sum:before{content:'▾ '}
+  .ep-cross-sum:hover{background:rgba(240,185,11,.06)}
+  .ep-cross-sum .sub{font-weight:400}
+  #ep-cross{padding:0 10px 8px}
   /* v97 赚钱效应学习子模块 */
   .elrn{margin-top:16px;border-top:1px dashed var(--line);padding-top:4px}
   .elrn-entry{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
@@ -894,6 +903,13 @@
   .elrn-lt{border:1px solid #7a5a12;background:rgba(240,185,11,.07);border-radius:6px;padding:6px 9px;font-size:11.5px}
   .elrn-lt b{color:#ffd24a}
   .elrn-lt .ls{color:var(--dim);font-size:10.5px}
+  .elrn-obj{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+  .elrn-obj .ot{font-size:10.5px;padding:2px 7px;border-radius:10px;border:1px solid #2b3a56;background:#152238;color:#9fb0cc}
+  .elrn-obj .ot b{color:#ffd24a;font-weight:700}
+  .elrn-obj .ot.st{background:#3a2a10;border-color:#7a5a12;color:#ffe0a8}
+  .elrn-obj .ot.st b{color:#ffd24a}
+  .elrn-obj .ot.he{background:#123a26;border-color:#2a7a52;color:#a8e6c0}
+  .elrn-obj .ot.he b{color:#5fd39a}
   .elrn-form{margin:10px 0;display:none}
   .elrn-form.on{display:block}
   .elrn-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
@@ -1191,7 +1207,10 @@
     <div id="ep-new"></div>
     <h4 class="ep-h">多题材热力表 <span class="sub">仅统计窗口内出现 ≥3 次的题材（当日板块有连板且涨停 ≥3 家）· 格内＝当日涨停家数与梯队</span></h4>
     <div id="ep-heat" class="ep-chart"></div>
-    <div id="ep-cross"></div>
+    <details class="ep-cross-wrap" id="ep-cross-wrap">
+      <summary class="ep-cross-sum">跨题材归类 <span class="sub" id="ep-cross-sub">（点击展开：窗口内被 ≥2 个题材炒过的个股）</span></summary>
+      <div id="ep-cross"></div>
+    </details>
 
     <!-- v97 赚钱效应学习子模块：录入赚钱个股→带出日K与题材梯队→每日填报→周总结表 -->
     <div class="elrn" id="elrn-box">
@@ -4802,6 +4821,45 @@ function elrnDrawK(cv, bars, d8){
   ctx.fillStyle='#78849a'; ctx.font='10px sans-serif';
   ctx.fillText('截止 '+(d8?elrnDstr(d8):'最新')+' · 共'+arr.length+'根 · 红涨绿跌',10,12);
 }
+/* v98 客观特征匹配：按历史赚钱效应股口径（市场阶段 / 题材情况 / 个股情况）自动带出标签。
+   数据源：histReview.days（历史赚钱效应股全池，含 stage/spaceTop/themes/stks 状态）、
+   themeDetail/ladderFull（题材入链与梯队）、dayZT（形态）、stages（全市场阶段序列）。 */
+function elrnObjTags(d8, code, th, tier, ho, sh, zt){
+  const R=window.REVIEW||{}, out=[];
+  const day=(R.histReview||{}).days||{};
+  // ① 市场阶段：当日赚钱效应池阶段；若当日无池则取最近一日阶段
+  const st=day[d8]&&day[d8].stage;
+  if(st) out.push({label:'市场阶段·'+st, cls:'st'});
+  else{
+    const ds=Object.keys(day).filter(x=>x<=d8).sort(), last=ds[ds.length-1];
+    if(last&&day[last]&&day[last].stage) out.push({label:'阶段(近)·'+day[last].stage, cls:'st'});
+  }
+  // ② 题材情况：入链 / 助攻数 / 梯队高度
+  if(th){
+    out.push({label:'题材·'+th, cls:''});
+    const LF=((R.ladderFull||{})[d8]||{})[th||'']||[];
+    const assist=LF.filter(s=>String(s.code)!==String(code)).length;
+    if(assist>=2) out.push({label:'助攻≥2('+assist+')', cls:'he'});
+    if(tier){ const mx=Math.max(...String(tier).split('-').map(Number)); if(mx>=3) out.push({label:'高梯队('+mx+'板)', cls:'he'}); }
+    if(typeof hasThemeEffect==='function' && hasThemeEffect(d8, code, th)) out.push({label:'题材入链', cls:'he'});
+  }else out.push({label:'当日无入链题材', cls:''});
+  // ③ 个股情况：板位 / 形态 / 换手 / 涨停 / 历史赚钱效应次数 / 空间龙头或断板
+  const z=ztOf(d8, code);
+  if(z&&z.b) out.push({label:(z.b)+'板', cls:''});
+  if(sh&&sh.s) out.push({label:'形态·'+sh.s, cls:''});
+  if(ho) out.push({label:(ho.k==='yz'?'一字板':'换手板'), cls:ho.k==='yz'?'':'he'});
+  if(zt) out.push({label:'当日涨停', cls:'he'});
+  // 历史赚钱效应股反查：该股在 histReview 全池出现过几次（曾达标赚钱效应）
+  let hist=0;
+  for(const dt in day){
+    const D=day[dt];
+    for(const t of (D.themes||[])) for(const s of (t.stks||[])) if(String(s.code)===String(code)){ hist++; }
+    if(D.leader&&String(D.leader.code)===String(code)) hist++;
+    if(D.prevBrk&&String(D.prevBrk.code)===String(code)) hist++;
+  }
+  if(hist) out.push({label:'历史赚钱效应股('+hist+')', cls:'he'});
+  return out;
+}
 async function elrnImport(code, name, dstr){
   const d8=elrnD8(dstr||document.getElementById('elrn-date').value||elrnToday());
   const host=document.getElementById('elrn-detail');
@@ -4814,6 +4872,9 @@ async function elrnImport(code, name, dstr){
   const mates=LF.map(s=>'<span class="elrn-lt"><b>'+elrnEsc(s.name||s.code)+'</b> '+elrnEsc(s.boards||1)+'板 '+shapeTag(d8,s.code,s.s)+(String(s.code)===String(code)?' <i style="color:#ffd24a">←当前</i>':'')+'</span>').join('');
   // 当日涨停池信息
   const zt=ztOf(d8, code);
+  const obj=elrnObjTags(d8, code, th, tier, ho, sh, zt);
+  const objHtml='<div class="elrn-obj" title="按历史赚钱效应股口径自动匹配：市场阶段 / 题材情况 / 个股情况">'
+    + obj.map(o=>'<span class="ot '+o.cls+'">'+elrnEsc(o.label)+'</span>').join('') + '</div>';
   const openTag='<span class="ep-ch" style="pointer-events:none">'+elrnEsc(name)+shapeTag(d8,code,sh&&sh.s)+' '+(ho?(ho.k==='yz'?'一字':'换手'):'—')+'</span>';
   host.innerHTML =
     '<div class="elrn-dh">'+openTag+
@@ -4821,9 +4882,10 @@ async function elrnImport(code, name, dstr){
       '<span class="sub">题材：<b style="color:#ffd24a">'+(th?elrnEsc(th):'无题材归类')+'</b>'+(tier?' · 梯队 '+elrnEsc(tier):'')+'</span>'+
       (zt?'<span class="sub">涨停 '+(zt.t||'')+' · 封板形态 '+(sh?elrnEsc(sh.s):'—')+'</span>':'<span class="sub">当日非涨停股（可学习其赚钱效应来源）</span>')+
     '</div>'+
+    objHtml+
     '<canvas class="elrn-kchart" id="elrn-kc"></canvas>'+
     '<div class="elrn-lad">'+(mates||'<span class="sub">'+(th?'该题材当日无梯队明细':'当日无入链题材梯队')+'</span>')+'</div>'+
-    '<div class="sub" style="font-size:10.5px;margin-top:4px">客观特征已自动带出：题材、梯队、涨停形态、换手/一字、日K；下方填写你主观总结的特征与心得。</div>';
+    '<div class="sub" style="font-size:10.5px;margin-top:4px">上方彩色标签＝按历史赚钱效应股口径自动匹配的客观特征（市场阶段/题材/个股）；下方由你勾选主观特征标签并填写心得。</div>';
   host.classList.add('on');
   document.getElementById('elrn-form').classList.add('on');
   document.getElementById('elrn-saved').textContent='';
@@ -4836,7 +4898,7 @@ async function elrnImport(code, name, dstr){
   // 回填已有填报
   const rec=(elrnDB()[dstr+'|'+code+'|'+(ELRN_SEL&&ELRN_SEL.m||'learn')]||{});
   document.getElementById('elrn-note').value=rec.note||'';
-  ELRN_SEL={code, name, d:dstr, th, tier, sh:sh&&sh.s, ho:ho&&ho.k, zt:!!zt};
+  ELRN_SEL={code, name, d:dstr, th, tier, sh:sh&&sh.s, ho:ho&&ho.k, zt:!!zt, obj:obj.map(o=>o.label)};
   renderElrnTags(rec.tags||[]);
 }
 function renderElrnTags(sel){
@@ -4853,7 +4915,7 @@ function elrnSave(){
   const db=elrnDB(), key=dstr+'|'+ELRN_SEL.code+'|learn';
   db[key]={
     d:dstr, code:ELRN_SEL.code, name:ELRN_SEL.name, th:ELRN_SEL.th||'', tier:ELRN_SEL.tier||'',
-    sh:ELRN_SEL.sh||'', ho:ELRN_SEL.ho||'', zt:ELRN_SEL.zt?1:0, tags, note, ts:Date.now()
+    sh:ELRN_SEL.sh||'', ho:ELRN_SEL.ho||'', zt:ELRN_SEL.zt?1:0, obj:ELRN_SEL.obj||[], tags, note, ts:Date.now()
   };
   try{ localStorage.setItem(ELRN_KEY, JSON.stringify(db)); document.getElementById('elrn-saved').textContent='✓ 已保存（'+fmtDate(elrnD8(dstr))+'）'; renderElrnWeek(); }
   catch(e){ toast('保存失败：本地存储不可用'); }
@@ -4888,22 +4950,40 @@ function elrnRenderWeekBody(){
     '<span>'+(r.tags||[]).map(t=>'<span class="ch-tag" style="margin:1px 2px;display:inline-block">'+elrnEsc(t)+'</span>').join('')+'</span>'+
     '<span>'+elrnEsc(r.note||'—')+'</span></div>').join('');
   const topTags=rank(tagCnt).slice(0,5), topTh=rank(thCnt).slice(0,4);
-  let summary='<div class="elrn-wsum"><b>本周规律小结：</b>填报 <b>'+cur.length+'</b> 笔 · 涉及 <b>'+codes.size+'</b> 只个股';
-  if(topTags.length) summary+=' · 高频特征 '+topTags.map(([t,n])=>'<b>'+elrnEsc(t)+'</b> '+n+'次').join('、');
+  /* v98 周总结：按「我填写的心得内容」归类，不再用预设通用建议。
+     归类主题按关键词匹配，统计每周各主题出现次数并给出该主题下我写过的代表原话。 */
+  const CATS=[
+    {k:'情绪周期', kw:['情绪','冰点','高潮','退潮','节点','主升','发酵','分歧','修复','氛围','赚钱效应','亏钱效应']},
+    {k:'题材板块', kw:['题材','板块','助攻','梯队','入链','概念','主线','题材卡']},
+    {k:'买点时机', kw:['买点','出手','参与','介入','上车','打板','回封','封板','排队','排板','低吸']},
+    {k:'形态量能', kw:['形态','换手','一字','缩量','放量','长腿','地天','缺口','量能','T字','秒板']},
+    {k:'龙头切换', kw:['龙头','空间','高度','卡位','补涨','接力','新旧','辨识度','龙头股']},
+    {k:'风险控制', kw:['风险','止损','仓位','空仓','回避','不追','亏','回撤','控制','谨慎','卖点','兑现']},
+    {k:'纪律执行', kw:['纪律','计划','执行','后悔','犹豫','没买','没盯','忘','运气','侥幸','模式','规则']}
+  ];
+  const notes=cur.filter(r=>(r.note||'').trim());
+  const clsCnt={}, clsSamples={};
+  notes.forEach(r=>{
+    const t=r.note;
+    // 每条心得按命中关键词数排序，只归入最匹配的前 2 个主题（避免所有主题都平均、失去区分度）
+    const scored=CATS.map(c=>({k:c.k, n:c.kw.filter(w=>t.indexOf(w)>=0).length}))
+                     .filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+    const list=scored.length ? scored.slice(0,2).map(x=>x.k) : ['其他'];
+    list.forEach(k=>{ clsCnt[k]=(clsCnt[k]||0)+1; (clsSamples[k]=clsSamples[k]||[]).push(r.name+'：'+t); });
+  });
+  const clsRank=Object.entries(clsCnt).sort((a,b)=>b[1]-a[1]);
+  let summary='<div class="elrn-wsum"><b>本周学习归类（基于你填写的内容）：</b>填报 <b>'+cur.length+'</b> 笔 · 其中写了心得 <b>'+notes.length+'</b> 笔 · 涉及 <b>'+codes.size+'</b> 只个股';
   if(topTh.length) summary+=' · 集中题材 '+topTh.map(([t,n])=>elrnEsc(t)+' '+n).join('、');
-  if(topTags.length){
-    const top=topTags[0][0];
-    const advice={
-      '板块助攻≥2':'优先选板块内有≥2只助攻的题材龙，独苗股持续性差。',
-      '龙头非一字':'一字板买不进，把注意力放在非一字换手龙上。',
-      '缩量回封':'缩量回封说明抛压小，但需配合板块变强才成立。',
-      '换手板':'换手板可参与，一字板只进观察池。',
-      '情绪冰点':'情绪冰点是布局点，高潮期兑现，退潮期空仓。',
-      '题材入链':'以题材炒作入链题材为准，非入链不参与。',
-      '高位加速':'高位缩量加速是兑现信号，不是买点。'
-    };
-    summary+='<br><b>可纠正的一点：</b>'+(advice[top]||'围绕高频特征复盘：它是否真的带来溢价？下次只在该特征明确时出手。');
+  if(clsRank.length){
+    summary+='<br><b>你关注的主题：</b>'+clsRank.map(([k,n])=>'<b>'+k+'</b> '+n+'次').join('、');
+    const top=clsRank[0], samples=(clsSamples[top[0]]||[]).slice(0,2);
+    summary+='<br><b>本周你最在意「'+top[0]+'」</b>（'+top[1]+'次）：'+samples.map(s=>elrnEsc(s)).join('；');
+    if(clsRank.length>1 && top[1]-clsRank[1][1]>=1 && notes.length>=2)
+      summary+='<br><b>对照提示：</b>你提到「'+top[0]+'」较多（'+top[1]+'次），而「'+clsRank[1][0]+'」只有 '+clsRank[1][1]+' 次——下周留意后者是否被忽略。';
+  }else{
+    summary+='<br><b>暂无心得内容</b>：本周填报都只选了标签没写文字，写一句「为什么赚/学到什么」才能归类出你的关注点。';
   }
+  if(topTags.length) summary+='<br><span class="sub">主观标签频次（辅助）：'+topTags.map(([t,n])=>elrnEsc(t)+' '+n).join('、')+'</span>';
   summary+='</div>';
   host.innerHTML='<div class="elrn-wk"><div class="elrn-wkh"><span>日期</span><span>个股 / 客观特征</span><span>我总结的特征</span><span>学到的内容</span></div>'+rows+'</div>'+summary;
   host.querySelectorAll('.elrn-del').forEach(x=>x.onclick=()=>{
@@ -5288,7 +5368,9 @@ function paintHeat(d){
   if(cross){
     const multi = Object.keys(codeTh).filter(c=>Object.keys(codeTh[c]).length>=2)
       .sort((a,b)=> Object.keys(codeTh[b]).length - Object.keys(codeTh[a]).length);
+    const xsub=document.getElementById('ep-cross-sub');
     if(!multi.length){
+      if(xsub) xsub.textContent='（近 '+cd.length+' 日无个股被 ≥2 题材炒过）';
       cross.innerHTML = '<div class="sub" style="padding:6px 2px">近 '+cd.length+
         ' 个交易日无个股被多个题材炒过。</div>';
     } else {
@@ -5298,6 +5380,7 @@ function paintHeat(d){
         (grp[k] || (grp[k] = [])).push(nameOf[c]);
       });
       const keys = Object.keys(grp).sort((a,b)=> grp[b].length-grp[a].length || a.localeCompare(b));
+      if(xsub) xsub.textContent='（近 '+cd.length+' 日 '+multi.length+' 只个股被 ≥2 题材炒过）';
       cross.innerHTML = '<div class="cross-hd">跨题材归类 · 近 '+cd.length+' 个交易日有 '+
         multi.length+' 只个股被 ≥2 个题材炒过</div>'+
         keys.map(k=>'<div class="cross-row"><span class="cth">'+k+'</span><span class="cst">'+
