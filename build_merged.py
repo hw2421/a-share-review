@@ -916,8 +916,9 @@ print("v70 个股当日状态：涨停池 %d 天 / 炸板池 %d 天（炸板 %d 
       % (len(DAY_ZT), len(DAY_ZB), sum(len(v) for v in DAY_ZB.values()),
          sum(len(v) for v in DAY_ZBT.values())))
 # ---- 5.6.27b2 v76 个股涨停形式映射 gapMap：{d:{code: 1缺口/0长腿}} ----
-# 口径与 hist_review.gap_of 完全一致：当日最低价 > 昨日最高价 = 缺口，否则长腿。
-# 供今日复盘梯队（昨日梯队今日反馈 / 今日新增梯队）个股显示涨停形式。
+# v108 缺口口径统一：当日最低价 > 昨日涨停价 = 缺口，否则长腿。
+# 昨涨停价＝昨收（昨日为涨停板）；涨停板昨高＝昨收＝昨涨停价，与旧口径「今低>昨高」等价（全量核对 0 差异）。
+# 供今日复盘梯队个股显示涨停形式、明日候选缺口标。
 def _gap_flag(code, d):
     b = (KBARS.get(str(code)) or {}).get(d)
     if not b or len(b) < 5 or not b[2]:
@@ -925,7 +926,7 @@ def _gap_flag(code, d):
     pb = _prev_bar(code, d)
     if not pb or len(pb) < 5:
         return None
-    return 1 if b[3] > pb[4] else 0
+    return 1 if b[3] > pb[2] - .004 else 0
 GAP_MAP = {}
 for _d in _ZT_DAYS:
     _m = {}

@@ -101,11 +101,12 @@ def compute(dates, pools, KBARS, events, days_meta, NAME=None, days_num=ALL_N,
         return None
 
     def gap_of(c, d):
-        """涨停形态：缺口=当日最低价(b[3])>昨日最高价(pb[4])；否则长腿。无日K返回 None。"""
+        """涨停形态：缺口=当日最低价(b[3])>昨日涨停价(=昨收 pb[2])；否则长腿。无日K返回 None。
+           v108 口径统一：涨停板昨高=昨收=昨涨停价，与旧「今低>昨高」等价（全量核对 0 差异）。"""
         b, pb = bar(c, d), prev_bar(c, d)
         if not b or not pb or len(b) < 5 or len(pb) < 5:
             return None
-        return 1 if b[3] > pb[4] else 0
+        return 1 if b[3] > pb[2] - .004 else 0
 
     zbmap = zb_days or {}
 
