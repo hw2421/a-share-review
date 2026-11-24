@@ -3896,11 +3896,19 @@ function bindKPop(){
 const SK_BUCKET = {}, SK_BARS = {};
 function skBucket(code){ let s=0; for(const c of code){ const n=+c; if(!isNaN(n)) s+=n; } return s%8; }
 function stockKBars(code, atDate){
-  if(SK_BARS[code] && SK_BARS[code].__frag) return Promise.resolve(SK_BARS[code]);
+  /* v115：若已有分片数据，先用它；但分片可能被早前的「近期日期」点击缓存成主包数据
+     （见下方 __frag 判定），故这里要求：带 atDate 时缓存数据必须覆盖该日，否则重新取。 */
+  const cached = SK_BARS[code];
+  const covers = bars => bars && bars.length && (!atDate ||
+    (bars[0] && bars[bars.length-1] && atDate >= bars[0][0] && atDate <= bars[bars.length-1][0]));
+  if(cached && cached.__frag && covers(cached)) return Promise.resolve(cached);
   const local = (window.REVIEW.klines||{})[code] || [];
-  /* v65：主包已内嵌近 60 日活跃股尾部 130 根 —— 非空直接用，点击秒开。
-     20MB 分片仅在本地无数据时才去拉（此前即便有内嵌数据也会先等分片下载完）。 */
-  if(local.length){ SK_BARS[code] = local; return Promise.resolve(local); }
+  /* v65：主包已内嵌近 130 根活跃股尾部 —— 非空且覆盖 atDate 时用，点击秒开。
+     v115 修复：历史日期（如 2017/2018 连板梯队）若该股内嵌数据只有近 130 根，
+     当日 bar 根本不在其中，直接沿用会让日K窗口定位到末尾、形态判定也失效；
+     此时必须走完整分片 klines_N.json。 */
+  if(local.length && covers(local)){ SK_BARS[code] = local; return Promise.resolve(local); }
+  if(cached && covers(cached)) return Promise.resolve(cached);
   const b = skBucket(code);
   const take = o=>{
     const frag = o && o[code];
@@ -5040,6 +5048,11 @@ function shapeOf(d, code, s0){
     const hit = (LF[th]||[]).find(x=>String(x.code)===String(code));
     if(hit && hit.s) return {s:hit.s, src:'ladderFull'};
   }
+  /* v115：全历史连板个股形态预计算兜底——dayZT 仅近25日、ladderFull 历史 s 多为空，
+     早年（2017-2020）大量连板股形态缺失。shapeAll[date][code] 由 build_merged._up_shape
+     同口径（六分类 v110）从完整分片日K预计算，覆盖 2114 日 / 22817 股次。 */
+  const SA = (R.shapeAll||{})[d];
+  if(SA && SA[String(code)]) return {s:SA[String(code)], src:'shapeAll'};
   return null;
 }
 /* v89 形态徽标 HTML：有形态→六色徽标；无形态→「?」灰虚线占位。 */
