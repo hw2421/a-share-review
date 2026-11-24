@@ -178,6 +178,10 @@
   .hd-open{float:right;background:#241b38;border:1px solid #6a4a92;color:#dcc0ff;
            border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-left:8px}
   .hd-open:hover{background:#3a2a56}
+  /* v118：题材当日梯队导出图片按钮 */
+  .lad-exp-btn{float:right;background:#15301f;border:1px solid #2f6b45;color:#8fe0ab;
+    border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;cursor:pointer;margin-left:8px}
+  .lad-exp-btn:hover{background:#1d4a2e;color:#fff;border-color:#8fe0ab}
   #thpop{position:fixed;z-index:95;background:#141c2e;border:1px solid var(--blue);
          border-radius:8px;padding:10px 14px;width:min(900px,calc(100vw - 16px));display:none;
          box-shadow:0 8px 30px rgba(0,0,0,.5);font-size:12px;cursor:move;
@@ -2704,6 +2708,7 @@ function openLadPop(nm, d, ev){
     (st? ' · 阶段 <b style="color:'+STAGE4_COL[st]+'">'+st+'</b>':'')+
     '<br>横条＝该板级个股数 · <b style="color:'+C.gold+'">HH:MM</b>＝首次封板时间 · 点个股名看日K'+
     (brk.length? ' · <b style="color:'+C.down+'">断板</b>行：昨日≥3板当日断板，跟踪3日（「当」＝当日涨跌幅，「累」＝断板以来累计）':'')+
+    ' <button class="lad-exp-btn" id="lad-exp-btn" title="导出该题材当日梯队图片（含个股名称+代码，文件名以题材命名）">⬇ 导出梯队</button>'+
     (((window.REVIEW.transmit||{})[d]||{})[nm] ?
       ' <button class="hd-open" id="lad-tr-btn" title="传导路径图：昨日梯队分层→今日传导效果，看钱到第几层断了">⚡ 传导</button>' : '')+'</div>';
   pop.style.display = 'block';
@@ -2715,12 +2720,130 @@ function openLadPop(nm, d, ev){
   pop.querySelector('.popx').onclick = ()=>{ pop.style.display='none'; };
   const trb=document.getElementById('lad-tr-btn');
   if(trb) trb.onclick=e2=>{ e2.stopPropagation(); openTransPop(nm, d, e2); };
+  // v118：导出该题材当日梯队图片（闭包携带当前数据）
+  const exb=document.getElementById('lad-exp-btn');
+  if(exb) exb.onclick=e2=>{ e2.stopPropagation(); ladExportPng(nm, d, stocks, brk, e, topB, boards, cnt, st); };
   pop.querySelectorAll('.s').forEach(el=>{
     el.onclick = e2=>{
       e2.stopPropagation();
       if(el.dataset.c) showK(el.dataset.c, el.dataset.n, e2, el.dataset.d);
     };
   });
+}
+
+/* ===== v118：导出题材「当日梯队」图片（文件名以题材命名，含名称+代码） =====
+   复用 openLadPop 的现成数据（stocks 按板位、brk 断板跟踪），口径与浮层完全一致。 */
+function ladExportPng(nm, d, stocks, brk, e, topB, boards, cnt, st){
+  nm=nm||'未命名题材';
+  const W=880, PAD=34, ROW_GAP=14, CHIP_H=48, CHIP_GAP=8;
+  const dpr=2, COLS=3;
+  const by={}; (stocks||[]).forEach(s=>{ const b=s.boards||1; (by[b]||(by[b]=[])).push(s); });
+  const bds=Object.keys(by).map(Number).sort((a,b)=>b-a);
+  const maxCnt=Math.max(1,...bds.map(b=>by[b].length));
+  // 量算高度
+  const rows=bds.map(b=>{
+    const arr=by[b], cols=Math.min(COLS,Math.max(1,arr.length));
+    return {b,arr,cols,lines:Math.ceil(arr.length/cols)};
+  });
+  let totalH=PAD+76+14;
+  rows.forEach(r=>{ totalH+=38+r.lines*(CHIP_H+CHIP_GAP)+12+ROW_GAP; });
+  if(brk&&brk.length){ totalH+=38+Math.ceil(brk.length/COLS)*(CHIP_H+CHIP_GAP)+12+ROW_GAP; }
+  totalH+=58+PAD;
+  const canvas=document.createElement('canvas');
+  canvas.width=W*dpr; canvas.height=totalH*dpr;
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  const FONT='"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif';
+  ctx.fillStyle='#f5f6f8'; ctx.fillRect(0,0,W,totalH);
+  const IN=W-PAD*2;
+  // 顶栏
+  ctx.fillStyle='#1f2733'; ctx.font='bold 28px '+FONT; ctx.textBaseline='top';
+  ctx.fillText(nm+' · 当日板块梯队',PAD,PAD-2,W-160);
+  ctx.fillStyle='#5b6573'; ctx.font='14px '+FONT;
+  const ladder=(e&&e.ladder)?e.ladder:(bds.length?bds.join('-'):'无');
+  ctx.fillText(elrnDstr(d)+' · 梯队 '+ladder+' · 当日涨停 '+(cnt||stocks.length)+' 只 · 最高 '+(topB||0)+' 板 / '+(bds.length||0)+' 个板级',PAD,PAD+38);
+  if(st){
+    ctx.font='bold 13px '+FONT;
+    const tw=ctx.measureText(st).width+22;
+    ctx.fillStyle=(STAGE4_COL&&STAGE4_COL[st])||'#2d6ac0';
+    ewRoundRect(ctx,W-PAD-tw,PAD-2,tw,26,13); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.fillText(st,W-PAD-tw+11,PAD+4);
+  }
+  let y=PAD+76+14;
+  const drawChips=(list,cols,baseColor)=>{
+    const cw=(IN-PAD/2-(cols-1)*CHIP_GAP)/cols;
+    list.forEach((s,j)=>{
+      const col=j%cols, row=Math.floor(j/cols);
+      const x=PAD+PAD/2+col*(cw+CHIP_GAP), cy=y+38+row*(CHIP_H+CHIP_GAP);
+      ctx.fillStyle='#fbfcfe'; ewRoundRect(ctx,x,cy,cw,CHIP_H,8); ctx.fill();
+      ctx.strokeStyle='#e3e8ef'; ctx.lineWidth=1; ctx.stroke();
+      ctx.fillStyle=baseColor; ctx.fillRect(x,cy+7,3,CHIP_H-14);
+      ctx.fillStyle='#1f2733'; ctx.font='bold 17px '+FONT; ctx.textBaseline='top';
+      ctx.fillText(s.name||'',x+12,cy+7,Math.max(50,cw-90));
+      ctx.fillStyle='#8a94a3'; ctx.font='12px '+FONT;
+      ctx.fillText(s.code||'',x+12,cy+29);
+      ctx.textAlign='right';
+      const sp=shapeName(s.s||s.shape||'');
+      ctx.fillStyle='#5b6573'; ctx.font='11px '+FONT;
+      const tm=sealOf(s);
+      ctx.fillText((sp&&sp!=='普通'?sp+' · ':'')+(tm||''),x+cw-10,cy+9);
+      ctx.textAlign='left';
+    });
+  };
+  rows.forEach(r=>{
+    const isTop=r.b===topB;
+    const role=isTop?'龙头':(r.b>=2?'助攻':'跟风');
+    const color=isTop?'#c8912a':(r.b>=2?'#2d6ac0':'#7a8492');
+    // 板位标题条
+    ctx.fillStyle=isTop?'#fff7e6':'#eef2f8'; ewRoundRect(ctx,PAD,y,IN,34,8); ctx.fill();
+    ctx.fillStyle=color; ctx.fillRect(PAD,y+5,4,24);
+    ctx.fillStyle=color; ctx.font='bold 17px '+FONT; ctx.textBaseline='middle';
+    ctx.fillText(r.b+'板',PAD+16,y+17);
+    ctx.fillStyle='#8a94a3'; ctx.font='12px '+FONT;
+    ctx.fillText(role+' · '+r.arr.length+' 只',PAD+70,y+18);
+    const py=y; drawChips(r.arr,r.cols,color); y=py+38+r.lines*(CHIP_H+CHIP_GAP)+12+ROW_GAP;
+  });
+  if(brk&&brk.length){
+    ctx.fillStyle='#fff0f0'; ewRoundRect(ctx,PAD,y,IN,34,8); ctx.fill();
+    ctx.fillStyle='#c0392b'; ctx.font='bold 17px '+FONT; ctx.textBaseline='middle';
+    ctx.fillText('断板跟踪',PAD+16,y+17);
+    ctx.fillStyle='#8a94a3'; ctx.font='12px '+FONT;
+    ctx.fillText('昨日≥3板当日断板 · 跟踪3日 · '+brk.length+' 只',PAD+110,y+18);
+    const cols=Math.min(COLS,Math.max(1,brk.length));
+    const cw=(IN-PAD/2-(cols-1)*CHIP_GAP)/cols;
+    brk.forEach((x,j)=>{
+      const col=j%cols, row=Math.floor(j/cols);
+      const bx=PAD+PAD/2+col*(cw+CHIP_GAP), by=y+38+row*(CHIP_H+CHIP_GAP);
+      ctx.fillStyle='#fff7f7'; ewRoundRect(ctx,bx,by,cw,CHIP_H,8); ctx.fill();
+      ctx.strokeStyle='#f0c8c8'; ctx.lineWidth=1; ctx.stroke();
+      ctx.fillStyle='#c0392b'; ctx.fillRect(bx,by+7,3,CHIP_H-14);
+      ctx.fillStyle='#1f2733'; ctx.font='bold 16px '+FONT; ctx.textBaseline='top';
+      ctx.fillText(x.name||'',bx+12,by+6,Math.max(50,cw-90));
+      ctx.fillStyle='#8a94a3'; ctx.font='12px '+FONT;
+      ctx.fillText(x.code||'',bx+12,by+28);
+      ctx.textAlign='right'; ctx.fillStyle='#c0392b'; ctx.font='11px '+FONT;
+      const tag=(x.n===0?'断板日':'断板后'+(x.n+1)+'日');
+      ctx.fillText((x.b||0)+'板→断 · '+tag,bx+cw-10,by+9);
+      ctx.fillStyle='#7a8492'; ctx.font='11px '+FONT;
+      const pc=v=>v==null?'—':((v>0?'+':'')+Number(v).toFixed(2)+'%');
+      ctx.fillText('当'+pc(x.chg)+' 累'+pc(x.cum),bx+cw-10,by+29);
+      ctx.textAlign='left';
+    });
+    y+=38+Math.ceil(brk.length/cols)*(CHIP_H+CHIP_GAP)+12+ROW_GAP;
+  }
+  ctx.fillStyle='#8a94a3'; ctx.font='12px '+FONT; ctx.textBaseline='top';
+  ctx.fillText('梯队＝当日涨停池按板位分组（龙头/助攻/跟风）· 名称下方为个股代码 · 断板行为昨日≥3板当日断板',PAD,y-2);
+  ctx.fillText('生成时间：'+new Date().toLocaleString('zh-CN')+' · 数据来源：本地复盘',PAD,y+20);
+  try{
+    canvas.toBlob(blob=>{
+      if(!blob){ toast('导出失败：图片生成异常'); return; }
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url;
+      a.download=nm+'_当日梯队_'+d+'.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      toast('已导出「'+nm+'」当日梯队图片');
+    },'image/png');
+  }catch(e){ toast('导出失败：'+e.message); }
 }
 
 /* ---- 题材连续炒作线路图弹窗：从最近一次出现往前，逐日显示（当日达标题材才入链） ---- */
