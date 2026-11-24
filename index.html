@@ -1241,6 +1241,12 @@
   .thgrp-th{font-weight:800;color:#eef3fc;cursor:pointer;white-space:nowrap}
   .thgrp-th:hover{text-decoration:underline;color:#9dc6ff}
   .thgrp-zt{color:#a8b8d4;font-size:9.5px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:0 6px}
+  /* v111 题材名后的「当日题材梯队」小标（如 5-2-1梯队），复用 .tier 青色徽标风格，可点看梯队 */
+  .thgrp-lad{font-style:normal;font-size:9.5px;color:#9fe3e0;background:rgba(159,227,224,.12);
+             border:1px solid rgba(159,227,224,.35);border-radius:3px;padding:0 5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .thgrp-lad:hover{background:rgba(159,227,224,.24);text-decoration:underline}
+  .thgrp-lad.none{color:var(--dim2);background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);cursor:default;font-weight:400}
+  .thgrp-lad.none:hover{text-decoration:none}
   .thgrp-body{display:flex;flex-wrap:wrap;gap:5px}
   /* v109：明日候选字体缩小、单行显示不左右拖动 */
   .ep-ch.nx-sm{font-size:10px;padding:2px 6px;gap:3px;white-space:nowrap;max-width:100%}
@@ -4949,6 +4955,20 @@ function tierOf(d, nm){
   if(!arr.length) return '';
   return [...new Set(arr.map(s=>s.boards||1))].sort((a,b)=>b-a).join('-');
 }
+/* v111 题材名后的「当日题材梯队」小标 HTML：口径与题材炒作题材卡一致
+   （多板位 X-Y-Z梯队 / 单板位 N板梯队）；无梯队返回空串；可点看当日题材梯队。 */
+function thLadderTag(d, nm){
+  const lad = tierOf(d, nm);
+  if(!lad){
+    // 无连板梯队（题材未入链/仅孤股归类）：显示灰色「无梯队」，保持每题材后面都有一致的位置
+    return '<em class="thgrp-lad none" title="'+escHtml(nm)+' '+fmtDate(d)+' 当日无连板梯队（题材未入题材炒作链）">无梯队</em>';
+  }
+  const parts = String(lad).split('-').filter(Boolean);
+  if(!parts.length) return '<em class="thgrp-lad none">无梯队</em>';
+  const txt = parts.length>1 ? lad+'梯队' : lad+'板梯队';
+  return '<em class="thgrp-lad" data-th="'+escHtml(nm)+'" data-d="'+escHtml(d)+'" '+
+    'title="'+escHtml(nm)+' '+fmtDate(d)+' 当日题材梯队：'+txt+'（点看梯队明细）">'+txt+'</em>';
+}
 /* v89 题材效应判定：当日该股所属题材必须在「题材炒作」入链题材(themeDetail[d])内。
    题材标准与题材炒作页完全同源——themeDetail 即后端按「板块有连板且涨停>3只」过滤后的入链题材。
    ① 题材名归一化直接命中（含别名）；② 用 code 在当日 ladderFull 反查所属入链题材。 */
@@ -5477,6 +5497,7 @@ function ewRenderWhere(end){
       const headTh=isNone
         ? '<span class="thgrp-th" style="color:var(--dim)">未归类</span>'
         : '<span class="thgrp-th" style="color:'+fg+'" data-th="'+escHtml(th)+'" data-d="'+end+'" title="点看「'+escHtml(th)+'」当日题材梯队">'+escHtml(th)+'</span>'+
+          thLadderTag(end, th)+
           (ztN?'<span class="thgrp-zt" title="该板块当日涨停家数">板块涨停 '+ztN+'</span>':'');
       const chips=list.map(p=>{
         const gap='<i class="gap-yb">缺口</i>';
@@ -5498,7 +5519,7 @@ function ewRenderWhere(end){
   host.querySelectorAll('.ep-ch').forEach(el=>{
     el.onclick=ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
-  host.querySelectorAll('.thgrp-th[data-th]').forEach(el=>{
+  host.querySelectorAll('.thgrp-th[data-th],.thgrp-lad[data-th]').forEach(el=>{
     el.onclick=ev=>{ ev.stopPropagation(); openLadPop(el.dataset.th, el.dataset.d, ev); };
   });
 }
@@ -5737,7 +5758,8 @@ function paintNextEarn(d){
     const ztBadge=isNone?'':('<span class="thgrp-zt" title="该板块今日涨停家数">板块涨停 '+boardZt(th)+'</span>');
     const headTh=isNone
       ? '<span class="thgrp-th" style="color:var(--dim)">未归类</span>'
-      : '<span class="thgrp-th" style="color:'+fg+'" data-th="'+escHtml(th)+'" data-d="'+d+'" title="点看「'+escHtml(th)+'」当日题材梯队">'+escHtml(th)+'</span>'+ztBadge;
+      : '<span class="thgrp-th" style="color:'+fg+'" data-th="'+escHtml(th)+'" data-d="'+d+'" title="点看「'+escHtml(th)+'」当日题材梯队">'+escHtml(th)+'</span>'+
+        thLadderTag(d, th)+ztBadge;
     const chips=list.map(e=>{
       const g = e.gap===1 ? '<i class="gap">缺口</i>' : '';
       const mk = e.ok===1 ? '<i class="ok2">✓兑现'+(e.b1?' '+e.b1+'板':'')+'</i>'
@@ -5756,7 +5778,7 @@ function paintNextEarn(d){
   host.querySelectorAll('.ep-ch').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
-  host.querySelectorAll('.thgrp-th[data-th]').forEach(el=>{
+  host.querySelectorAll('.thgrp-th[data-th],.thgrp-lad[data-th]').forEach(el=>{
     el.onclick = ev=>{ ev.stopPropagation(); openLadPop(el.dataset.th, el.dataset.d, ev); };
   });
 }

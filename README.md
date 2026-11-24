@@ -3191,3 +3191,17 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
   历史5日回看各模块正常赚T残留0；5页签+题材梯队弹窗均正常0 JS报错。截图 v110_where/nx/ladder.png。
 - 数据层：build_merged._up_shape + earn_streak.shape 均改为「有缺口(今低>昨涨停价=昨收)→赚钱」，重建全量数据后
   再补丁把 earnStreak.eventsAll 47处历史赚T→赚钱并重写 data.js；gapMap/gap_of/_gap_flag 口径早已统一(今低>昨收)，本次统一展示文案10+处。
+
+
+### 114. v111 明日候选+赚钱效应在哪题材名后显示「当日题材梯队」小标
+- 用户：赚钱效应在哪和明日赚钱效应候选的题材后要显示当日题材梯队。
+- 数据：题材梯队取 tierOf(d,题材)=ladders[d][题材].ladder（如 5-2-1/2-1），与题材炒作题材卡同口径；
+  重组+股权等未入链题材当日无连板梯队→显示灰色「无梯队」占位，保持每个题材后都有一致标签位。
+- 前端：新增 .thgrp-lad 青色小标（复用 .tier 风格）+ .thgrp-lad.none 灰色无梯队；新增 thLadderTag(d,nm)：
+  多板位「X-Y-Z梯队」/单板位「N板梯队」可点看梯队明细，无梯队「无梯队」不可点；
+  ewRenderWhere / paintNextEarn 两处题材名后各插入 thLadderTag；两处题材名点击绑定由
+  '.thgrp-th[data-th]' 扩为 '.thgrp-th[data-th],.thgrp-lad[data-th]' 使梯队标也能点开题材梯队弹窗。
+- 实测(Chromium)：明日候选6题材梯队标(机器人2-1/短剧2-1/消费2-1/PCB3-1/国产算力5-2-1/光刻机2-1)，
+  赚钱效应在哪5题材(同上4个+重组+股权显示灰色无梯队)；4类点击(题材名/梯队标×两模块)均弹出梯队浮层；
+  历史回看3日梯队标随日期正确变化；5页签正常0 JS报错。仅前端 index.html 改动，数据零改动。
+  截图 v111_nx.png / v111_where.png。
