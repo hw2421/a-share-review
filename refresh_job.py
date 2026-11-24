@@ -143,6 +143,18 @@ def main():
         got, hunan_note = try_hunan_backfill(today)
         log("湖南人题材：%s" % hunan_note)
 
+    # v116b：盘后先确保当日日K齐全（同花顺/新浪对当日滞后，腾讯接口收盘即有 OHLC）。
+    # 当日 bar 缺失会让 gapMap/涨停形态/赚钱效应判定全空，页面呈现「今日没更新」。
+    if phase == "盘后":
+        write_status(state="running", step="保障当日日K", ok=None, msg="", latest=latest)
+        try:
+            rk = subprocess.run([sys.executable, os.path.join(BASE, "ensure_today_kline.py")],
+                                capture_output=True, text=True, timeout=660)
+            log("当日日K保障：%s" % ((rk.stdout or rk.stderr or "").strip().splitlines()[-1][:120]
+                                  if (rk.stdout or rk.stderr or "").strip() else "无输出"))
+        except Exception as e:
+            log("当日日K保障异常：%s" % e)
+
     write_status(state="running", step="重建全站数据", ok=None, msg="", latest=latest)
     try:
         env = dict(os.environ, SKIP_KLINES="1")

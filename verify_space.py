@@ -1503,7 +1503,12 @@ def main():
                 err("v67 %s %s 无跳空缺口（t最低 %s ≤ t-1最高 %s）"
                     % (d, code, _b_et[3], _b_e1[4])); n_v67 += 1
         # 今日涨幅 ≈ 涨停幅度
-        lim = 0.05 if "ST" in e.get("name", "") else (0.20 if code.startswith(("30", "688"))
+        # v116b：创业板/科创板注册制涨跌幅有历史分界——创业板 2020-08-24 起 20%，
+        # 科创板 2019-07-22 开板即 20%。此前误按 20% 判，导致 2020 年前 10% 创业板
+        # 事件被误报 48 条（chg≈10 vs 期望 20），让自检长期 ok=false 掩盖真实告警。
+        _cyb20 = code.startswith("30") and d >= "20200824"
+        _kcb20 = code.startswith("688")
+        lim = 0.05 if "ST" in e.get("name", "") else (0.20 if (_cyb20 or _kcb20)
               else (0.30 if code.startswith(("83", "87", "43", "92")) else 0.10))
         if abs(e.get("chg", 0) - lim * 100) > 1.0:
             err("v67 eventsAll %s %s t日涨幅异常 %s" % (d, code, e.get("chg"))); n_v67 += 1
@@ -1940,6 +1945,32 @@ def main():
     print("v74 历史复盘扩展（连续 %d 日 / 缺口 / 断板龙头涨跌幅 / dayZT 扩展）：异常 %d"
           % (sum(1 for _dd in dates if _dd >= _lo74), n_v74))
     n_v48 += n_v74
+
+    # ---- v116 当日数据完整性（防止「今日没更新」类静默失败） ----
+    n_v116 = 0
+    _today = D.get("today") or ""
+    if _today:
+        _gm = (D.get("gapMap") or {}).get(_today) or {}
+        _zt = (D.get("dayZT") or {}).get(_today) or {}
+        _dz = len(_zt)
+        if not _dz:
+            err("v116 %s dayZT 为空（今日涨停池数据缺失）" % _today); n_v116 += 1
+        if not _gm:
+            err("v116 %s gapMap 为空（当日日K缺失，涨停形态/缺口判定会全空）" % _today); n_v116 += 1
+        elif _dz and len(_gm) < _dz * 0.8:
+            err("v116 %s gapMap 覆盖不足 %d/%d（当日日K可能不全）"
+                % (_today, len(_gm), _dz)); n_v116 += 1
+    # v113/v114/v115 自定义字段必须存在（防自动重建冲掉）
+    _es = D.get("earnStreak") or {}
+    if len(_es.get("eventsAll") or []) < 1000:
+        err("v116 eventsAll 仅 %d 笔（全历史应≥3400，疑似被重建冲掉）"
+            % len(_es.get("eventsAll") or [])); n_v116 += 1
+    if len(_es.get("histSim", {}).get("trades") or []) < 1000:
+        err("v116 histSim 缺失（历史复盘统计会空）"); n_v116 += 1
+    if len(D.get("shapeAll") or {}) < 1000:
+        err("v116 shapeAll 缺失（连板梯队历史形态会缺失）"); n_v116 += 1
+    print("v116 当日数据完整性 + 自定义字段保留：异常 %d" % n_v116)
+    n_v48 += n_v116
 
     # ---- 汇总 ----
     n_break = sum(1 for d in days if d.get("stage") == "突破")

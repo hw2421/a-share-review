@@ -278,6 +278,19 @@ def main():
         errors.append("湖南人题材：%s" % e)
         LOG("题材更新失败：%s" % e)
 
+    # ---- 2.5) v116b：确保当日日K齐全（盘后补抓，build_merged 前置） ----
+    # 日K刷新任务用同花顺/新浪接口，对当日滞后；当日 bar 缺失会导致 gapMap/涨停形态/
+    # 赚钱效应判定全空、页面呈现「今日没更新」。腾讯接口收盘即有完整 OHLC，
+    # ensure_today_kline.py 检测缺失时自动补齐（幂等，盘中自动跳过）。
+    try:
+        r = subprocess.run([sys.executable, os.path.join(OUT, "ensure_today_kline.py")],
+                           capture_output=True, text=True, timeout=660)
+        LOG("当日日K保障：%s" % ((r.stdout or r.stderr or "").strip().splitlines()[-1][:120]
+                              if (r.stdout or r.stderr or "").strip() else "无输出"))
+    except Exception as e:
+        errors.append("当日日K保障：%s" % e)
+        LOG("当日日K保障异常：%s" % e)
+
     # ---- 3) 合并两年数据 ----
     try:
         # v31：与「页面手动刷新」共用构建锁，避免两个构建同时写 data.js

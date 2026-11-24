@@ -3332,3 +3332,30 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
 - 改动：build_merged.py（末尾挂恢复）+ 新增 restore_custom_fields.py + output/custom_fields_base.json
   + data.js/data.json/version.js。注：连续两次 build_merged 曾触发 8GB cgroup OOM（EXIT=137），
   单次正常；恢复脚本已做轻量设计避免叠加内存峰值。
+
+
+### 120. v116b 防止「今日数据没更新」复发：补当日日K接入自动链路 + 自检告警
+- 用户：你能避免这类问题再次发生吗。
+- 诚实结论：v116 只手动补了当日日K + 自动化了自定义字段保留，但「补当日日K」未进自动流程，
+  且失败是静默的（无告警），次日同样会复发。本次补齐防护闭环。
+- 三层防护：
+  ① 自动补当日日K：新增 ensure_today_kline.py——盘后（≥15:05，避免盘中实时价污染）
+     取涨停池最新交易日，检查涨停池/连板梯队个股在 .stock_kline_cache.json 的当日 bar 覆盖率，
+     <98% 则调 fill_today_kline.py（腾讯 qt.gtimg.cn，收盘即有完整 OHLC）补齐，幂等。
+     挂到两个自动重建入口的 build_merged 之前：
+       · update_daily.py 新增「2.5 当日日K保障」（定时任务 17:30/19:00/21:00）；
+       · refresh_job.py 盘后分支新增「保障当日日K」（页面刷新）。
+     实测：今日 55/55 齐全→幂等跳过；模拟移除5只 bar→检测 90.9%→自动补抓→5只全补回。
+  ② 自检告警：verify_space.py 新增 v116 检查——当日 dayZT 非空、gapMap 覆盖≥80%、
+     eventsAll≥1000、histSim≥1000、shapeAll≥1000；缺失即 err 触发 ok=false 告警。
+     实测「v116 当日数据完整性 + 自定义字段保留：异常 0」。
+  ③ 消除掩盖真实告警的历史误报：v67 涨幅校验按注册制历史分界修正——创业板 2020-08-24 起
+     才 20%（此前一律按 20%，致 2020 年前 10% 创业板事件误报 205 条）、科创板 688 开板即 20%。
+     全量误报 356→151。剩余 151 条为历史严格校验（v74 缺口形态/v76 展示/断板日K等），
+     与本问题无关，未在本版扩大改动范围。
+- 语法校验：ensure_today_kline / restore_custom_fields / update_daily / refresh_job /
+  verify_space / build_merged 全部 py_compile 通过；浏览器 5 页签 0 JS 报错、
+  今日形态 30/33、历史统计 KPI 3443/48.4%/2.81/+4.88% 完整。
+- 改动：新增 ensure_today_kline.py；改 update_daily.py / refresh_job.py / verify_space.py。
+  本次纯代码防复发改动、数据未改（仍用 v116 发布版 ver=593f2e07009d；测试补抓产生的
+  等价版本 4e3549e6a7d4 已还原）。
