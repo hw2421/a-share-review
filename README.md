@@ -3223,3 +3223,22 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
   5页签正常0 JS报错。仅前端 index.html 改动。截图 v112_hist.png。
 - 注：本次未提交工作区既有的数据刷新改动（version=9f3875d16452、klinesAt、klines 分片），
   属独立日K刷新任务产物，与本次前端对齐无关。
+
+
+### 116. v113 全历史赚钱效应股扩展至2017年（eventsAll 218笔→3444笔）
+- 用户：历史复盘的数据要匹配更新至2017年的数据（承接 v112 历史复盘改以 eventsAll 为准）。
+- 根因：earn_streak.compute 的 ALL_N=140 使 earnStreak.eventsAll 只覆盖近140交易日(218笔/107天)，
+  而 output/earn_full.json 有 3436 笔全历史(2017-03-06~2026-11-16，README 回测口径同源)。
+- 合并脚本 /tmp/rebuild_earn_all.py（数据层）：以 earn_full 3436 笔为基础，形态「赚T」→「赚钱」(v110口径，
+  一字保留前端★标)，再并入 eventsAll 的 8 笔增量(含11-23中京电子、5笔earn_full缺失+2笔口径差异)覆盖，
+  按(d,code)去重、日期降序；写回 earnStreak.eventsAll=3444 笔、allRange=[20170306,20261123]，
+  datajs.write_data 重写 data.json/data.js/version.js/.site_meta.json，ver=aa3b4ba629ee。
+- 校验：3444笔覆盖2017-2026(48/91/276/472/455/499/263/561/453/326)，1514个交易日，全部gap=1，
+  赚T 0残留；一字166笔保留(前端★标)。重叠210笔仅形态字段有差异(46处赚T→赚钱)，其余字段0差异，
+  证明 earn_full 与新版 compute 同口径。
+- 实测(Chromium/ver=aa3b4ba629ee)：今日复盘不受影响(默认1日窗口1只、明日候选6题材模块正常)；
+  历史复盘 107天→1514天、渲染3444只与 eventsAll3444只完全一致(missing0/extra0)；
+  2017年40天最早20170306(恒天永瑞3板★一字+缺口)，11-23仍仅中京电子与今日复盘一致；
+  ★一字标173处；5页签+历史回看正常0 JS报错。截图 v113_hist_2017.png / v113_hist_today.png。
+- 注：eventsAll 为今日复盘与历史复盘共用字段，今日复盘 paintEarn 有 EP_W 窗口过滤(默认1日)，
+  扩展全历史不影响其展示；paintNextEarn/ewRenderWhere 用 nextEarn/dayZT，earnThemeCount 按日期过滤，均不受影响。
