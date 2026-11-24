@@ -1207,6 +1207,10 @@
   /* v102 smod-where 赚钱效应在哪（深色版，移植自上传复盘页） */
   .smod-where{background:rgba(240,185,11,.04);border-color:rgba(240,185,11,.22)}
   .smod-where .ep-h{color:#ffd24a}
+  /* v117：一键导出赚钱效应个股图片按钮 */
+  .ew-export-btn{float:right;margin-left:8px;padding:3px 10px;background:#3a2f10;border:1px solid #8a6d1f;
+    border-radius:6px;color:#ffd24a;font-size:10.5px;font-weight:700;cursor:pointer;line-height:1.4}
+  .ew-export-btn:hover{background:#5a4715;border-color:#ffd24a;color:#fff}
   /* v103 删候选股/KPI统计卡；改为行式条目：名称(身份标记)-高度-涨停形态-题材情况-三折叠项 */
   .ew-ctx{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
   .ew-ctx span{padding:3px 7px;background:#152238;border-radius:5px;font-size:10px;color:var(--dim)}
@@ -1382,7 +1386,7 @@
     <div class="smod smod-1" id="smod-earn"><div id="es-root"></div></div>
     <!-- v102 赚钱效应在哪：从上传复盘页移植（身份分类/证据分/入选依据/风险提示/次日确认），深色样式 -->
     <div class="smod smod-where" id="smod-where">
-      <h4 class="ep-h">赚钱效应在哪 <span class="sub">按题材整理当日「有缺口的连板股」（≥2板、今低＞昨涨停价）· 点个股看日K，点题材看当日梯队</span></h4>
+      <h4 class="ep-h">赚钱效应在哪 <span class="sub">按题材整理当日「有缺口的连板股」（≥2板、今低＞昨涨停价）· 点个股看日K，点题材看当日梯队</span><button class="ew-export-btn" id="ew-export" title="按题材分类导出今日赚钱效应个股图片（名称+代码）">⬇ 导出图片</button></h4>
       <div id="ew-root"></div>
     </div>
     <div class="smod smod-2" id="smod-nx">
@@ -5371,7 +5375,7 @@ const ewMean = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
 const ewIsNum = x => typeof x === 'number' && Number.isFinite(x);
 const ewNumOrNull = x => ewIsNum(x) ? x : null;
 const ewGain = (a,b) => ewIsNum(a) && a>0 && ewIsNum(b) && b>0 ? (b/a-1)*100 : null;
-let EW_SNAP = null, ewRoleFilter = '全部';
+let EW_SNAP = null, ewRoleFilter = '全部', EW_CUR_END = '';
 function ewMakeSnapshot(r){
   if(!Array.isArray(r.dates) || !Array.isArray(r.stages) || !Array.isArray(r.earnStreak?.eventsAll) || !r.themeDetail || !r.ladderFull || !r.brkTrack?.days) return null;
   const dates=[...new Set(r.dates.filter(d=>typeof d==='string' && /^\d{8}$/.test(d)))].sort();
@@ -5509,21 +5513,10 @@ function ewClassify(d,rows){
   }
   return [...map.values()].filter(x=>x.roles.size).sort((a,b)=>b.score-a.score||b.b-a.b||a.code.localeCompare(b.code));
 }
-function ewRenderWhere(end){
-  const host=document.getElementById('ew-root'); if(!host) return;
+/* v117：抽公共 picks 计算——「赚钱效应在哪」展示与「导出图片」共用同一口径，
+   避免两处逻辑漂移。返回 {picks, groups, themeKeys}。 */
+function ewPicks(end){
   const R=window.REVIEW||{};
-  if(!EW_SNAP) EW_SNAP=ewMakeSnapshot(R);
-  const d = EW_SNAP ? EW_SNAP.days.find(x=>x.d===end) : null;
-  if(!d){ host.innerHTML='<div class="ew-empty">该交易日暂无赚钱效应复盘快照。</div>'; return; }
-  const avg=(d.sentiment.r1!=null&&d.sentiment.r2b!=null)?Math.round((d.sentiment.r1*100+d.sentiment.r2b*100)/2):null;
-  const status=d.feedback||d.negBreaks>=2?'风险扩散':avg!=null&&avg>=60?'赚钱扩散':'局部赚钱';
-  const statColor=status==='风险扩散'?'var(--down)':status==='赚钱扩散'?'var(--up)':'var(--gold)';
-  const ctx='<div class="ew-ctx"><span>赚钱效应状态 <b style="color:'+statColor+'">'+status+'</b></span>'+
-    '<span>市场阶段 <b>'+escHtml(d.stage)+'</b></span><span>空间高度 <b>'+count2(d.height)+' 板</b></span>'+
-    '<span>涨停 <b>'+count2(d.zt)+'</b> 只</span><span>昨涨停今红盘 <b>'+(d.sentiment.r2b==null?'—':Math.round(d.sentiment.r2b*100)+'%')+'</b></span></div>';
-  /* v110：整理展示当日「有缺口的连板股」——赚钱效应股（缺口＝今日最低价＞昨日涨停价，硬条件）。
-     筛选：①连板股 b≥2；②当日有缺口 gapMap[end][code]===1；③非一字（一字买不进，另行特别标记）。
-     形态「赚T」「赚钱」已合并为「赚钱」；按题材分组（每题材一块底色）。 */
   const zt=(R.dayZT||{})[end]||{};
   const gm=((R.gapMap||{})[end])||{};
   const picks=[];
@@ -5543,6 +5536,25 @@ function ewRenderWhere(end){
     const le=((R.ladders||{})[end]||{})[a]||{}, lf=((R.ladders||{})[end]||{})[b]||{};
     return (((lf.count||0)*100+(lf.maxB||0)*10)-((le.count||0)*100+(le.maxB||0)*10))||a.localeCompare(b,'zh-CN');
   });
+  return {picks,groups,themeKeys};
+}
+function ewRenderWhere(end){
+  const host=document.getElementById('ew-root'); if(!host) return;
+  EW_CUR_END=end;   // v117：记录当前展示日，供导出按钮取用
+  const R=window.REVIEW||{};
+  if(!EW_SNAP) EW_SNAP=ewMakeSnapshot(R);
+  const d = EW_SNAP ? EW_SNAP.days.find(x=>x.d===end) : null;
+  if(!d){ host.innerHTML='<div class="ew-empty">该交易日暂无赚钱效应复盘快照。</div>'; return; }
+  const avg=(d.sentiment.r1!=null&&d.sentiment.r2b!=null)?Math.round((d.sentiment.r1*100+d.sentiment.r2b*100)/2):null;
+  const status=d.feedback||d.negBreaks>=2?'风险扩散':avg!=null&&avg>=60?'赚钱扩散':'局部赚钱';
+  const statColor=status==='风险扩散'?'var(--down)':status==='赚钱扩散'?'var(--up)':'var(--gold)';
+  const ctx='<div class="ew-ctx"><span>赚钱效应状态 <b style="color:'+statColor+'">'+status+'</b></span>'+
+    '<span>市场阶段 <b>'+escHtml(d.stage)+'</b></span><span>空间高度 <b>'+count2(d.height)+' 板</b></span>'+
+    '<span>涨停 <b>'+count2(d.zt)+'</b> 只</span><span>昨涨停今红盘 <b>'+(d.sentiment.r2b==null?'—':Math.round(d.sentiment.r2b*100)+'%')+'</b></span></div>';
+  /* v110：整理展示当日「有缺口的连板股」——赚钱效应股（缺口＝今日最低价＞昨日涨停价，硬条件）。
+     筛选：①连板股 b≥2；②当日有缺口 gapMap[end][code]===1；③非一字（一字买不进，另行特别标记）。
+     形态「赚T」「赚钱」已合并为「赚钱」；按题材分组（每题材一块底色）。v117：改用公共 ewPicks。 */
+  const {picks,groups,themeKeys}=ewPicks(end);
   let grpHtml='';
   if(picks.length){
     grpHtml=themeKeys.map((th,idx)=>{
@@ -5580,6 +5592,101 @@ function ewRenderWhere(end){
   host.querySelectorAll('.thgrp-th[data-th],.thgrp-lad[data-th]').forEach(el=>{
     el.onclick=ev=>{ ev.stopPropagation(); openLadPop(el.dataset.th, el.dataset.d, ev); };
   });
+}
+/* v117：一键导出「赚钱效应在哪」个股图片（按题材分类，含名称+代码）
+   口径与展示完全一致（复用 ewPicks）；Canvas 绘制为浅色图片便于保存/分享。 */
+function ewExportPng(end){
+  end=end||((window.REVIEW||{}).today||'');
+  const {picks,groups,themeKeys}=ewPicks(end);
+  if(!picks.length){ toast('该交易日无「有缺口的连板股」可导出'); return; }
+  const R=window.REVIEW||{};
+  if(!EW_SNAP) EW_SNAP=ewMakeSnapshot(R);   // 未渲染模块时也能带出状态徽标
+  const d=EW_SNAP?EW_SNAP.days.find(x=>x.d===end):null;
+  const W=900, PAD=36, CARD_GAP=16, CHIP_H=54, CHIP_GAP=10;
+  const dpr=2;
+  const COLS=2;
+  const cards=themeKeys.map((th,i)=>{
+    const list=groups.get(th);
+    const rows=Math.ceil(list.length/COLS);
+    return {th,list,h:54+rows*(CHIP_H+CHIP_GAP)+14,hue:(205+i*137.508)%360};
+  });
+  let totalH=PAD+70+16;
+  cards.forEach((c,i)=>{ totalH+=c.h+(i<cards.length-1?CARD_GAP:0); });
+  totalH+=54+PAD;
+  const canvas=document.createElement('canvas');
+  canvas.width=W*dpr; canvas.height=totalH*dpr;
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  const FONT='"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif';
+  ctx.fillStyle='#f5f6f8'; ctx.fillRect(0,0,W,totalH);
+  const IN=W-PAD*2;
+  ctx.fillStyle='#1f2733'; ctx.font='bold 30px '+FONT; ctx.textBaseline='top';
+  ctx.fillText('赚钱效应在哪 · 个股清单',PAD,PAD-2);
+  ctx.fillStyle='#5b6573'; ctx.font='15px '+FONT;
+  ctx.fillText(elrnDstr(end)+' · 有缺口的连板股（≥2板、今低＞昨涨停价）· 共 '+picks.length+' 只 / '+themeKeys.length+' 个题材',PAD,PAD+36);
+  if(d){
+    const avg=(d.sentiment.r1!=null&&d.sentiment.r2b!=null)?Math.round((d.sentiment.r1*100+d.sentiment.r2b*100)/2):null;
+    const status=d.feedback||d.negBreaks>=2?'风险扩散':avg!=null&&avg>=60?'赚钱扩散':'局部赚钱';
+    ctx.font='bold 14px '+FONT;
+    const tw=ctx.measureText(status).width+24;
+    ctx.fillStyle=status==='风险扩散'?'#d43b3b':status==='赚钱扩散'?'#c8912a':'#2d6ac0';
+    ewRoundRect(ctx,W-PAD-tw,PAD-1,tw,28,14); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.fillText(status,W-PAD-tw+12,PAD+4);
+  }
+  let y=PAD+70+16;
+  cards.forEach(c=>{
+    const accent='hsl('+c.hue.toFixed(0)+',58%,46%)';
+    const softBd='hsl('+c.hue.toFixed(0)+',45%,80%)';
+    const softBg='hsl('+c.hue.toFixed(0)+',70%,96%)';
+    ctx.fillStyle='#ffffff'; ewRoundRect(ctx,PAD,y,IN,c.h,12); ctx.fill();
+    ctx.strokeStyle=softBd; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle=softBg; ewRoundRect(ctx,PAD,y,IN,46,12); ctx.fill();
+    ctx.fillStyle=accent; ctx.fillRect(PAD,y+8,5,30);
+    ctx.fillStyle=accent; ctx.font='bold 21px '+FONT; ctx.textBaseline='middle';
+    ctx.fillText(c.th,PAD+18,y+23);
+    const ztN=((R.ladders||{})[end]||{})[c.th]||{};
+    const tag=(c.th==='未归类'?'':(ztN.count?'板块涨停 '+ztN.count+' 家 · ':''))+c.list.length+' 只';
+    ctx.fillStyle='#7a8492'; ctx.font='13px '+FONT;
+    ctx.fillText(tag,W-PAD-14-ctx.measureText(tag).width,y+24);
+    const cw=(IN-PAD-CHIP_GAP-(COLS-1)*CHIP_GAP)/COLS;
+    c.list.forEach((p,j)=>{
+      const col=j%COLS, row=Math.floor(j/COLS);
+      const x=PAD+PAD/2+col*(cw+CHIP_GAP), cy=y+54+row*(CHIP_H+CHIP_GAP);
+      ctx.fillStyle='#fbfcfe'; ewRoundRect(ctx,x,cy,cw,CHIP_H,9); ctx.fill();
+      ctx.strokeStyle='#e3e8ef'; ctx.lineWidth=1; ctx.stroke();
+      ctx.fillStyle=accent; ctx.fillRect(x,cy+8,3,CHIP_H-16);
+      ctx.fillStyle='#1f2733'; ctx.font='bold 18px '+FONT; ctx.textBaseline='top';
+      ctx.fillText(p.name,x+14,cy+8,Math.max(60,cw-110));
+      ctx.fillStyle='#8a94a3'; ctx.font='13px '+FONT;
+      ctx.fillText(p.code,x+14,cy+31);
+      ctx.textAlign='right';
+      ctx.fillStyle='#c8912a'; ctx.font='bold 14px '+FONT;
+      ctx.fillText((p.b||0)+'板',x+cw-12,cy+8);
+      ctx.fillStyle='#5b6573'; ctx.font='12px '+FONT;
+      const shp=shapeName(p.shape);
+      ctx.fillText((shp&&shp!=='普通'?shp+' · ':'')+(p.t||''),x+cw-12,cy+30);
+      ctx.textAlign='left';
+    });
+    y+=c.h+CARD_GAP;
+  });
+  ctx.fillStyle='#8a94a3'; ctx.font='12px '+FONT; ctx.textBaseline='top';
+  ctx.fillText('口径：当日涨停池 ≥2 连板 · 今低＞昨涨停价（有缺口）· 排除一字 · 按题材分类',PAD,y-2);
+  ctx.fillText('生成时间：'+new Date().toLocaleString('zh-CN')+' · 数据来源：本地复盘',PAD,y+20);
+  try{
+    canvas.toBlob(blob=>{
+      if(!blob){ toast('导出失败：图片生成异常'); return; }
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url;
+      a.download='赚钱效应个股_'+end+'.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      toast('已导出 '+picks.length+' 只个股（按 '+themeKeys.length+' 个题材分类）');
+    },'image/png');
+  }catch(e){ toast('导出失败：'+e.message); }
+}
+function ewRoundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
 }
 /* v104：点个股名称→日K弹窗（底部自动带题材梯队/涨停时间），标题补涨停形态徽标 */
 async function ewOpenK(code, name, ev, end, shape){
@@ -6866,6 +6973,11 @@ window.checkNewData = checkNewData;      // 暴露给自动化回归 / 控制台
     fitK();                       // v68：视口变化后日K浮层重新收口（含位置夹回）
   });
 
+  /* ---- v117：赚钱效应在哪「导出图片」按钮（事件委托，避免依赖模块渲染时机） ---- */
+  document.addEventListener('click', ev=>{
+    const btn=ev.target && ev.target.closest && ev.target.closest('#ew-export');
+    if(btn){ ev.preventDefault(); ewExportPng(EW_CUR_END || (window.REVIEW||{}).today || ''); }
+  });
   /* ---- 历史定位下拉已取消（v70） ---- */
   /* ---- 右下角返回顶端（点击平滑滚回，顶部标题栏/导航固定可见） ---- */
   document.getElementById('backtop').onclick = ()=>{

@@ -3389,3 +3389,23 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
   shapeAll 2210 / gapMap 今日 55 / dayZT 今日 55 均保留。
 - 改动：ensure_today_kline.py / fill_today_kline.py / verify_space.py + 数据三件套。
   剩余 60 条为历史严格校验项（v74 缺口形态/v67 历史涨幅等），与本问题无关。
+
+
+### 122. v117 一键导出「赚钱效应在哪」个股图片（按题材分类，含名称+代码）
+- 用户：帮我做一个功能，一键导出今日复盘下赚钱效应在哪的赚钱效应个股，按题材分类，
+  包括个股名称和个股代码，导出图片的形式。
+- 实现（纯前端，index.html）：
+  1) 抽公共函数 ewPicks(end)：把 v110 的「有缺口的连板股」筛选（≥2板 + gapMap===1 +
+     排除一字 + 按题材分组排序）从 ewRenderWhere 中抽出，展示与导出共用同一口径，
+     避免两处逻辑漂移。ewRenderWhere 改调它。
+  2) 标题栏新增「⬇ 导出图片」按钮（.ew-export-btn，金色主题）；事件委托绑定（document 级），
+     不依赖模块渲染时机——初始进页面 ew-root 未渲染时按钮同样可用。当前展示日存 EW_CUR_END，
+     导出取 EW_CUR_END || REVIEW.today。
+  3) ewExportPng(end)：Canvas（dpr=2 高清）绘制浅色图片——标题+日期+状态徽标（风险扩散/
+     赚钱扩散/局部赚钱）、按题材分卡（每卡题材名/板块涨停数/只数）、每只个股卡片含
+     **名称 + 代码** + 板数 + 形态 + 首封时间、底部口径与生成时间；toBlob → 下载
+     「赚钱效应个股_YYYYMMDD.png」。复用 ewMakeSnapshot 带出状态徽标。
+- 实测(Chromium)：今日 20261124 导出 17 只 / 4 题材（机器人10、消费4、国产芯片1、短剧2），
+  PNG 1800×2216、416KB，名称+代码清晰无重叠、中文正常、0 JS 报错；状态徽标「风险扩散」正常；
+  切历史日期时 EW_CUR_END 随之更新，导出对应日。截图 v117_export_preview.png。
+- 改动：仅 index.html（数据未改，仍 v116c 的 ver=feff2ca59c00）；7 个内联 script node --check 通过。
