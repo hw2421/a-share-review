@@ -6030,26 +6030,31 @@ function renderHist(){
   const intro = document.getElementById('hist-intro');
   if(intro && !intro.dataset.done){
     intro.innerHTML = kjNote(
-      '历史全部赚钱效应股（3 板或以上 · 连续两日换手涨停 · 当日最低价＞昨日最高价——昨日买入者全部获利）· '+
-      '按日期排列（日期带市场阶段与空间高度）· 同日按题材、题材内按板位（高度）排列 · '+
-      '<b style="color:#ffd24a">v91：题材归属与梯队一律以「题材炒作」数据为准</b>——每只个股当日题材用题材炒作口径'+
+      '历史赚钱效应股与今日复盘<b style="color:#ffd24a">同源</b>（earnStreak 全量池＝3 板以上 · 连续两日换手涨停 · 当日最低价＞昨日涨停价——昨日买入者全部获利）· '+
+      '按日期排列（日期带市场阶段与空间高度）· 同日按题材分组、题材内按板位（高度）降序 · '+
+      '题材归属与梯队一律以「题材炒作」数据为准——个股当日题材用题材炒作口径'+
       '（当日题材卡→当日梯队→全局题材归类，三级回退）反查后重新分组，与该页题材/梯队完全对齐；'+
-      '只展示题材已入链题材炒作图的赚钱效应股（无题材/未入链不显示）· 个股一律正常显示（不再灰显）· '+
-      '仅展示当日涨停达标的赚钱效应股，<b>不再展示断板后的跟踪情况</b>（断板第N天、断板空间龙头均已移除）· '+
+      '个股一律正常显示（不再灰显）· 仅展示当日涨停达标的赚钱效应股，<b>不再展示断板后的跟踪情况</b> · '+
       '每只个股标注涨停形态（六色徽标：★一字/地天/赚钱/普通/长腿/低开，赚T已并入赚钱）+ 缺口/长腿标；叠加当日空间龙头辅助判断。',
       '模块介绍');
     intro.dataset.done = '1';
   }
-  const H = (window.REVIEW||{}).histReview || {};
+  const R = window.REVIEW || {};
+  const H = R.histReview || {};
   const days = H.days || {};
-  const ds = Object.keys(days).sort((a,b)=>b.localeCompare(a));
+  /* v112：赚钱效应股以今日复盘为准——统一取 earnStreak.eventsAll（3板以上 ∩ 连续两日换手涨停 ∩ 缺口），
+     按日期分组，日期也以 eventsAll 为准；日期卡片的市场阶段/空间高度/空间龙头等元信息仍取 histReview.days。 */
+  const ea = (R.earnStreak||{}).eventsAll || [];
+  const byDate = {};
+  ea.forEach(e=>{ (byDate[e.d] || (byDate[e.d]=[])).push(e); });
+  const ds = Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
   if(!ds.length){
     root.innerHTML = '<div class="sub" style="padding:10px 2px">暂无历史复盘数据。</div>';
     return;
   }
   let h = '';
   ds.forEach(d=>{
-    const y = days[d];
+    const y = days[d] || {};
     const stg = y.stage
       ? '<span class="hr-stg" style="background:'+(STAGE_SOLID[y.stage]||'#78849a')+'22;'+
         'border:1px solid '+(STAGE_SOLID[y.stage]||'#78849a')+'66;color:'+(STAGE_SOLID[y.stage]||'#78849a')+
@@ -6062,31 +6067,30 @@ function renderHist(){
       : '<span class="hr-top">当日无空间龙头</span>';
     /* v89：不再展示断板情况——移除「上断板空间龙头」栏 */
     const pb = '';
-    /* v91：题材归属与梯队一律以「题材炒作」数据为准——个股当日题材用 themeOf() 三级反查
-       （themeDetail 当日个股 → ladderFull 梯队 → 全局 stockTheme），不再用 histReview 自带题材；
-       题材门槛=题材须入链 themeDetail[d]；只保留当日涨停达标股；去灰显/去断板/加形态。 */
-    const inchain = new Set(((window.REVIEW||{}).themeDetail||{})[d] ?
-      ((window.REVIEW||{}).themeDetail||{})[d].map(t=>tName(t.name)) : []);
-    /* 按题材炒作口径重新分组：扁平化当日所有涨停达标股 → 用 themeOf 归题材 */
+    /* v112：股池与今日复盘同源（eventsAll）；题材归属仍以题材炒作数据为准——themeOf() 三级反查
+       （themeDetail 当日个股 → ladderFull 梯队 → 全局 stockTheme），与该页题材/梯队完全对齐。
+       不再设「题材须入链」门槛（今日复盘 paintEarn 对 eventsAll 无此门槛，须保持一致）。
+       个股字段由 eventsAll 映射：b→板位、s→形态、gap→缺口、theme→题材回退。 */
     const grp = {};
-    y.themes.forEach(t=>(t.stks||[]).forEach(s=>{
-      if(String(s.state||'').indexOf('涨停')!==0) return;   // 去断板，只留当日涨停
-      const to = themeOf(d, s.code);
-      if(!to) return;                                       // 题材炒作数据无归属 → 不显示
-      const key = tName(to.th);
-      if(!inchain.has(key) && !inchain.has(to.th)) return; // 题材未入链题材炒作图 → 不显示
-      (grp[key] || (grp[key]={name:to.th, src:to.src, list:[]})).list.push(s);
-    }));
+    (byDate[d]||[]).forEach(e=>{
+      const to = themeOf(d, e.code);
+      const th = to ? to.th : (e.theme || '');
+      const key = tName(th) || '未归类';
+      (grp[key] || (grp[key]={name:th||'未归类', src:to?to.src:'事件', list:[]})).list.push({
+        code:e.code, name:e.name, boards:e.b, s:e.s, gap:e.gap, state:'涨停'+e.b+'板'
+      });
+    });
     const thRows = [];
     Object.keys(grp).sort((a,b)=> grp[b].list.length-grp[a].list.length).forEach(key=>{
       const g = grp[key];
+      /* 题材内按板位（高度）降序 */
+      g.list.sort((a,b)=>(b.boards||0)-(a.boards||0)||String(a.code).localeCompare(String(b.code)));
       const stks = g.list.map(s=>{
-        const zt = ztOf(d, s.code) || {};
-        const srcTag = g.src==='stockTheme' ? '<i class="thsrc">归类</i>' : '';
+        const srcTag = (g.src==='stockTheme'||g.src==='事件') ? '<i class="thsrc">'+(g.src==='事件'?'事件':'归类')+'</i>' : '';
         return '<span class="hr-stk" data-c="'+s.code+'" data-n="'+s.name+'" data-d="'+d+'" '+
           'title="'+s.name+'：'+s.boards+'板 · 题材 '+g.name+'（题材炒作口径 · '+g.src+'）· 市场空间高度 '+
-          (y.spaceTop==null?'—':y.spaceTop)+' · '+s.state+(zt.s? ' · 形态 '+zt.s:'')+' ｜点看日K"><b>'+s.name+'</b>'+
-          '<em>'+s.boards+'板</em>'+shapeTag(d, s.code)+
+          (y.spaceTop==null?'—':y.spaceTop)+' · '+s.state+(s.s? ' · 形态 '+shapeName(s.s):'')+' ｜点看日K"><b>'+s.name+'</b>'+
+          '<em>'+s.boards+'板</em>'+shapeTag(d, s.code, s.s)+
           (s.gap!=null? (s.gap? '<i class="gp">缺口</i>':'<i class="gp ng">长腿</i>') : '')+
           stateTag(d, s.code)+srcTag+'</span>';
       }).join('');
