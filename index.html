@@ -252,7 +252,7 @@
   #ladpop .s:hover{border-color:var(--blue);color:#fff}
   #ladpop .s b{color:var(--text);font-weight:600}
   #ladpop .s.lead{border-color:var(--up);background:rgba(245,69,92,.14)}
-  /* v110 涨停形态标签（六类）：★一字 / 地天 / 赚钱 / 普通 / 长腿 / 低开（赚T已并入赚钱） */
+  /* v110 涨停形态标签（六类）：一字 / 地天 / 赚钱 / 普通 / 长腿 / 低开（赚T已并入赚钱；v114 一字去五角星） */
   #ladpop .s em.sp{font-style:normal;font-size:9px;margin-left:3px;border-radius:2px;
         padding:0 3px;font-weight:700;white-space:nowrap}
   /* v89：通用涨停形态徽标（各模块涨停股链接统一展示形态，不限 ladpop/thpop） */
@@ -646,6 +646,25 @@
   .sys-tbl td.l{text-align:left}
   .sys-tbl tr:nth-child(even) td{background:rgba(255,255,255,.02)}
   .sys-note{margin-top:9px;color:var(--dim2);font-size:10.5px;line-height:1.7}
+  /* v114 历史复盘数据统计模块 */
+  .hs-bar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:11px;color:var(--dim2)}
+  .hs-bar .dbtn{margin-left:3px;padding:3px 9px;background:#1b2740;border:1px solid #3a4a63;
+    border-radius:5px;color:#c8d4e6;font-size:10.5px;cursor:pointer}
+  .hs-bar .dbtn:hover{background:#26395c;border-color:#5b7fb0;color:#fff}
+  .hs-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 4px}
+  .hs-card{border:1px solid #2b3a56;border-radius:8px;padding:11px 13px;background:rgba(255,255,255,.02);text-align:center}
+  .hs-card .k{font-size:10.5px;color:var(--dim2);margin-bottom:5px}
+  .hs-card .v{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+  .hs-card .x{font-size:9.5px;color:var(--dim2);margin-top:4px}
+  .hs-card.win .v{color:#7ee0a0}
+  .hs-card.pl .v{color:#ffd24a}
+  .hs-card.avg .v{color:#9fc6ff}
+  .hs-dist{margin-top:12px}
+  .hs-dist .hd{color:#9fc6ff;font-size:11px;font-weight:700;margin-bottom:6px}
+  .hs-bars{display:flex;height:20px;border-radius:4px;overflow:hidden;border:1px solid #2b3a56}
+  .hs-bars span{display:flex;align-items:center;justify-content:center;font-size:9px;color:#0d1420;font-weight:700;white-space:nowrap}
+  .hs-year{margin-top:11px;font-size:10.5px;color:var(--dim2);line-height:1.9}
+  .hs-year b{color:#c8d4e6}
   /* v85 赚钱效应股特征与捕捉详解 */
   .fx-sub{color:#ffe29a;font-size:12px;font-weight:700;margin:15px 0 7px;padding-left:8px;border-left:3px solid #f0b90b}
   .fx-formula{background:rgba(240,185,11,.09);border:1px dashed #f0b90b88;border-radius:6px;
@@ -1311,7 +1330,7 @@
 <!-- ============ 连板梯队（当日连板个股 + 题材穿透） ============ -->
 <section class="page" id="page-ladder">
   <div class="card">
-    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 每只标 <b>六类涨停形态</b>（★一字/地天/赚钱/普通/长腿/低开，赚T已并入赚钱；颜色见下方图例）· 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
+    <h3>连板梯队 <span class="sub">当日 2 板及以上个股 · 按板位分组 · 每只标 <b>六类涨停形态</b>（一字/地天/赚钱/普通/长腿/低开，赚T已并入赚钱；颜色见下方图例）· 点题材标签就地看当日梯队 · 点个股看日K</span></h3>
     <div class="dbar">
       <div class="dbar-r">
         <span class="ep-lb">跳转日期</span>
@@ -1329,7 +1348,7 @@
     </div>
     <div class="lb-legend" style="display:flex;flex-wrap:wrap;align-items:center;gap:3px 7px;font-size:9.5px;color:var(--dim2);padding:2px 4px 5px;border-bottom:1px solid #2c3a54">
       <span>涨停形态：</span>
-      <span><em class="sp sp-yz sp-yz-star">★一字</em></span><span><em class="sp sp-dt">地天</em></span><span><em class="sp sp-zq">赚钱</em></span><span><em class="sp sp-pt">普通</em></span><span><em class="sp sp-lt">长腿</em></span><span><em class="sp sp-dk">低开</em></span>
+      <span><em class="sp sp-yz sp-yz-star">一字</em></span><span><em class="sp sp-dt">地天</em></span><span><em class="sp sp-zq">赚钱</em></span><span><em class="sp sp-pt">普通</em></span><span><em class="sp sp-lt">长腿</em></span><span><em class="sp sp-dk">低开</em></span>
     </div>
     <div class="scroll" id="ladder-list"></div>
   </div>
@@ -1425,6 +1444,32 @@
   <div class="card">
     <h3>历史复盘 <span class="sub">赚钱效应股逐日跟踪 · 断板起展示 3 日 · 点题材看当日梯队 · 点个股看日K</span></h3>
     <div id="hist-intro"></div>
+    <!-- v114 数据统计（折叠）：选定时间区间内历史复盘涨停效应股的涨停价买入持仓模拟 -->
+    <details class="sys" id="hist-stat">
+      <summary>📊 数据统计 · 涨停价买入持仓模拟（选定时间区间 · 成功率 / 盈亏比 / 平均盈利比例） ▾</summary>
+      <div class="sysb">
+        <div class="hs-bar">
+          <span class="ep-lb">区间</span>
+          <select id="hs-y0" class="ep-sel" title="起始年"></select><span class="ep-lb">年</span>
+          <select id="hs-m0" class="ep-sel" title="起始月"></select><span class="ep-lb">月</span>
+          <span class="ep-lb" style="margin:0 4px">至</span>
+          <select id="hs-y1" class="ep-sel" title="结束年"></select><span class="ep-lb">年</span>
+          <select id="hs-m1" class="ep-sel" title="结束月"></select><span class="ep-lb">月</span>
+          <button id="hs-quick-all" class="dbtn" title="全部历史（2017至今）">全部</button>
+          <button id="hs-quick-3y" class="dbtn" title="近三年">近3年</button>
+          <button id="hs-quick-1y" class="dbtn" title="近一年">近1年</button>
+        </div>
+        <div class="sys-lead" style="margin-top:10px">
+          <b>模拟规则：</b>区间内每一只历史复盘的<b style="color:#ffe29a">涨停效应股</b>（3 板以上 · 连续两日换手涨停 · 当日最低＞昨涨停价）按
+          <span class="sys-k">当日涨停价买入</span> → <span class="sys-k">次日收盘涨停则持仓</span>（连板持有）→
+          <span class="sys-k">断板收盘卖出</span>（含盘中触板收盘炸板）→ 持有期间
+          <span class="sys-k">任一日盘中跌破买入价 −7% 无条件止损</span>（开盘已破按开盘价卖，止损优先）；收益＝卖出价/买入价−1，未计手续费与冲击成本。
+          数据末端仍未断板者剔除。全历史逐笔预计算，切换区间即时汇总。
+        </div>
+        <div id="hs-out"></div>
+        <div class="sys-note" id="hs-note"></div>
+      </div>
+    </details>
     <!-- v84 赚钱效应系统：择时选股 / 买入 / 卖出 / 逻辑 / 历史数据支撑，折叠显示 -->
     <details class="sys" id="hist-system">
       <summary>📘 赚钱效应系统（择时选股 · 买入条件 · 卖出条件 · 底层逻辑 · 历史数据支撑） ▾</summary>
@@ -5001,8 +5046,8 @@ function shapeOf(d, code, s0){
 function shapeTag(d, code, s0){
   const o = shapeOf(d, code, s0);
   if(!o) return '<em class="sp sp-na" title="早年日K缺失，无法判定涨停形态">?</em>';
-  /* v110：一字涨停「特别标记」——加金色描边+★，醒目提示全天封死买不进 */
-  if(o.s==='一字') return '<em class="sp sp-yz sp-yz-star" title="一字涨停：全天封死未换手，买不进（特别标记）">★一字</em>';
+  /* v110 一字特别标记（金边加粗）/ v114 按用户要求去掉五角星图标，仅保留「一字」文字+金边 */
+  if(o.s==='一字') return '<em class="sp sp-yz sp-yz-star" title="一字涨停：全天封死未换手，买不进（特别标记）">一字</em>';
   const nm = shapeName(o.s);
   return '<em class="sp '+shapeCls(o.s)+'" title="涨停形态：'+nm+'">'+nm+'</em>';
 }
@@ -5515,7 +5560,7 @@ function ewRenderWhere(end){
       ? grpHtml
       : '<div class="ew-empty">该交易日无「有缺口的连板股」（≥2板 且 今日最低价＞昨日涨停价）。</div>')+
     '<div class="ew-note">按题材展示当日<b style="color:var(--gold)">有缺口的连板股</b>（≥2板、今日最低价＞昨日涨停价＝昨日买入者全部获利，形态合并为「赚钱」）；'+
-    '一字涨停全天封死买不进，另行 ★ 特别标记、不在本名单。点个股看日K，点题材看当日梯队。</div>';
+    '一字涨停全天封死买不进，另行特别标记、不在本名单。点个股看日K，点题材看当日梯队。</div>';
   host.querySelectorAll('.ep-ch').forEach(el=>{
     el.onclick=ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
@@ -6035,7 +6080,7 @@ function renderHist(){
       '题材归属与梯队一律以「题材炒作」数据为准——个股当日题材用题材炒作口径'+
       '（当日题材卡→当日梯队→全局题材归类，三级回退）反查后重新分组，与该页题材/梯队完全对齐；'+
       '个股一律正常显示（不再灰显）· 仅展示当日涨停达标的赚钱效应股，<b>不再展示断板后的跟踪情况</b> · '+
-      '每只个股标注涨停形态（六色徽标：★一字/地天/赚钱/普通/长腿/低开，赚T已并入赚钱）+ 缺口/长腿标；叠加当日空间龙头辅助判断。',
+      '每只个股标注涨停形态（六色徽标：一字/地天/赚钱/普通/长腿/低开，赚T已并入赚钱）+ 缺口/长腿标；叠加当日空间龙头辅助判断。',
       '模块介绍');
     intro.dataset.done = '1';
   }
@@ -6121,6 +6166,95 @@ function renderHist(){
   });
   /* v75：跳转日期 年/月/日 三级联动填充 */
   fillHistDPick();
+  /* v114：数据统计模块（折叠）——首次进入时初始化区间选择并渲染 */
+  initHistStat();
+}
+
+/* ============ v114 历史复盘数据统计：涨停价买入持仓模拟 ============
+   数据源 earnStreak.histSim.trades（Python 全历史逐笔预计算）：[d, ret, ex, hold]
+   ex: 0=断板收盘卖 1=盘中止损 2=开盘止损。按选定年/月区间即时汇总。 */
+let HS_INIT = false;
+function histStatAgg(trades){
+  const n = trades.length;
+  if(!n) return null;
+  const rets = trades.map(t=>t[1]);
+  const wins = rets.filter(r=>r>0), loss = rets.filter(r=>r<=0);
+  const avgw = wins.length ? wins.reduce((a,b)=>a+b,0)/wins.length : 0;
+  const avgl = loss.length ? Math.abs(loss.reduce((a,b)=>a+b,0)/loss.length) : 0;
+  const avg = rets.reduce((a,b)=>a+b,0)/n;
+  return {
+    n, win: wins.length/n*100, plr: avgl ? avgw/avgl : (avgw? Infinity : 0),
+    avg, avgw, avgl,
+    med: (()=>{ const s=rets.slice().sort((a,b)=>a-b); return s.length%2? s[(s.length-1)/2] : (s[s.length/2-1]+s[s.length/2])/2; })(),
+    best: Math.max.apply(null,rets), worst: Math.min.apply(null,rets),
+    hold: trades.reduce((a,b)=>a+(b[3]||0),0)/n,
+    exCnt: trades.reduce((m,t)=>{ const k=['close','stop','stop_open'][t[2]]||'close'; m[k]=(m[k]||0)+1; return m; },{})
+  };
+}
+function renderHistStat(){
+  const R = window.REVIEW||{};
+  const sim = (R.earnStreak||{}).histSim || {};
+  const trades = sim.trades || [];
+  const y0=document.getElementById('hs-y0'), m0=document.getElementById('hs-m0'),
+        y1=document.getElementById('hs-y1'), m1=document.getElementById('hs-m1');
+  const out=document.getElementById('hs-out'), note=document.getElementById('hs-note');
+  if(!out) return;
+  if(!trades.length){ out.innerHTML='<div class="ew-empty">暂无逐笔回测数据。</div>'; return; }
+  const lo = y0.value + m0.value, hi = y1.value + m1.value;
+  const sel = trades.filter(t=> t[0].slice(0,6)>=lo && t[0].slice(0,6)<=hi);
+  const a = histStatAgg(sel);
+  if(!a){ out.innerHTML='<div class="ew-empty">所选区间内无涨停效应股样本。</div>'; if(note) note.textContent=''; return; }
+  const fmtPct=(v,d)=> (v>0?'+':'')+v.toFixed(d==null?2:d)+'%';
+  const card=(cls,k,v,x)=>'<div class="hs-card '+cls+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="x">'+(x||'&nbsp;')+'</div></div>';
+  let html = '<div class="hs-kpi">'+
+    card('', '样本笔数', a.n, '选定区间内涨停效应股') +
+    card('win', '成功率', a.win.toFixed(1)+'%', '收益 > 0 的笔数占比') +
+    card('pl', '盈亏比', (isFinite(a.plr)?a.plr.toFixed(2):'∞'), '平均盈利 '+a.avgw.toFixed(2)+'% ／ 平均亏损 '+a.avgl.toFixed(2)+'%') +
+    card('avg', '平均盈利比例', fmtPct(a.avg), '中位 '+fmtPct(a.med)+' · 平均持仓 '+a.hold.toFixed(2)+' 日') +
+    '</div>';
+  /* 出口构成分布条：胜 / 止损 / 断板收盘（按收益>0、止损出口、其余） */
+  const nStop=(a.exCnt.stop||0)+(a.exCnt.stop_open||0);
+  const nWin=sel.filter(t=>t[1]>0).length, nLose=a.n-nWin;
+  const seg=(cnt,color,label)=> cnt? '<span style="width:'+(cnt/a.n*100).toFixed(2)+'%;background:'+color+'" title="'+label+' '+cnt+'笔">'+label+' '+(cnt/a.n*100).toFixed(0)+'%</span>':'';
+  html += '<div class="hs-dist"><div class="hd">收益 / 出口构成（共 '+a.n+' 笔）</div><div class="hs-bars">'+
+    seg(nWin,'#7ee0a0','盈利')+seg(nLose-Math.min(nStop,nLose),'#f0b90b','断板')+seg(Math.min(nStop,nLose),'#c62828','止损')+
+    '</div></div>';
+  /* 逐年明细 */
+  const yr={};
+  sel.forEach(t=>{ const y=t[0].slice(0,4); (yr[y]||(yr[y]=[])).push(t[1]); });
+  const yrHtml=Object.keys(yr).sort().map(y=>{
+    const ag=histStatAgg(sel.filter(t=>t[0].slice(0,4)===y));
+    return '<span style="display:inline-block;margin:0 10px 0 0;white-space:nowrap"><b>'+y+'</b> '+ag.n+'笔 胜'+ag.win.toFixed(0)+'% 均'+fmtPct(ag.avg,2)+'</span>';
+  }).join('');
+  html += '<div class="hs-year"><div class="hd" style="color:#9fc6ff;font-weight:700;margin-bottom:4px">逐年明细</div>'+yrHtml+'</div>';
+  out.innerHTML = html;
+  if(note){
+    note.innerHTML = '最好 <b style="color:#7ee0a0">'+fmtPct(a.best)+'</b> · 最差 <b style="color:#ff9d8a">'+fmtPct(a.worst)+'</b> · '+
+      '止损 '+nStop+' 笔（'+(nStop/a.n*100).toFixed(1)+'%）· 断板收盘卖 '+(a.exCnt.close||0)+' 笔 · '+
+      '区间 '+y0.value+'-'+m0.value+' ~ '+y1.value+'-'+m1.value+'。'+
+      '统计口径：涨停价买入→连板持仓→断板收盘卖→盘中−7%止损，未计手续费/冲击成本，不构成投资建议。';
+  }
+}
+function initHistStat(){
+  if(HS_INIT) { renderHistStat(); return; }
+  const R=window.REVIEW||{}, trades=((R.earnStreak||{}).histSim||{}).trades||[];
+  const y0=document.getElementById('hs-y0'), m0=document.getElementById('hs-m0'),
+        y1=document.getElementById('hs-y1'), m1=document.getElementById('hs-m1');
+  if(!y0||!trades.length) return;
+  const years=[...new Set(trades.map(t=>t[0].slice(0,4)))].sort();
+  const months=Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
+  const opt=v=>'<option value="'+v+'">'+v+'</option>';
+  y0.innerHTML=years.map(opt).join(''); y1.innerHTML=years.map(opt).join('');
+  m0.innerHTML=months.map(opt).join(''); m1.innerHTML=months.map(opt).join('');
+  y0.value=years[0]; m0.value='01'; y1.value=years[years.length-1]; m1.value='12';
+  [y0,m0,y1,m1].forEach(el=> el.onchange=renderHistStat);
+  const setRange=(yA,mA,yB,mB)=>{ y0.value=yA; m0.value=mA; y1.value=yB; m1.value=mB; renderHistStat(); };
+  const qa=document.getElementById('hs-quick-all'), q3=document.getElementById('hs-quick-3y'), q1=document.getElementById('hs-quick-1y');
+  if(qa) qa.onclick=()=>setRange(years[0],'01',years[years.length-1],'12');
+  if(q3) q3.onclick=()=>setRange(String(+years[years.length-1]-3),'01',years[years.length-1],'12');
+  if(q1) q1.onclick=()=>setRange(years[years.length-1],'01',years[years.length-1],'12');
+  HS_INIT=true;
+  renderHistStat();
 }
 
 /* v74：历史复盘日期跳转（明细表不变，滚动定位 + 高亮） */
@@ -6141,7 +6275,14 @@ function histJump(date){
 
 /* v75：年/月/日 三级下拉（仅列出有数据的年/月/日），选中即定位 */
 let HIST_CUR = null;                 // 当前定位日期
-function histDates(){ return Object.keys(((window.REVIEW||{}).histReview||{}).days||{}).sort((a,b)=>b.localeCompare(a)); }
+/* v114：日期源与 renderHist 统一取 earnStreak.eventsAll（全历史 2017-2026，1514 天），
+   不再用仅覆盖 2026 年 140 天的 histReview.days，否则年/月/日下拉只列 2026 年。 */
+function histDates(){
+  const ea = (((window.REVIEW||{}).earnStreak||{}).eventsAll)||[];
+  const set = {};
+  ea.forEach(e=>{ if(e.d) set[e.d]=1; });
+  return Object.keys(set).sort((a,b)=>b.localeCompare(a));
+}
 function fillHistDPick(){
   const yEl = document.getElementById('hist-y'), mEl = document.getElementById('hist-m'),
         dEl = document.getElementById('hist-d');
