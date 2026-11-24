@@ -1558,4 +1558,15 @@ _JS = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
 print("data.js 写出：" + datajs.write_data(_JS, OUT))
 print("题材日 %d 天；周期线 %d 条 -> data.js / data.json"
       % (len(theme_dates), len(space_series)))
+
+# v116：恢复 v113/v114/v115 自定义字段（全历史 eventsAll / histSim / shapeAll）。
+# build_merged 只生成近窗数据，此前每次自动重建都会把这三个字段冲掉，导致
+# 历史复盘统计空、连板梯队历史形态缺失。restore_custom_fields.py 从刚写好的 data.json
+# 读本次增量、合并基线快照后重写 data.json/data.js/version.js。必须放在最后一次
+# write_data 之后（它自身读磁盘再写回）。
+try:
+    import restore_custom_fields as _rcf
+    _rcf.main()
+except Exception as _e:
+    print("⚠️ v116 自定义字段恢复失败：%s" % _e)
 print("完成")

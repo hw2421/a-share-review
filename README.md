@@ -3294,3 +3294,41 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
   20250102 15/17、20261120 3/5 齐全；弹窗标题形态徽标正确（一字/赚钱）；5 页签 0 JS 报错；
   v114 统计模块 histSim 3443 笔仍在、KPI 48.4%/2.81/+4.88% 不变（重写数据曾误丢 histSim，已从 HEAD 恢复后重嵌）。
   截图 v115_ladder_shape.png / v115_kline_popup.png。index.html + data.js/data.json/version.js 改动。
+
+
+### 119. v116 今日复盘数据未更新根因修复 + 自定义字段防冲掉（自动化持久化）
+- 用户：今日复盘数据你没更新的？湖南人数据都出来了，问题在哪。
+- 排查结论（三层）：
+  ① 湖南人题材/涨停池今日(11-24)数据**已到位**（pool_cache 55 只、themeSource=tgb），
+     但今日**日K bar 全缺**（所有缓存/分片最新只到 11-23）。根因：日K刷新 refresh_klines.py
+     用同花顺/新浪接口，对「当日」滞后（v106 已记），11:31 那轮只抓到 11-23；而能抓当日的
+     fill_today_kline.py（腾讯实时接口 qt.gtimg.cn，收盘即有完整 OHLC）未被自动流程调用。
+  ② 日K缺失 → build_merged 的 _gap_flag() 取不到当日 bar → gapMap[20261124]=None（缺口标全空）、
+     今日涨停形态全「?」、赚钱效应/次日候选判定失效 → 页面呈现「今日没更新」的假象。
+  ③ 额外发现：每次 build_merged 重建只产近窗数据（eventsAll≈140天、无 histSim/shapeAll），
+     会冲掉 v113 全历史 eventsAll(3444)、v114 histSim(3443)、v115 shapeAll(2114)。
+     自动同步提交 3e10fda/a0c4ac2 等已把这三个字段冲成 0/217，线上亦然——历史复盘统计会空、
+     连板梯队历史形态又缺失。这是此前 v115 提到的「自动同步竞争」根因，本次彻底修复。
+- 修复：
+  1) 补今日日K：python3 fill_today_kline.py 20261124 → 腾讯实时接口抓 55 只当日 bar，
+     写入缓存/分片/内嵌 klines（klinesAt=18:00）。校验 dayZT 55/55、连板梯队 30/30、
+     内嵌 55/55 全覆盖。
+  2) 重建：SKIP_KLINES=1 python3 build_merged.py → gapMap[20261124] 从 None 恢复为 55 只，
+     今日形态/赚钱效应/次日候选全部生成。
+  3) 自动化持久化（根本修复）：新增 restore_custom_fields.py，以 output/custom_fields_base.json
+     （从 v115 提交提取的 3444/3443/2114 稳定基线，1.1MB）为基线，合并当前近窗 eventsAll 增量
+     与 ladderFull/dayZT 已算形态，原地重写 data.json/data.js/version.js；**不加载全量日K**
+     （8GB cgroup 会 OOM，实测 build_merged 峰值 8.58GB 被 SIGKILL）。挂在 build_merged.py
+     最后一次 write_data 之后调用——所有自动重建入口（update_daily.py / refresh_job.py 均调
+     build_merged）由此自动保留字段，不再被冲掉。
+- 最终数据(ver=593f2e07009d)：today=20261124 / updated 18:08；eventsAll 3445 笔
+  (20170306~20261124，含今日东方海洋) / histSim 3443 笔 / shapeAll 2210 天(今日 47 只) /
+  gapMap 今日 55 / dayZT 今日 55 / 连板梯队今日形态 30/35。
+- 实测(Chromium/ver=593f2e07009d)：今日复盘页日期 2026-11-24、空间龙头中京电子 4板「一字」
+  形态徽标正常、明细各日形态齐全无问号；连板梯队今日形态 30/33（一字/普通/赚钱/长腿）；
+  历史复盘统计 KPI 3443/48.4%/2.81/+4.88% 完整；5 页签 0 JS 报错。
+  完整跑一遍 build_merged（EXIT=0）确认恢复脚本被自动调用、字段保留。
+  截图 v116_today_review.png / v116_market_today.png。
+- 改动：build_merged.py（末尾挂恢复）+ 新增 restore_custom_fields.py + output/custom_fields_base.json
+  + data.js/data.json/version.js。注：连续两次 build_merged 曾触发 8GB cgroup OOM（EXIT=137），
+  单次正常；恢复脚本已做轻量设计避免叠加内存峰值。
