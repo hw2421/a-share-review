@@ -3359,3 +3359,33 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
 - 改动：新增 ensure_today_kline.py；改 update_daily.py / refresh_job.py / verify_space.py。
   本次纯代码防复发改动、数据未改（仍用 v116 发布版 ver=593f2e07009d；测试补抓产生的
   等价版本 4e3549e6a7d4 已还原）。
+
+
+### 121. v116c 自检发现补当日日K盲区：高位断板股未纳入自动补抓 + 校验误报修正
+- 用户：自检一下 → 同意修复。
+- 自检结论：v116b 三层防护对「当日涨停股」生效（v116 异常 0、gapMap 今日 55/55），
+  但发现两处遗漏：
+  ① 真实盲区：auto ensure/fill 的需求集合只有「涨停池 + dayZT + 连板梯队」，
+     **漏掉高位断板股**。今日「高位断板跟踪」两只空间龙头（真视通 002771、盛剑科技
+     603324，均 5 板断板）当日 bar 缺失 → decision.dragon 的 today/cum 全为 None，
+     页面断板行显示空。昨≥3板今断板共 6 只（含这两只）都受影响。
+  ② 校验误报：verify_space.py 第 8 段 `_no_kline_at` 逻辑写反——「缓存首根≤断板日」
+     本表示在日K覆盖范围内（有数据），旧代码却在此时报「压制股断板日K缺失」，
+     长期误报 4 条（2020 中能电气 2 条 + 今日真视通/盛剑科技 2 条），掩盖真实告警。
+- 修复：
+  1) fill_today_kline.py 新增 high_break_codes(pool, day)：从 pool_cache 推「前一日≥3板、
+     当日未涨停」的高位断板股（口径与 brk_track.py 一致，build 前 data.json 尚无当日
+     断板信息，故只用 pool_cache），并入需求集合。
+  2) ensure_today_kline.py 同步把高位断板股纳入需求覆盖率检测（盘后自动补抓链路覆盖
+     update_daily / refresh_job 两入口，均调 build_merged 前置）。
+  3) verify_space.py 第 8 段改为真正核对断板日那根 bar 是否在分片中存在：范围内缺 bar
+     才报，2019-06 前数据源硬限制/范围外仍豁免。4 条误报消除。
+- 实测：补抓 61/61 只当日 bar（55 涨停 + 6 高位断板）；SKIP_KLINES=1 重建
+     （EXIT=0，restore 自动保留字段）；decision.dragon 今日两只 today=-0.4/-3.74、
+     cum=0（断板当日基准），verdict=risk、moods 完整；brkTrack 今日 3 行有值。
+     v116 自检异常 0；压制股断板日K误报 4→0；浏览器 0 JS 报错、题材炒作图 11-24
+     题材卡齐全。截图 v116c_review.png / v116c_theme_brk.png。
+- 数据(ver=feff2ca59c00)：today=20261124, eventsAll 3445 / histSim 3443 /
+  shapeAll 2210 / gapMap 今日 55 / dayZT 今日 55 均保留。
+- 改动：ensure_today_kline.py / fill_today_kline.py / verify_space.py + 数据三件套。
+  剩余 60 条为历史严格校验项（v74 缺口形态/v67 历史涨幅等），与本问题无关。

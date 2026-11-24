@@ -51,6 +51,16 @@ def main():
         need.add(str(c))
     for row in (data.get("lb", {}).get(today) or []):
         need.add(str(row[3] or ""))
+    # v116c：高位断板股当日 bar 也必须补——页面「高位断板跟踪」/「题材梯队断板行」
+    # 要用断板当日日K复算 today/cum，这类股不在涨停池，旧版会漏掉导致显示为空。
+    # 口径与 brk_track.py 一致：前一日 ≥3 板、当日未涨停。
+    ds = sorted(d for d in pc if d <= today)
+    if len(ds) >= 2:
+        prev = ds[-2]
+        cur = {str(s.get("code") or "") for s in (pc.get(today) or [])}
+        for s in (pc.get(prev) or []):
+            if (s.get("boards") or 1) >= 3 and str(s.get("code") or "") not in cur:
+                need.add(str(s.get("code") or ""))
     need.discard("")
     if not need:
         print("ensure_today_kline: %s 无需求个股，跳过" % today)

@@ -117,21 +117,44 @@ def patch_shards(daybars, day):
     log("分片补入当日 bar：%d 只" % n)
 
 
+def high_break_codes(pool, day):
+    """v116c：前一日 ≥3 板、当日未涨停的高位断板股。
+
+    页面「高位断板跟踪」(decision.dragon) 与「题材梯队断板行」(brk_track)
+    都要用断板当日日K复算 today/cum；这类股不在当日涨停池，旧版补抓漏掉，
+    导致其当日 bar 缺失、涨跌幅显示为空。口径与 brk_track.py 一致。
+    数据源只用 pool_cache（build_merged 前 data.json 尚无当日断板信息）。
+    """
+    ds = sorted(d for d in pool if d <= day)
+    if len(ds) < 2:
+        return set()
+    prev = ds[-2]
+    cur = {str(s.get("code") or "") for s in (pool.get(day) or [])}
+    out = set()
+    for s in (pool.get(prev) or []):
+        if (s.get("boards") or 1) >= 3 and str(s.get("code") or "") not in cur:
+            out.add(str(s.get("code") or ""))
+    out.discard("")
+    return out
+
+
 def main():
     day = sys.argv[1] if len(sys.argv) > 1 else datetime.datetime.now().strftime("%Y%m%d")
     data = jload(DATA_F, None)
     if not data:
         log("数据文件缺失"); return 1
 
-    # 需求个股：当日涨停池全部 + 连板梯队个股
+    # 需求个股：当日涨停池全部 + 连板梯队个股 + 高位断板股（v116c）
     pool = jload(POOL_F, {})
     need = set()
     for s in (pool.get(day) or []):
         need.add(str(s.get("code") or ""))
     for row in (data.get("lb", {}).get(day) or []):
         need.add(str(row[3] or ""))
+    brk = high_break_codes(pool, day)
+    need |= brk
     need.discard("")
-    log("目标日 %s，需求个股 %d 只（涨停池+连板梯队）" % (day, len(need)))
+    log("目标日 %s，需求个股 %d 只（涨停池+连板梯队+高位断板%d）" % (day, len(need), len(brk)))
     if not need:
         log("无需求个股"); return 1
 

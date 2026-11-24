@@ -376,16 +376,41 @@ def main():
     # 无论哪只股票都无日K数据 → 属数据源硬限制而非构建缺陷，一律豁免；
     # 2019-06 起仍逐股严格校验。
     KLINE_START = "20190601"
+    # v116c：旧版 _no_kline_at 逻辑写反——「缓存首根 ≤ 断板日」其实表示该股在
+    # 日K覆盖范围内（有数据），旧代码却在此时报「断板日K缺失」，导致长期误报
+    # （2020 中能电气、今日真视通/盛剑科技等）。改为真正检查断板日那根 bar 是否存在：
+    # 先按覆盖首根判断是否在数据源范围内（范围外/2019-06 前属硬限制，豁免），
+    # 范围内则逐日 K 线映射核对当日 bar；缺失才报（提示补抓）。
+    _sup_codes = {str(s["code"]) for _d in days
+                  for s in (_d.get("suppressStocks") or []) if s.get("code")}
+    _sup_dates = {}                            # {code: {断板日, ...}} 需核对的日期
+    for _d in days:
+        for _s in (_d.get("suppressStocks") or []):
+            _bd = str(_s.get("breakDate") or _d["date"])
+            if _bd >= KLINE_START and str(_s.get("code")) in _sup_codes:
+                _sup_dates.setdefault(str(_s["code"]), set()).add(_bd)
+    _sup_bars = {c: set() for c in _sup_codes}  # {code: 有的日期集合}
+    for fp in glob.glob(os.path.join(OUT, "klines", "klines_*.json")):
+        try:
+            _obj = json.load(open(fp, encoding="utf-8"))
+        except Exception:
+            continue
+        for _c in _sup_codes:
+            for _bar in (_obj.get(_c) or []):
+                if _bar and _bar[0] in _sup_dates.get(_c, ()):
+                    _sup_bars[_c].add(_bar[0])
     def _no_kline_at(code, d):
-        if d < KLINE_START:
-            return True
+        if d < KLINE_START or d not in _sup_dates.get(str(code), ()):
+            return False                      # 数据源硬限制 / 无需核对 → 豁免
         b = _kcv.get(str(code))
-        return not (b and b[0] and b[0] <= d)
+        if not (b and b[0] and b[0] <= d):     # 完全不在缓存范围 → 硬限制豁免
+            return False
+        return d not in _sup_bars.get(str(code), ())  # 范围内但缺当日 bar → 真缺
     for day in days:
         for s in day.get("suppressStocks") or []:
             if sk.get(s["code"] + "_" + s["breakDate"]):
                 continue
-            if _no_kline_at(s["code"], s.get("breakDate") or day["date"]):
+            if not _no_kline_at(s["code"], s.get("breakDate") or day["date"]):
                 continue
             err("%s 压制股 %s 断板日K缺失" % (day["date"], s["name"]))
     print("个股日K：可点 %d 只 / 覆盖 %d 只（OCR无效码豁免 %d）；题材块 %d 个，梯队完整清单 %d 日"
