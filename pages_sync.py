@@ -66,25 +66,39 @@ def api_builds(tok, per_page=5):
         return None
 
 
-def deployed_head(tok):
-    """返回最近一次 built 的 commit sha（短，7位）；API 不可用返回 None。"""
-    builds = api_builds(tok)
-    if not isinstance(builds, list):
+def local_ver():
+    """本地 version.js 的 DATA_VER 指纹。"""
+    try:
+        s = open(os.path.join(OUT, "version.js"), encoding="utf-8").read()
+        m = __import__("re").search(r'DATA_VER\s*=\s*["\']([^"\']+)["\']', s)
+        return m.group(1) if m else ""
+    except Exception:
+        return ""
+
+
+def online_ver():
+    """回源线上 Pages 的 version.js 指纹（禁缓存）；不可用返回 None。"""
+    url = "https://hw2421.github.io/a-share-review/version.js?ts=%d" % int(time.time()*1000)
+    req = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            s = r.read().decode("utf-8", "ignore")
+        m = __import__("re").search(r'DATA_VER\s*=\s*["\']([^"\']+)["\']', s)
+        return m.group(1) if m else None
+    except Exception:
         return None
-    for b in builds:
-        if b.get("status") == "built" and b.get("commit"):
-            return b["commit"][:7]
-    return None
 
 
-def wait_deployed(tok, target, tries=6, interval=15):
-    """轮询直到 Pages 最新部署 commit 匹配 target。
-    返回 True/False/None（None=API 不可用，无法核验）。"""
+def wait_deployed(tok, target_ver, tries=6, interval=15):
+    """轮询直到线上 Pages 的 version.js 指纹 == 本地指纹（真正部署上线）。
+    用内容比对而非 builds API 的 commit：API 的 sha 在 push/构建并发时会滞后
+    （实测 11-26 push 7f6f732 后 API 仍报 e776eaba 但线上已是新文件）。
+    返回 True/False/None（None=网络不可用，无法核验）。"""
     for i in range(tries):
-        head = deployed_head(tok)
-        if head is None:
+        ov = online_ver()
+        if ov is None:
             return None
-        if head[:7] == target[:7]:
+        if ov == target_ver:
             return True
         if i < tries - 1:
             time.sleep(interval)
@@ -128,39 +142,41 @@ def main():
         save_status(result="push-failed", detail=msg[-200:], ver=ver)
         return 1
 
-    # v119 防复发：核验 Pages 是否真的部署了本次 HEAD
+    # v119 防复发：回源比对线上 version.js 指纹，确认 Pages 真的部署了本次数据
     head = local_head()
-    dep = wait_deployed(tok, head)
+    my_ver = ver or local_ver()
+    diag = "HEAD %s / ver %s" % (head[:7], my_ver)
+    dep = wait_deployed(tok, my_ver)
     if dep is True:
-        print("Pages 部署核验通过：%s" % head[:7])
-        save_status(result="deployed", head=head[:7], ver=ver, detail="")
+        print("Pages 部署核验通过：线上指纹 %s" % my_ver)
+        save_status(result="deployed", head=head[:7], ver=my_ver, detail=diag)
         return 0
     if dep is None:
-        print("Pages 部署核验跳过（API 不可用），本次不做强制重推")
-        save_status(result="verify-unavailable", head=head[:7], ver=ver,
-                    detail="GitHub API 不可达，无法核验")
+        print("Pages 部署核验跳过（线上暂不可达），本次不做强制重推")
+        save_status(result="verify-unavailable", head=head[:7], ver=my_ver,
+                    detail=diag + "；线上 version.js 不可达")
         return 0
 
-    # 推了但 Pages 没部署 → 空提交强制再推一次，触发重新构建
-    print("⚠️ Pages 未部署到 %s，空提交强制重推触发构建" % head[:7])
+    # 推了但线上指纹仍不是最新 → 空提交强制再推一次，触发重新构建
+    print("⚠️ 线上指纹未更新到 %s，空提交强制重推触发构建" % my_ver)
     run(["git", "commit", "--allow-empty", "-m", "chore: retrigger GitHub Pages build"])
     ok2, msg2 = push(tok)
     if not ok2:
         print("强制重推失败：%s" % (msg2.splitlines()[-1][:160] if msg2 else ""))
-        save_status(result="retrigger-push-failed", head=head[:7], ver=ver,
-                    detail=msg2[-200:])
+        save_status(result="retrigger-push-failed", head=head[:7], ver=my_ver,
+                    detail=diag + "；" + msg2[-160:])
         return 1
     head2 = local_head()
-    dep2 = wait_deployed(tok, head2, tries=6, interval=15)
-    detail = "空提交重推 %s" % head2[:7]
+    dep2 = wait_deployed(tok, my_ver, tries=6, interval=15)
+    detail = diag + "；空提交重推 %s" % head2[:7]
     if dep2 is True:
-        print("强制重推后部署核验通过：%s" % head2[:7])
-        save_status(result="retrigger-deployed", head=head2[:7], ver=ver, detail=detail)
+        print("强制重推后部署核验通过：线上指纹 %s" % my_ver)
+        save_status(result="retrigger-deployed", head=head2[:7], ver=my_ver, detail=detail)
         return 0
-    # API 不可用或超时未部署：交由前端版本自检兜底，不当作致命失败
+    # 线上暂未更新或不可达：交由前端版本自检兜底，不当作致命失败
     print("重推后 Pages 暂未确认部署，前端版本自检将兜底")
-    save_status(result="retrigger-pending", head=head2[:7], ver=ver,
-                detail=detail + "（等待 Pages 构建 / API 不可用）")
+    save_status(result="retrigger-pending", head=head2[:7], ver=my_ver,
+                detail=detail + "（等待 Pages 构建 / 线上不可达）")
     return 0
 
 

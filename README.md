@@ -3435,12 +3435,15 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
   data 提交到了 main，但 **GitHub Pages 整天没有生成任何 build 记录**（Pages 偶发跳过
   构建），而 hunan_poll 当晚重建又因 v74 历史自检告警 build_failed 没再触发推送 →
   线上卡在 11-24 的 c269250。今天 16:11 新提交 e776eaba 才重新部署成功。
-- 服务端防复发（pages_sync.py）：push 成功后不再「一推了之」，回源 GitHub Pages
-  builds API 核验最近一次 built 的 commit 是否等于本地 HEAD：
-  - 匹配 → result=deployed；API 不可达 → verify-unavailable（不误判、不空推）；
-  - 推了但 90 秒仍未部署 → **空提交强制重推**触发重新构建，再核验；
+- 服务端防复发（pages_sync.py）：push 成功后不再「一推了之」，**回源线上 Pages 的
+  version.js 指纹**比对本地指纹（禁缓存 + 时间戳绕过 CDN），一致才算真正部署上线：
+  - 匹配 → result=deployed；线上暂不可达 → verify-unavailable（不误判、不空推）；
+  - 推了但 90 秒线上指纹仍未更新 → **空提交强制重推**触发重新构建，再核验；
   - 结果写 `.pages_sync_status.json`（result/head/ver/detail/at），「线上到底更没更新」
-    一眼可查。API 用 .gh_token 认证，不受未认证限流影响。
+    一眼可查。
+  - 关键修正：最初用 builds/deployments API 的 commit SHA 判断，实测发现 API 的 sha
+    在 push/构建并发时会滞后（11-26 push 7f6f732 后 API 仍报 e776eaba，但线上三处
+    index.html md5 已完全一致）——故改为内容指纹比对，直接反映线上数据是否新版。
 - 前端自愈（index.html，覆盖微信/Pages 两入口）：新增 IIFE autoCheck —— 启动 3 秒后、
   每 5 分钟、页面从后台切回可见时各查一次；禁缓存回源 version.js，线上指纹 != 本地
   DATA_VER 就 toast 提示并 `reloadWithVersion(target)`（URL 带 ?v= 强制重新下载 data.js）。
