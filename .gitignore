@@ -21,6 +21,8 @@ __pycache__/
 .hunan_watch.json
 .update_status.json
 .refresh_status.json
+.pages_sync_status.json
+.site_meta.json
 .build.lock
 .update_heartbeat
 

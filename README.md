@@ -3426,3 +3426,29 @@ v79 初版搜索定位只查 data-c，空间情绪明细表个股单元格用 da
   龙版传媒 3板→断、当-3.32%累-3.32%）导出 213KB 断板行正常；0 JS 报错，7 内联 script 语法通过。
   截图 v118_ladder_export.png / v118_ladder_brk.png。
 - 改动：仅 index.html（数据未改，仍 ver=feff2ca59c00）。
+
+
+### 124. v119 数据更新防复发：Pages 部署核验补推 + 微信/Pages 链接前端自愈
+- 用户：今天数据又更新不了（查后确认：本地/main 已 11-26，但 GitHub Pages 停在 11-24），
+  要求防复发、微信链接与 Pages 两个入口都覆盖。
+- 根因：站点双入口（应用直服本地文件 + pages_sync 推 main 触发 Pages）。11-25 两次
+  data 提交到了 main，但 **GitHub Pages 整天没有生成任何 build 记录**（Pages 偶发跳过
+  构建），而 hunan_poll 当晚重建又因 v74 历史自检告警 build_failed 没再触发推送 →
+  线上卡在 11-24 的 c269250。今天 16:11 新提交 e776eaba 才重新部署成功。
+- 服务端防复发（pages_sync.py）：push 成功后不再「一推了之」，回源 GitHub Pages
+  builds API 核验最近一次 built 的 commit 是否等于本地 HEAD：
+  - 匹配 → result=deployed；API 不可达 → verify-unavailable（不误判、不空推）；
+  - 推了但 90 秒仍未部署 → **空提交强制重推**触发重新构建，再核验；
+  - 结果写 `.pages_sync_status.json`（result/head/ver/detail/at），「线上到底更没更新」
+    一眼可查。API 用 .gh_token 认证，不受未认证限流影响。
+- 前端自愈（index.html，覆盖微信/Pages 两入口）：新增 IIFE autoCheck —— 启动 3 秒后、
+  每 5 分钟、页面从后台切回可见时各查一次；禁缓存回源 version.js，线上指纹 != 本地
+  DATA_VER 就 toast 提示并 `reloadWithVersion(target)`（URL 带 ?v= 强制重新下载 data.js）。
+  三重防打断：仅 visibilityState==='visible'、无 .pop 弹窗打开、刷新按钮非 disabled（非构建中）
+  才重载；用 sessionStorage.sd_auto_ver 记住已重载到的指纹，杜绝同一版本反复 reload 死循环；
+  重载前 reloadWithVersion 已存 sd_tab，回到原页签。暴露 window.autoCheckVersion 供回归。
+- 实测：服务端——deployed_head 读到 e776eab 与本地 HEAD 匹配=True、伪造 SHA=False；
+  前端——Chromium 下 autoCheckVersion 已挂载、版本一致不误重载、不一致识别 True；
+  端到端拦截 version.js 模拟新指纹：重载 1→2 次、URL 带 ?v=、sd_auto_ver 记录正确、
+  二次触发被防循环拦截（仍 2 次）、0 JS 报错；3 个内联 script node --check 通过。
+- 改动：仅 pages_sync.py + index.html（数据未改，仍 ver=ca4617ed5a04）。
