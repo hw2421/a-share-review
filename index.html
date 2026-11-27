@@ -865,6 +865,11 @@
   .lblevel.lbdist .lv{font-size:9.5px;color:var(--dim);line-height:1.4}
   .lblevel.lbdist .lbstk{flex-wrap:nowrap;align-content:center}
   .lblevel.lbdist .lbstk .nm{-webkit-line-clamp:1;white-space:nowrap}
+  /* v120：题材分布题材名后「x赚」徽标——该题材当日赚钱效应股（≥2板+缺口+非一字）只数 */
+  .lbdist .earn-n{flex:0 0 auto;font-size:9px;font-weight:800;border-radius:3px;padding:0 3px;
+    line-height:1.35;background:rgba(240,185,11,.18);color:#ffd24a;
+    border:1px solid rgba(240,185,11,.45);white-space:nowrap}
+  .lbdist .earn-n.zero{background:#26303f;color:#8794a6;border-color:#3a4a63}
   @media(max-width:760px){
     header{padding:3px 8px 4px;gap:2px}
     header .htop{gap:5px;row-gap:2px}
@@ -3249,7 +3254,13 @@ function renderLadder(date){
       }).join('')+'</div></div>';
   });
   // 当日题材分布（v102：只有首板的题材不显示，仅保留当日有连板 maxB≥2 的题材；点标签 → 题材炒作页闪动定位）
+  // v120：题材名后加「x赚」= 该题材当日赚钱效应股个数（口径同「赚钱效应在哪」ewPicks：≥2板+缺口+非一字）。
   const lad = (R.ladders||{})[date] || {};
+  const earnGroups = ewPicks(date).groups;   // theme(经 tName) -> picks[]
+  const earnCnt = nm => {
+    const g = earnGroups.get(tName(nm)||nm) || earnGroups.get(nm);
+    return g ? g.length : 0;
+  };
   const tnames = Object.keys(lad).filter(nm=>(lad[nm].maxB||0)>=2)
     .sort((a,b)=>
     (lad[b].count-lad[a].count) || (lad[b].maxB-lad[a].maxB));
@@ -3261,10 +3272,13 @@ function renderLadder(date){
         const col = T_COLOR[tName(nm)]||C.blue;
         const lab = lad[nm].maxB>=2 ? lad[nm].ladder+' · '+lad[nm].count+'只'
                                     : '首板×'+lad[nm].count;
+        const ec = earnCnt(nm);
         return '<span class="lbstk" data-th="'+nm+'" data-d="'+date+'" '+
           'title="'+nm+'：当日涨停 '+lad[nm].count+' 只，梯队 '+lad[nm].ladder+
+          '，赚钱效应股 '+ec+' 只'+
           ' ｜ 点击 → 题材炒作页闪动定位" style="border-color:'+col+'66">'+
           '<span class="nm" style="color:'+col+'">'+nm+'</span>'+
+          '<span class="earn-n'+(ec>0?'':' zero')+'" title="'+nm+'：当日赚钱效应股 '+ec+' 只（≥2板 · 有缺口 · 非一字）">'+ec+'赚</span>'+
           '<span class="th" style="color:'+col+';border-color:'+col+'66">'+lab+'</span></span>';
       }).join('')+'</div></div>';
   }
