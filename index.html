@@ -985,6 +985,14 @@
   .ep-ch:hover{border-color:#3d8bff;background:#1a2c4a}
   .ep-ch b{color:var(--text);font-weight:700}
   .ep-ch em.b{font-style:normal;font-size:10px;color:var(--gold);font-weight:700}
+  /* v121：≥3板赚钱效应股——名称加粗加亮（金色高亮+金色描边微光，整卡也提亮） */
+  .ep-ch.hi3{background:#2a2410;border-color:rgba(240,185,11,.65);
+             box-shadow:0 0 0 1px rgba(240,185,11,.22),0 0 10px rgba(240,185,11,.18)}
+  .ep-ch.hi3:hover{background:#3a3012;border-color:#ffd24a}
+  .ep-ch.hi3 b{color:#ffe9a8;font-weight:900;font-size:1.12em;
+               text-shadow:0 0 8px rgba(255,210,74,.6),0 0 2px rgba(255,210,74,.9)}
+  .ep-ch.hi3 em.b{color:#ffd24a;font-weight:900;font-size:1.05em}
+  .ep-ch.nx-sm.hi3 b{font-size:11.5px}
   .ep-ch i.gap{font-style:normal;font-size:9px;color:#15121c;background:var(--gold);
                border-radius:3px;padding:0 3px;font-weight:800}
   .ep-ch i.gapi{font-style:normal;font-size:9px;color:var(--dim2);border:1px solid #2b3a56;
@@ -5708,8 +5716,9 @@ function ewRenderWhere(end){
           (ztN?'<span class="thgrp-zt" title="该板块当日涨停家数">板块涨停 '+ztN+'</span>':'');
       const chips=list.map(p=>{
         const gap='<i class="gap-yb">缺口</i>';
-        return '<span class="ep-ch nx nx-sm" data-c="'+escHtml(p.code)+'" data-n="'+escHtml(p.name)+'" data-d="'+end+'" '+
-          'title="'+escHtml(p.name)+' · '+p.b+'板 · 形态 '+shapeName(p.shape)+(p.t?' · 首封 '+p.t:'')+' · 有缺口（今低&gt;昨涨停价）｜点看日K">'+
+        const hi=p.b>=3?' hi3':'';   // v121：≥3板赚钱效应股加粗加亮
+        return '<span class="ep-ch nx nx-sm'+hi+'" data-c="'+escHtml(p.code)+'" data-n="'+escHtml(p.name)+'" data-d="'+end+'" '+
+          'title="'+escHtml(p.name)+' · '+p.b+'板'+(p.b>=3?'（≥3板高亮）':'')+' · 形态 '+shapeName(p.shape)+(p.t?' · 首封 '+p.t:'')+' · 有缺口（今低&gt;昨涨停价）｜点看日K">'+
           '<b>'+escHtml(p.name)+'</b><em class="b">'+p.b+'板</em>'+shapeTag(end,p.code,p.shape)+
           (p.t?'<i class="hi2">'+escHtml(p.t)+'</i>':'')+gap+'</span>';
       }).join('');
@@ -5722,7 +5731,7 @@ function ewRenderWhere(end){
       ? grpHtml
       : '<div class="ew-empty">该交易日无「有缺口的连板股」（≥2板 且 今日最低价＞昨日涨停价）。</div>')+
     '<div class="ew-note">按题材展示当日<b style="color:var(--gold)">有缺口的连板股</b>（≥2板、今日最低价＞昨日涨停价＝昨日买入者全部获利，形态合并为「赚钱」）；'+
-    '一字涨停全天封死买不进，另行特别标记、不在本名单。点个股看日K，点题材看当日梯队。</div>';
+    '一字涨停全天封死买不进，另行特别标记、不在本名单。<b style="color:#ffe9a8">≥3 板个股名称加粗加亮</b>（赚钱效应强）。点个股看日K，点题材看当日梯队。</div>';
   host.querySelectorAll('.ep-ch').forEach(el=>{
     el.onclick=ev=>{ ev.stopPropagation(); showK(el.dataset.c, el.dataset.n, ev, el.dataset.d); };
   });
@@ -5788,15 +5797,16 @@ function ewExportPng(end){
     c.list.forEach((p,j)=>{
       const col=j%COLS, row=Math.floor(j/COLS);
       const x=PAD+PAD/2+col*(cw+CHIP_GAP), cy=y+54+row*(CHIP_H+CHIP_GAP);
-      ctx.fillStyle='#fbfcfe'; ewRoundRect(ctx,x,cy,cw,CHIP_H,9); ctx.fill();
-      ctx.strokeStyle='#e3e8ef'; ctx.lineWidth=1; ctx.stroke();
-      ctx.fillStyle=accent; ctx.fillRect(x,cy+8,3,CHIP_H-16);
-      ctx.fillStyle='#1f2733'; ctx.font='bold 18px '+FONT; ctx.textBaseline='top';
+      const hi3=(p.b||0)>=3;   // v121：≥3板赚钱效应股加粗加亮（与页面展示同口径）
+      ctx.fillStyle=hi3?'#fff8e4':'#fbfcfe'; ewRoundRect(ctx,x,cy,cw,CHIP_H,9); ctx.fill();
+      ctx.strokeStyle=hi3?'#e0b53a':'#e3e8ef'; ctx.lineWidth=hi3?2:1; ctx.stroke();
+      ctx.fillStyle=hi3?'#d19b12':accent; ctx.fillRect(x,cy+8,hi3?5:3,CHIP_H-16);
+      ctx.fillStyle=hi3?'#9a6a06':'#1f2733'; ctx.font=(hi3?'bold 20px':'bold 18px')+' '+FONT; ctx.textBaseline='top';
       ctx.fillText(p.name,x+14,cy+8,Math.max(60,cw-110));
-      ctx.fillStyle='#8a94a3'; ctx.font='13px '+FONT;
+      ctx.fillStyle=hi3?'#a5823c':'#8a94a3'; ctx.font=(hi3?'bold 13px':'13px')+' '+FONT;
       ctx.fillText(p.code,x+14,cy+31);
       ctx.textAlign='right';
-      ctx.fillStyle='#c8912a'; ctx.font='bold 14px '+FONT;
+      ctx.fillStyle=hi3?'#b8860b':'#c8912a'; ctx.font=(hi3?'bold 16px':'bold 14px')+' '+FONT;
       ctx.fillText((p.b||0)+'板',x+cw-12,cy+8);
       ctx.fillStyle='#5b6573'; ctx.font='12px '+FONT;
       const shp=shapeName(p.shape);
